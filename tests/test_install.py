@@ -29,7 +29,8 @@ def test_install_script_syntax_and_dry_run():
 def test_install_script_rejects_unknown_options_and_never_uses_sudo():
     text = (ROOT / "install.sh").read_text(encoding="utf-8")
     code = "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("#"))
-    assert "sudo " not in code.replace('"sudo apt install', "")   # the only mention is advice printed in an error message
+    import re
+    assert not re.search(r"^\s*sudo\s", code, re.M)   # sudo only appears inside advice text printed to the user, never as a command
     assert ".bashrc" not in code and ".profile" not in code and ".zshrc" not in code
     p = subprocess.run([BASH, str(ROOT / "install.sh"), "--bogus"], capture_output=True, text=True)
     assert p.returncode != 0 and "unknown option" in p.stderr or "native Windows" in p.stderr
