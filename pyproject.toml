@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nano-agent"
+version = "0.1.0a1"
+description = "A small, private, open-source personal AI assistant: bring your own model API key, web console, optional LINE."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "nano Agent contributors" }]
+keywords = ["ai", "assistant", "agent", "llm", "line", "self-hosted"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
+]
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn>=0.27",
+  "httpx>=0.26",
+  "tzdata; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+keyring = ["keyring>=24"]
+system = ["psutil>=5.9"]
+mcp = ["mcp>=1.0"]
+google = ["google-api-python-client", "google-auth-oauthlib"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.5", "build"]
+all = ["nano-agent[keyring,system,mcp,google]"]
+
+[project.scripts]
+nano-agent = "nano_agent.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/OWNER/nano-agent"
+Issues = "https://github.com/OWNER/nano-agent/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+nano_agent = ["locales/*.json", "gateway/static/*", "py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = ["E501", "B008"]
