@@ -5,9 +5,9 @@ import asyncio
 
 import pytest
 
-from nano_agent import config, db, keystore, paths
-from nano_agent.providers import FakeProvider
-from nano_agent.providers import base as pbase
+from nanoagent import config, db, keystore, paths
+from nanoagent.providers import FakeProvider
+from nanoagent.providers import base as pbase
 
 
 @pytest.fixture(autouse=True)
@@ -18,7 +18,7 @@ def home(tmp_path, monkeypatch):
     monkeypatch.setattr(paths, "pointer_file", lambda: tmp_path / "pointer")
     db.reset_cache()
     paths.ensure_dirs()
-    from nano_agent import i18n
+    from nanoagent import i18n
     i18n.set_language("en")
     yield tmp_path / "home"
     db.reset_cache()
@@ -39,7 +39,7 @@ def cfg_fake(home):
 @pytest.fixture
 def fake(monkeypatch, cfg_fake):
     """The singleton FakeProvider the agent will use, so a test can script it."""
-    from nano_agent import providers
+    from nanoagent import providers
     providers._FAKE_SINGLETONS.clear()
     p = providers.make_provider(config.load(), "fake")
     return p

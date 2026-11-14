@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nano-agent"
+name = "nanoagent"
 version = "0.1.0a1"
 description = "A small, private, open-source personal AI assistant: bring your own model API key, web console, optional LINE."
 readme = "README.md"
@@ -36,10 +36,10 @@ system = ["psutil>=5.9"]
 mcp = ["mcp>=1.0"]
 google = ["google-api-python-client", "google-auth-oauthlib"]
 dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.5", "build"]
-all = ["nano-agent[keyring,system,mcp,google]"]
+all = ["nanoagent[keyring,system,mcp,google]"]
 
 [project.scripts]
-nano-agent = "nano_agent.cli:main"
+nano-agent = "nanoagent.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/OWNER/nano-agent"
@@ -49,7 +49,7 @@ Issues = "https://github.com/OWNER/nano-agent/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-nano_agent = ["locales/*.json", "gateway/static/*", "py.typed"]
+nanoagent = ["locales/*.json", "gateway/static/*", "py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

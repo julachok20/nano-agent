@@ -6,7 +6,7 @@ import time
 
 import pytest
 
-from nano_agent import (
+from nanoagent import (
     activity,
     companion,
     config,
@@ -22,8 +22,8 @@ from nano_agent import (
     tools,
     usermodel,
 )
-from nano_agent.agent import Agent
-from nano_agent.providers import Response, ToolCall
+from nanoagent.agent import Agent
+from nanoagent.providers import Response, ToolCall
 
 from .conftest import run
 
@@ -281,7 +281,7 @@ def test_companion_level_rules_and_opener_variety():
 
 
 def test_companion_thai_opener():
-    from nano_agent import i18n
+    from nanoagent import i18n
     assert any("฀" <= ch <= "๿" for ch in companion.opener("th")["text"]) and i18n.t("companion.plain", "th")
 
 
@@ -381,7 +381,7 @@ def test_keystore_file_mode_env_override_and_redaction(home):
 
 
 def test_health_check_and_backup_restore_test(fake):
-    from nano_agent import health
+    from nanoagent import health
     memory.remember("a fact")
     r = health.backup_db()
     assert r["ok"] and r["restore_check"] == "passed"

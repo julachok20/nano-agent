@@ -5,13 +5,13 @@ import json
 
 import pytest
 
-from nano_agent import db, learning, patching, paths, tools
-from nano_agent.agent import Agent
-from nano_agent.providers import Response, ToolCall
+from nanoagent import db, learning, patching, paths, tools
+from nanoagent.agent import Agent
+from nanoagent.providers import Response, ToolCall
 
 from .conftest import run
 
-GOOD = '''from nano_agent.tools import tool
+GOOD = '''from nanoagent.tools import tool
 
 
 @tool("Add two numbers")
@@ -28,7 +28,7 @@ def edits(path="plugins/adder.py", new=GOOD, old=None):
 
 
 @pytest.mark.parametrize("path", [
-    "src/nano_agent/drafts.py", "nano_agent/gateway/auth.py", "gateway/line.py", "../secrets.toml", "plugins/../config.toml", "/etc/passwd", "C:/Windows/x.py",
+    "src/nanoagent/drafts.py", "nanoagent/gateway/auth.py", "gateway/line.py", "../secrets.toml", "plugins/../config.toml", "/etc/passwd", "C:/Windows/x.py",
     "secrets.toml", "config.toml", "nano.db", "plugins/.env", "plugins/credentials.json", "plugins/secrets.py", ".git/config", "tests/test_core.py",
     "plugins/drafts.py", "plugins/gateway/app.py", "SECURITY.md", "plugins/x.sh", "plugins/x.exe", "",
 ])
@@ -39,12 +39,12 @@ def test_denylist_refuses_core_secrets_and_escapes(path):
 
 
 def test_readable_only_inside_plugins():
-    assert patching.readable("plugins/a.py") and not patching.readable("src/nano_agent/drafts.py") and not patching.readable("secrets.toml")
+    assert patching.readable("plugins/a.py") and not patching.readable("src/nanoagent/drafts.py") and not patching.readable("secrets.toml")
     assert not patching.readable("../x")
 
 
 @pytest.mark.parametrize("code,why", [
-    ("import os\n", "os"), ("import subprocess\n", "subprocess"), ("from nano_agent import drafts\n", "from nano_agent import"), ("from nano_agent.drafts import approve\n", "not allowed"),
+    ("import os\n", "os"), ("import subprocess\n", "subprocess"), ("from nanoagent import drafts\n", "from nanoagent import"), ("from nanoagent.drafts import approve\n", "not allowed"),
     ("import socket\n", "socket"), ("x = eval('1')\n", "eval"), ("x = open('f')\n", "open"), ("x = ().__class__\n", "__class__"), ("f = getattr(int, 'x')\n", "getattr"),
     ("exec('x')\n", "exec"), ("import importlib\n", "importlib"), ("from . import x\n", "not allowed"), ("def f(:\n", "syntax"),
 ])
@@ -85,7 +85,7 @@ def test_good_patch_is_tested_but_not_applied_until_owner_approves():
 
 
 def test_failing_plugin_is_marked_failed_and_cannot_be_applied():
-    broken = "from nano_agent.tools import tool\nraise ValueError('boom')\n"
+    broken = "from nanoagent.tools import tool\nraise ValueError('boom')\n"
     r = patching.propose("Broken", "x", edits("plugins/broken.py", broken))
     assert r["ok"] and r["status"] == "failed"
     assert patching.apply(r["id"])["ok"] is False and not (paths.plugins_dir() / "broken.py").exists()
@@ -140,6 +140,6 @@ def test_agent_can_propose_but_the_tool_cannot_apply(fake):
 
 
 def test_agent_cannot_read_core_code_or_secrets_with_code_read():
-    assert tools.call_sync("code_read", {"path": "src/nano_agent/drafts.py"})[1] is False
+    assert tools.call_sync("code_read", {"path": "src/nanoagent/drafts.py"})[1] is False
     assert tools.call_sync("code_read", {"path": "secrets.toml"})[1] is False
     assert "propose_patch" in tools.REGISTRY and tools.REGISTRY["propose_patch"].safety == "prepare"

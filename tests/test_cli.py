@@ -8,10 +8,10 @@ from pathlib import Path
 import httpx
 import pytest
 
-from nano_agent import __version__, cli, config, i18n, keystore, paths, wizard
-from nano_agent.providers import base as pbase
+from nanoagent import __version__, cli, config, i18n, keystore, paths, wizard
+from nanoagent.providers import base as pbase
 
-SRC = Path(__file__).parents[1] / "src" / "nano_agent"
+SRC = Path(__file__).parents[1] / "src" / "nanoagent"
 FAKE_KEY = "sk-" + "Zx9Cv8Bn7Mk6" * 3   # scan:allow
 
 

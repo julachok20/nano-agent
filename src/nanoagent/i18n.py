@@ -1,4 +1,4 @@
-"""Text in English and Thai. Keys are dotted ids; locale files are JSON in nano_agent/locales/.
+"""Text in English and Thai. Keys are dotted ids; locale files are JSON in nanoagent/locales/.
 
 `t("setup.intro")` uses the language from config (en or th); a missing Thai key falls back to English, a missing
 English key falls back to the key itself so a gap is visible, never a crash. `ui_strings()` returns the `ui.*` keys the
@@ -17,7 +17,7 @@ _override: str | None = None
 @lru_cache(maxsize=8)
 def _load(lang: str) -> dict[str, str]:
     try:
-        text = resources.files("nano_agent").joinpath("locales", f"{lang}.json").read_text(encoding="utf-8")
+        text = resources.files("nanoagent").joinpath("locales", f"{lang}.json").read_text(encoding="utf-8")
         return json.loads(text)
     except Exception:
         return {}

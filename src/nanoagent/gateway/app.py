@@ -123,7 +123,7 @@ def create_app() -> FastAPI:
     async def static(name: str):
         if name not in ("console.js", "favicon.png", "logo-icon.png"):
             raise HTTPException(404)
-        data = resources.files("nano_agent").joinpath("gateway", "static", name).read_bytes()
+        data = resources.files("nanoagent").joinpath("gateway", "static", name).read_bytes()
         return Response(data, media_type="application/javascript" if name.endswith(".js") else "image/png", headers={"Cache-Control": "public, max-age=300"})
 
     @app.get("/api/strings")

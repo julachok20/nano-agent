@@ -36,7 +36,7 @@ user text --> Agent.run()
    final text --> reply
 ```
 
-The tool registry (`nano_agent/tools/`) is plain Python functions with a decorator. It is reused three ways:
+The tool registry (`nanoagent/tools/`) is plain Python functions with a decorator. It is reused three ways:
 the agent loop, the console API, and an optional **MCP stdio server** (`nano-agent mcp`, extra `[mcp]`), so
 Hermes, Claude Desktop or any MCP client can use the same tools. That is the "keep the tool code reusable"
 promise: tools never import the loop.
@@ -47,7 +47,7 @@ Anthropic Messages, Google Gemini, and Ollama native. Roles (`chat`, `fast`, `vi
 
 ### Scheduler (replaces Hermes cron)
 
-`nano_agent/scheduler.py` is an asyncio loop inside the gateway process. Jobs live in the `automations` table
+`nanoagent/scheduler.py` is an asyncio loop inside the gateway process. Jobs live in the `automations` table
 (interval, daily at HH:MM, weekly) and call registered job functions: reminders, the daily brief, outbox flush,
 database backup, weekly self-review, health check. One process, no cron daemon, works on Linux, macOS, WSL.
 The owner can pause, run now and edit schedules in the console. A job that fails is logged to `activity` and
@@ -91,7 +91,7 @@ Not copied at all: `.git` history, databases, memory, chats, tokens, `.env`, `cr
 ## 4. Package layout
 
 ```
-src/nano_agent/
+src/nanoagent/
   cli.py wizard.py doctor.py config.py secrets.py paths.py i18n.py
   providers/    base, openai_compat, anthropic, gemini, ollama, fake, presets
   tools/        registry, core, web, google (optional), sandbox (optional)

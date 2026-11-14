@@ -12,10 +12,10 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from nano_agent import config, db, drafts, keystore
-from nano_agent.gateway import auth, line
-from nano_agent.gateway.app import PUBLIC, create_app, dump_routes
-from nano_agent.providers import Response, ToolCall
+from nanoagent import config, db, drafts, keystore
+from nanoagent.gateway import auth, line
+from nanoagent.gateway.app import PUBLIC, create_app, dump_routes
+from nanoagent.providers import Response, ToolCall
 
 TOKEN = "owner-token-for-tests-only-0123456789"   # scan:allow  (same value as conftest)
 
@@ -92,7 +92,7 @@ def test_security_headers_and_static_whitelist(client):
 
 
 def test_console_js_never_uses_dangerous_dom_apis():
-    js = (Path(__file__).parents[1] / "src/nano_agent/gateway/static/console.js").read_text(encoding="utf-8")
+    js = (Path(__file__).parents[1] / "src/nanoagent/gateway/static/console.js").read_text(encoding="utf-8")
     for bad in ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "eval(", "new Function"):
         assert bad not in js, f"console.js uses {bad}"
 
@@ -181,7 +181,7 @@ def test_skills_learning_automation_and_settings_routes(owner):
     assert owner.post("/api/automations", json={"name": "n", "prompt": "p", "schedule": {"daily": "08:00"}}).json()["ok"]
     assert owner.post("/api/settings", json={"language": "th", "owner_name": "Sam", "timezone": "Asia/Bangkok"}).json()["ok"]
     assert owner.post("/api/settings", json={"timezone": "Nowhere/City"}).status_code == 400
-    from nano_agent import i18n
+    from nanoagent import i18n
     i18n.set_language(None)   # the test fixture pins English; the running gateway never does
     assert owner.get("/api/strings").json()["lang"] == "th"
     assert owner.post("/api/models/test").json()["ok"] is True

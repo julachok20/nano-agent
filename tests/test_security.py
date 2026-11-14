@@ -10,13 +10,13 @@ from pathlib import Path
 import httpx
 import pytest
 
-from nano_agent import sandbox
-from nano_agent.tools import web
+from nanoagent import sandbox
+from nanoagent.tools import web
 
 from .conftest import run
 
 ROOT = Path(__file__).parents[1]
-SRC = ROOT / "src" / "nano_agent"
+SRC = ROOT / "src" / "nanoagent"
 spec = importlib.util.spec_from_file_location("secrets_scan", ROOT / "scripts" / "secrets_scan.py")
 scan = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(scan)
@@ -171,7 +171,7 @@ def test_google_module_can_never_send_mail():
 
 
 def test_there_is_no_tool_or_route_that_sends_without_approval():
-    from nano_agent import tools
+    from nanoagent import tools
     names = " ".join(tools.REGISTRY)
     assert not re.search(r"send_|push_|direct", names), names
     for t in tools.REGISTRY.values():

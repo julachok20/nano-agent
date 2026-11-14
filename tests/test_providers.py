@@ -6,8 +6,8 @@ import json
 import httpx
 import pytest
 
-from nano_agent import config, keystore
-from nano_agent.providers import (
+from nanoagent import config, keystore
+from nanoagent.providers import (
     AnthropicProvider,
     GeminiProvider,
     OllamaProvider,
@@ -16,7 +16,7 @@ from nano_agent.providers import (
     Response,
     make_provider,
 )
-from nano_agent.providers.base import explain_status
+from nanoagent.providers.base import explain_status
 
 from .conftest import run
 
@@ -124,7 +124,7 @@ def test_retries_on_429_then_succeeds(monkeypatch):
 
     async def nosleep(_):
         return None
-    monkeypatch.setattr("nano_agent.providers.base.asyncio.sleep", nosleep)
+    monkeypatch.setattr("nanoagent.providers.base.asyncio.sleep", nosleep)
 
     def handler(req):
         calls.append(1)
@@ -137,7 +137,7 @@ def test_make_provider_reads_secret_and_roles(home):
     cfg["providers"]["main"] = {"kind": "openai", "base_url": "https://x/v1", "key_ref": "provider.main"}
     cfg["models"]["chat"] = "main/gpt-x"
     keystore.set_("provider.main", KEY)
-    from nano_agent.providers import for_role
+    from nanoagent.providers import for_role
     prov, model = for_role(cfg, "fast")   # fast falls back to chat
     assert model == "gpt-x" and prov.api_key == KEY and prov.kind == "openai"
     with pytest.raises(ProviderError):

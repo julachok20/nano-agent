@@ -75,7 +75,7 @@ def cmd_start(a) -> int:
         kw["creationflags"] = 0x00000008 | 0x00000200   # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
     else:
         kw["start_new_session"] = True
-    proc = subprocess.Popen([sys.executable, "-m", "nano_agent", "serve"], **kw)
+    proc = subprocess.Popen([sys.executable, "-m", "nanoagent", "serve"], **kw)
     paths.pid_path().write_text(str(proc.pid))
     for _ in range(40):
         if _health(cfg):
