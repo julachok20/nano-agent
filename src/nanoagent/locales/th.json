@@ -59,6 +59,7 @@
   "cli.token_hint": "รัน `nano-agent token` เพื่อรับลิงก์เข้าใช้ (มีโทเค็นลับอยู่ในลิงก์)", "cli.start_failed": "เริ่มไม่สำเร็จ ดูล็อก: {log}",
   "cli.not_running": "ไม่ได้ทำงานอยู่", "cli.stopped": "หยุดแล้ว", "cli.status_running": "กำลังทำงาน (pid {pid})", "cli.status_stopped": "หยุดอยู่",
   "cli.status_console": "คอนโซล", "cli.status_model": "โมเดล", "cli.status_home": "โฟลเดอร์ข้อมูล", "cli.no_logs": "ยังไม่มีล็อก",
+  "cli.token_rotated": "สร้างโทเค็นใหม่แล้ว ทุกเบราว์เซอร์ถูกออกจากระบบ",
   "cli.token_warn": "ลิงก์นี้มีโทเค็นลับ เปิดบนอุปกรณ์ของคุณเองเท่านั้น", "cli.chat_hint": "คุยในเทอร์มินัล พิมพ์ /quit เพื่อออก",
   "cli.update_running": "กำลังอัปเดตด้วย: {cmd}", "cli.update_restart": "อัปเดตแล้ว เริ่มใหม่ด้วย: nano-agent stop && nano-agent start",
   "cli.uninstall_plan": "กำลังหยุด nano Agent โฟลเดอร์ข้อมูลของคุณคือ {home}", "cli.uninstall_confirm": "พิมพ์ 'delete' เพื่อลบ {home} ถาวร:", "cli.aborted": "ยกเลิกแล้ว",

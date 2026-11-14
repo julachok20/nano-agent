@@ -59,6 +59,7 @@
   "cli.token_hint": "Run `nano-agent token` to get the login link (it contains your secret token).", "cli.start_failed": "It did not start. Look at the log: {log}",
   "cli.not_running": "Not running.", "cli.stopped": "Stopped.", "cli.status_running": "running (pid {pid})", "cli.status_stopped": "stopped",
   "cli.status_console": "console", "cli.status_model": "model", "cli.status_home": "data folder", "cli.no_logs": "No log yet.",
+  "cli.token_rotated": "A new token was created. Every browser is signed out.",
   "cli.token_warn": "This link contains your secret token. Open it only on your own device.", "cli.chat_hint": "Chatting in the terminal. Type /quit to leave.",
   "cli.update_running": "Updating with: {cmd}", "cli.update_restart": "Updated. Restart with: nano-agent stop && nano-agent start",
   "cli.uninstall_plan": "Stopping nano Agent. Your data folder is {home}.", "cli.uninstall_confirm": "Type 'delete' to permanently delete {home}:", "cli.aborted": "Aborted.",

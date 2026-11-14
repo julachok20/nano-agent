@@ -177,8 +177,11 @@ def cmd_doctor(a) -> int:
     return doctor.run(offline=a.offline, as_json=a.json)
 
 
-def cmd_token(_a) -> int:
+def cmd_token(a) -> int:
     from .gateway import auth
+    if a.rotate:
+        keystore.delete("owner.token")   # old browser sessions stop working at once: the session cookie is derived from the token
+        _p(t("cli.token_rotated"))
     auth.owner_token()
     _p(t("cli.token_warn"))
     _p(console_url(with_token=True))
@@ -475,7 +478,9 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--offline", action="store_true", help="skip the model call")
     s.add_argument("--json", action="store_true")
     s.set_defaults(fn=cmd_doctor)
-    sp.add_parser("token", help="print the console login URL (contains your secret token)").set_defaults(fn=cmd_token)
+    s = sp.add_parser("token", help="print the console login URL (contains your secret token)")
+    s.add_argument("--rotate", action="store_true", help="create a new token and log out every browser")
+    s.set_defaults(fn=cmd_token)
     s = sp.add_parser("chat", help="talk to the assistant in the terminal")
     s.add_argument("text", nargs="*")
     s.set_defaults(fn=cmd_chat)

@@ -242,14 +242,15 @@ async function vSettings() {
 // ---------- boot ----------
 async function boot() {
   const s = await (await fetch("/api/strings")).json(); S = s.strings; lang = s.lang; S._liff = s.liff_id || ""; document.documentElement.lang = lang;
-  if (location.hash.startsWith("#token=")) {
-    const tok = decodeURIComponent(location.hash.slice(7)); history.replaceState(null, "", location.pathname);
-    await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: tok }) });
+  const hp = new URLSearchParams(location.hash.slice(1));   // #token=...&tab=mind&sub=skills ; a fragment never reaches server logs
+  if (hp.get("token")) {
+    history.replaceState(null, "", location.pathname);
+    await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: hp.get("token") }) });
   }
   let r = await fetch("/api/me", { credentials: "same-origin" });
   if (r.status === 401 && await liffLogin()) r = await fetch("/api/me", { credentials: "same-origin" });
   if (r.status === 401) return showLogin();
-  ME = await r.json(); applyUi(ME.prefs || {}); drawTabs(); render(); pollPill();
+  ME = await r.json(); applyUi(ME.prefs || {}); if (HUBS.some(h => h[0] === hp.get("tab"))) { tab = hp.get("tab"); if (hp.get("sub")) sub[tab] = hp.get("sub"); } drawTabs(); render(); pollPill();
 }
 setInterval(pollPill, 5000);
 setInterval(() => { if (tab === "home") refreshHome(); }, 15000);
