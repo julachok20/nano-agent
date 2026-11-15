@@ -49,6 +49,13 @@ def main() -> int:
                 raise RuntimeError("gateway did not become healthy")
             page = opener.open(base + "/console", timeout=3).read().decode()
             assert "nano Agent" in page and "console.js" in page
+            for route in ("/api/me", "/api/state", "/api/skills", "/api/learning"):
+                try:
+                    opener.open(base + route, timeout=3)
+                except urllib.error.HTTPError as exc:
+                    assert exc.code == 401, (route, exc.code)
+                else:
+                    raise AssertionError(f"owner route accessible without login: {route}")
             req = urllib.request.Request(base + "/api/login", data=(f'{{"token":"{token}"}}').encode(),
                                          headers={"Content-Type": "application/json"})
             with opener.open(req, timeout=3) as response:
@@ -56,7 +63,7 @@ def main() -> int:
                 assert json.loads(response.read()).get("ok") is True
             me = opener.open(base + "/api/me", timeout=3).read()
             assert b"E2E" in me
-            print("E2E OK: fake setup, gateway health, console, owner login and private API")
+            print("E2E OK: fake setup, gateway health, console, owner route auth, owner login and private API")
         finally:
             subprocess.run(cli + ["stop"], cwd=ROOT, env=env, check=False, stdout=subprocess.DEVNULL)
             os.environ.pop("NANO_AGENT_HOME", None)
