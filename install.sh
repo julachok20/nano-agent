@@ -27,7 +27,8 @@ say() { printf '%s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
 frame_row() {
-  local width="$1" plain="$2" styled="$3" pad=$((width - ${#2}))
+  local width="$1" plain="$2" styled="$3" pad
+  pad=$((width - ${#plain}))
   [ "$pad" -ge 0 ] || pad=0
   printf '  \033[38;2;70;78;88m│\033[0m %s%*s \033[38;2;70;78;88m│\033[0m\n' "$styled" "$pad" ''
 }
