@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # nano Agent installer for Linux, macOS and WSL. No sudo, no system changes: it installs into your home folder only.
 #
-#   curl -fsSL https://raw.githubusercontent.com/julachok20/nano-agent/main/install.sh | bash
-#   (safer: download it, read it, then run it:  curl -fsSLO <same url> && less install.sh && bash install.sh)
+#   bash install.sh                 # from a local checkout; installs, sets up, and launches
+#   curl -fsSLo install.sh https://raw.githubusercontent.com/julachok20/nano-agent/main/install.sh && bash install.sh
+#   (the download URL works only after the GitHub repository is made public)
 #
 # What it does, in order (it prints the plan before it starts):
 #   1. checks the OS (Linux, macOS, WSL) and finds Python 3.11 or newer
@@ -110,7 +111,7 @@ while [ $# -gt 0 ]; do
     --method) shift; [ $# -gt 0 ] || die "--method needs a value"; INSTALL_METHOD="$1" ;;
     --from) shift; [ $# -gt 0 ] || die "--from needs a value"; SPEC="$1" ;;
     --ref) shift; [ $# -gt 0 ] || die "--ref needs a value"; REF="$1" ;;
-    -h|--help) sed -n '2,19p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,16p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown option: $1 (try --help)" ;;
   esac
   shift
@@ -137,11 +138,19 @@ done
 [ -n "$PY" ] || die "Python 3.11 or newer was not found. Install it (for example: sudo apt install python3 python3-venv, or brew install python) and run this again."
 PYV="$("$PY" -c 'import sys; print("%d.%d.%d" % sys.version_info[:3])')"
 
+SCRIPT_DIR=""
 if [ -z "$SPEC" ]; then
   if [ "${NANO_AGENT_FROM_PYPI:-0}" = "1" ]; then
     SPEC="nanoagent"
   else
-    SPEC="https://codeload.github.com/${REPO}/tar.gz/${REF}"
+    if [ -f "${BASH_SOURCE[0]}" ]; then
+      SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+    fi
+    if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/pyproject.toml" ] && [ -d "$SCRIPT_DIR/src/nanoagent" ]; then
+      SPEC="$SCRIPT_DIR"
+    else
+      SPEC="https://codeload.github.com/${REPO}/tar.gz/${REF}"
+    fi
   fi
 fi
 
@@ -166,6 +175,7 @@ esac
 if [ -t 1 ]; then
   SOURCE_LABEL="$SPEC"
   [ "$SPEC" != "https://codeload.github.com/${REPO}/tar.gz/${REF}" ] || SOURCE_LABEL="$REPO · $REF"
+  [ "$SPEC" != "$SCRIPT_DIR" ] || SOURCE_LABEL="Local checkout · $SPEC"
   frame 2 "Ready to install" "OS: $OS · Python: $PYV" "Source: $SOURCE_LABEL" \
     "Method: $METHOD · Data: $HOME_DIR" "Next: install package → configure assistant → open console"
 else

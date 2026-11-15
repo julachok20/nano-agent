@@ -7,18 +7,18 @@ nano Agent supports native Windows, Linux, macOS and WSL with Python 3.11 or new
 From a local checkout on Linux, macOS or WSL:
 
 ```bash
-bash install.sh --from .
+bash install.sh
 ```
 
 From a local checkout on native Windows, use PowerShell:
 
 ```powershell
-.\install.ps1 -From .
+.\install.ps1
 ```
 
-After the repository's `main` branch is published, download the script from its raw GitHub URL, inspect it, then run it. A private or absent repository gives HTTP 404 to unauthenticated users. The Windows installer can offer to install Python 3.12 with `winget --scope user` if Python is missing; it asks first.
+The local installer automatically uses the checkout containing the script. One command installs the package, opens the setup wizard, then starts the assistant, dashboard, and terminal chat. After the repository is public, a remote install can download the script and run it in one shell line: `curl -fsSLo nano-agent-install.sh https://raw.githubusercontent.com/julachok20/nano-agent/main/install.sh && bash nano-agent-install.sh`. The `&&` stops the install if downloading fails. A private or absent repository gives HTTP 404 to unauthenticated users. The Windows installer can offer to install Python 3.12 with `winget --scope user` if Python is missing; it asks first.
 
-Both scripts prefer `uv`, then `pipx`, then a private virtual environment under `~/.nano-agent` (Windows: `%USERPROFILE%\.nano-agent`). Setup starts after installation. On Linux and macOS use `--no-setup`, `--dry-run`, `--from SPEC`; on Windows use `-NoSetup`, `-DryRun`, `-From SPEC`. For example, `bash install.sh --dry-run --from .` or `.\install.ps1 -DryRun -From .`. On Linux, macOS, or WSL, `--method venv` explicitly selects the private virtual environment, even when `uv` or `pipx` is installed. A local checkout, wheel, or pip URL can be used as `SPEC`.
+Both scripts prefer `uv`, then `pipx`, then a private virtual environment under `~/.nano-agent` (Windows: `%USERPROFILE%\.nano-agent`). Setup starts after installation. On Linux and macOS use `--no-setup`, `--dry-run`, `--from SPEC`; on Windows use `-NoSetup`, `-DryRun`, `-From SPEC`. For example, `bash install.sh --dry-run` or `.\install.ps1 -DryRun`. On Linux, macOS, or WSL, `--method venv` explicitly selects the private virtual environment, even when `uv` or `pipx` is installed. A local checkout, wheel, or pip URL can be used as `SPEC`.
 
 If the fallback venv is used, the executable lives in `~/.local/bin/nano-agent` on Unix. On Windows it lives in `%USERPROFILE%\.nano-agent\venv\Scripts\nano-agent.exe`; a `nano-agent.cmd` launcher is also placed in `%USERPROFILE%\.local\bin`. Add that bin folder to your PATH if you want to use the short command in every new shell.
 
@@ -42,7 +42,7 @@ Use `nano-agent update` to update the installed package. `nano-agent uninstall` 
 
 Installation prints the detected OS, Python interpreter, source, method, and data location before asking to continue. Interactive setup then offers Quick or Custom setup, starts the local service, opens the console, and starts terminal chat. Check with `nano-agent status` and `nano-agent doctor --offline`; a healthy local service reports a console URL on `127.0.0.1` and no failed mandatory checks.
 
-If the download URL returns 404, use a local checkout with `--from .` until the repository is published. If `nano-agent` is not found after a fallback venv install, use the full executable path above or add its bin directory to PATH. If startup fails, run `nano-agent logs --follow` and `nano-agent doctor --offline` before changing configuration.
+If the download URL returns 404, run `bash install.sh` (or `.\install.ps1` on Windows) from the local checkout until the repository is public. If `nano-agent` is not found after a fallback venv install, use the full executable path above or add its bin directory to PATH. If startup fails, run `nano-agent logs --follow` and `nano-agent doctor --offline` before changing configuration.
 
 ## From source
 

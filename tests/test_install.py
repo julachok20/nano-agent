@@ -26,6 +26,22 @@ def test_install_script_syntax_and_dry_run():
 
 
 @pytest.mark.skipif(os.name == "nt" or not BASH, reason="POSIX installer runs on Unix or WSL")
+def test_installer_uses_local_checkout_by_default_and_keeps_remote_fallback(tmp_path):
+    env = {k: v for k, v in os.environ.items() if k not in ("NANO_AGENT_SPEC", "NANO_AGENT_FROM_PYPI", "NANO_AGENT_REPO")}
+    local = subprocess.run([BASH, str(ROOT / "install.sh"), "--dry-run", "--method", "venv"],
+                           cwd=tmp_path, capture_output=True, text=True, env=env)
+    assert local.returncode == 0, local.stderr
+    assert f"Source:    {ROOT.resolve()}" in local.stdout
+
+    standalone = tmp_path / "install.sh"
+    shutil.copyfile(ROOT / "install.sh", standalone)
+    remote = subprocess.run([BASH, str(standalone), "--dry-run", "--method", "venv"],
+                            cwd=tmp_path, capture_output=True, text=True, env=env)
+    assert remote.returncode == 0, remote.stderr
+    assert "Source:    https://codeload.github.com/julachok20/nano-agent/tar.gz/main" in remote.stdout
+
+
+@pytest.mark.skipif(os.name == "nt" or not BASH, reason="POSIX installer runs on Unix or WSL")
 def test_install_script_rejects_unknown_options_and_never_uses_sudo():
     text = (ROOT / "install.sh").read_text(encoding="utf-8")
     code = "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("#"))

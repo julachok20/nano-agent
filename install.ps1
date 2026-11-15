@@ -1,5 +1,6 @@
 # nano Agent installer for native Windows. Runs in the current user account.
-# Download and inspect before running: irm https://raw.githubusercontent.com/julachok20/nano-agent/main/install.ps1 | iex
+# From a local checkout: .\install.ps1 (install, setup, and launch in one run).
+# Remote download works only after the GitHub repository is made public.
 param(
     [switch]$DryRun,
     [switch]$NoSetup,
@@ -10,7 +11,9 @@ param(
 $ErrorActionPreference = 'Stop'
 $repo = if ($env:NANO_AGENT_REPO) { $env:NANO_AGENT_REPO } else { 'julachok20/nano-agent' }
 $ref = if ($env:NANO_AGENT_REF) { $env:NANO_AGENT_REF } else { 'main' }
-$spec = if ($From) { $From } elseif ($env:NANO_AGENT_SPEC) { $env:NANO_AGENT_SPEC } else { "https://codeload.github.com/$repo/tar.gz/$ref" }
+$localSource = if ($PSScriptRoot -and (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'pyproject.toml')) -and
+    (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'src\nanoagent'))) { $PSScriptRoot } else { '' }
+$spec = if ($From) { $From } elseif ($env:NANO_AGENT_SPEC) { $env:NANO_AGENT_SPEC } elseif ($localSource) { $localSource } else { "https://codeload.github.com/$repo/tar.gz/$ref" }
 $agentHome = if ($env:NANO_AGENT_HOME) { $env:NANO_AGENT_HOME } else { Join-Path $HOME '.nano-agent' }
 $binDir = if ($env:NANO_AGENT_BIN_DIR) { $env:NANO_AGENT_BIN_DIR } else { Join-Path $HOME '.local\bin' }
 $isInteractive = [Environment]::UserInteractive -and -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected
@@ -128,6 +131,7 @@ $plan = switch ($method) {
     default { "Create $agentHome\venv; pip install $spec; link $binDir\nano-agent.exe" }
 }
 $sourceLabel = if ($spec -eq "https://codeload.github.com/$repo/tar.gz/$ref") { "$repo · $ref" } else { $spec }
+if ($localSource -and $spec -eq $localSource) { $sourceLabel = "Local checkout · $spec" }
 Show-Screen 2 'Ready to install' @(
     "OS: Windows · Python: $($python.Version)",
     "Source: $sourceLabel",

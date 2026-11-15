@@ -11,13 +11,13 @@ The installer supports Windows, Linux, macOS and WSL. It installs an isolated co
 From a local checkout, run **Windows PowerShell**:
 
 ```powershell
-.\install.ps1 -From .
+.\install.ps1
 ```
 
 Or **Linux, macOS, or WSL**:
 
 ```bash
-bash install.sh --from .
+bash install.sh
 ```
 
 Choose **Quick setup** to set only the language, model and key; the dashboard stays local and optional integrations can be added later. **Custom setup** exposes the full choices. API keys are entered privately and stored separately from `config.toml`. To run a local model server, choose an OpenAI-compatible provider and enter its local base URL. When interactive setup finishes, nano Agent opens the dashboard and starts terminal chat. Next time, run `nano-agent launch` (or just `nano-agent` in a terminal). Type `/dashboard` in chat to reopen the browser and `/quit` to leave chat; the dashboard keeps running. Inspect the service with:
