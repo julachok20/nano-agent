@@ -88,6 +88,8 @@ def main() -> int:
                     page.locator("nav button").first.click()
                     page.wait_for_timeout(500)
                     page.screenshot(path=str(args.out / "console-home.png"), full_page=True)
+                    page.set_viewport_size({"width": 390, "height": 844})
+                    page.screenshot(path=str(args.out / "console-mobile.png"), full_page=True)
                     browser.close()
             if args.open:
                 webbrowser.open(url)

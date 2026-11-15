@@ -101,6 +101,23 @@ def test_interactive_wizard_english_end_to_end(home, monkeypatch):
     assert FAKE_KEY not in text and "Tailscale" in text and "Cloudflare" in text and "Local only" in text and "(hidden)" in text
 
 
+def test_quick_setup_uses_local_defaults_with_three_choices(home):
+    s = Script(["1", "12", ""], [])  # English, fake provider, default model
+    a = wizard.collect(s.prompter(), quick=True)
+    assert s.a == []
+    assert a["provider"] == "fake" and a["exposure"] == "local"
+    assert a["home"] == str(home) and a["line_later"] is True
+    assert a["fast_model"] and a["voice"]["enabled"]
+
+
+def test_launch_starts_dashboard_without_chat_when_requested(monkeypatch):
+    setup_fake()
+    seen = []
+    monkeypatch.setattr(cli, "cmd_start", lambda args: seen.append(args) or 0)
+    assert main("launch", "--no-browser", "--no-chat") == 0
+    assert len(seen) == 1 and seen[0].open is False
+
+
 def test_interactive_wizard_thai_and_line_now(home, monkeypatch):
     monkeypatch.setattr(wizard.shutil, "which", lambda _: "/usr/bin/docker")
     s = Script(["2", "สม", "Asia/Bangkok", "12", "", "", "1", str(home), "2", "", "y", "y", "n"], ["line-secret-x", "line-token-x"])   # 12 = fake provider; line now; sandbox no

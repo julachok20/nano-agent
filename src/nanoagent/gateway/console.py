@@ -19,6 +19,25 @@ header img{width:30px;height:30px;border-radius:8px}header b{letter-spacing:.04e
 .pill.busy{color:var(--accent);border-color:var(--accent)}.pill i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--dim);margin-right:6px}
 .pill.busy i{background:var(--warn);animation:pulse 1.2s infinite}@keyframes pulse{50%{opacity:.3}}
 main{max-width:860px;margin:0 auto;padding:var(--gap)}
+main:has(.home-grid){max-width:1370px;padding:24px clamp(16px,3vw,42px)}
+.home-intro{display:flex;align-items:end;justify-content:space-between;gap:20px;padding:22px 4px 20px;border-bottom:1px solid var(--line)}
+.home-kicker{color:var(--accent);font-size:.72rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase}
+.home-intro h1{font-size:clamp(1.8rem,4vw,3.25rem);line-height:1.05;letter-spacing:-.045em;margin:9px 0 10px}
+.home-intro p{color:var(--dim);margin:0}.home-chat-button{background:var(--accent);color:#001018;font-weight:800;border:0;padding:11px 20px;white-space:nowrap}
+.home-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}
+.home-metric{background:#0a1828;border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:flex;align-items:baseline;gap:12px}
+.home-metric strong{font-size:1.7rem;line-height:1;color:var(--txt);font-variant-numeric:tabular-nums}.home-metric span{color:var(--dim);font-size:.82rem}
+.home-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,1.2fr) minmax(0,1fr);gap:14px;align-items:stretch}
+.home-stack{display:grid;align-content:start;gap:14px}.home-card,.home-focus{background:linear-gradient(155deg,#10243a,#091521 75%);border:1px solid var(--line);border-radius:16px;padding:20px}
+.home-card{min-height:165px}.home-card h2{font-size:.85rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin:0 0 14px}
+.home-card p{margin:8px 0}.home-card-number{font-size:2.5rem;font-weight:800;line-height:1}.home-list-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:.86rem}
+.home-list-row span{overflow-wrap:anywhere}.home-list-row small{color:var(--dim);white-space:nowrap}.home-link{border:0;background:none;padding:8px 0 0;color:var(--accent);font-size:.8rem;font-weight:700}
+.home-focus{text-align:center;min-height:480px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 44%,#143d53 0,#0c2133 36%,#091521 76%)}
+.home-focus:before,.home-focus:after{content:"";position:absolute;border:1px solid #2b526b;border-radius:50%;width:310px;height:310px;top:50%;left:50%;transform:translate(-50%,-45%);opacity:.32;pointer-events:none}
+.home-focus:after{width:370px;height:370px;opacity:.15}.home-focus>*{position:relative;z-index:1}.home-clock{font-size:clamp(2.2rem,4vw,3.7rem);font-weight:300;font-variant-numeric:tabular-nums;letter-spacing:-.06em;margin:8px 0 4px}
+.home-focus .orb{margin:20px auto 22px}.home-heard{color:var(--dim);font-size:.85rem}.home-said{font-size:.9rem;max-width:32ch}.home-focus p{max-width:34ch;margin:12px auto 0}
+@media(max-width:1000px){.home-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.home-focus{grid-column:1/-1;grid-row:1;min-height:390px}.home-stack{grid-row:2}}
+@media(max-width:620px){main:has(.home-grid){padding:14px}.home-intro{align-items:start;flex-direction:column;padding:14px 4px}.home-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.home-grid{display:flex;flex-direction:column}.home-focus{order:-1;min-height:310px}.home-focus .orb{width:145px;height:145px;margin:10px auto}.home-focus:before{width:250px;height:250px}.home-focus:after{width:290px;height:290px}.home-stack{display:contents}.home-card{min-height:0}.home-metric{display:block}.home-metric span{display:block;margin-top:6px}}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:var(--gap)}
 .chip{border:1px solid var(--line);background:#0a1a2c;color:var(--txt);border-radius:10px;padding:7px 13px;cursor:pointer;font:inherit}
 .chip.on{background:var(--accent);color:#001018;border-color:var(--accent);font-weight:600}

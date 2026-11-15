@@ -99,21 +99,54 @@ async function orbTap() {
 }
 async function vHome() {
   const v = clear();
-  v.append(h("div", { class: "panel", style: "text-align:center" },
-    h("div", { id: "orb", class: "orb", "data-state": "idle", onclick: orbTap, text: t("orb_tap") }),
-    h("div", { id: "heard", class: "dim" }), h("div", { id: "said" }), h("div", { class: "dim", text: t("orb_hint") })));
-  v.append(h("div", { id: "homepanels" })); refreshHome();
+  v.append(
+    h("section", { class: "home-intro" },
+      h("div", null, h("div", { class: "home-kicker", text: t("home_kicker") }),
+        h("h1", { text: t("home_title") }), h("p", { text: t("home_subtitle") })),
+      h("button", { class: "home-chat-button", onclick: () => go("chat"), text: t("home_chat") })),
+    h("div", { id: "home-metrics", class: "home-metrics" }),
+    h("div", { class: "home-grid" },
+      h("div", { id: "home-left", class: "home-stack" }),
+      h("section", { class: "home-focus" },
+        h("div", { class: "home-kicker", text: t("home_talk") }),
+        h("div", { id: "home-clock", class: "home-clock" }),
+        h("div", { id: "orb", class: "orb", "data-state": "idle", onclick: orbTap, text: t("orb_tap") }),
+        h("div", { id: "heard", class: "home-heard" }),
+        h("div", { id: "said", class: "home-said" }),
+        h("p", { class: "dim", text: t("orb_hint") })),
+      h("div", { id: "home-right", class: "home-stack" })));
+  refreshHome();
 }
 async function refreshHome() {
   if (tab !== "home") return;
   const [st, dr, tk, ac] = await Promise.all([api("/state"), api("/drafts"), api("/tasks"), api("/activity")]);
-  const box = $("#homepanels"); if (!box) return; box.replaceChildren();
+  const left = $("#home-left"), right = $("#home-right"), metrics = $("#home-metrics");
+  if (!left || !right || !metrics) return;
+  const factCount = (st.memory.fact || 0) + (st.memory.rule || 0);
+  const metric = (value, label) => h("div", { class: "home-metric" }, h("strong", { text: String(value) }), h("span", { text: label }));
+  metrics.replaceChildren(metric(st.open_tasks, t("sub_tasks")), metric(dr.drafts.length, t("sub_drafts")),
+    metric(ac.running.length, t("sub_activity")), metric(factCount, t("memory_title")));
+  $("#home-clock").textContent = new Date().toLocaleTimeString(lang === "th" ? "th-TH" : undefined, { hour: "2-digit", minute: "2-digit" });
+  left.replaceChildren(); right.replaceChildren();
   const show = new Set((ME.prefs && ME.prefs["ui.panels"]) || ["work", "tasks", "memory", "drafts", "notifications", "system"]);
-  if (dr.drafts.length) box.append(draftsPanel(dr.drafts, refreshHome));
-  if (show.has("tasks")) box.append(panel(t("tasks_open", { n: st.open_tasks }), ...tk.tasks.filter(x => !x.done).slice(0, 5).map(x => h("div", { class: "row" }, h("span", { class: "grow", text: x.title }), h("span", { class: "dim", text: x.due })))));
-  if (show.has("work")) box.append(panel(t("work_title"), ac.running.length ? ac.running.map(a => h("div", { class: "row" }, h("span", { class: "tag warn", text: "●" }), h("span", { class: "grow", text: a.title }), h("span", { class: "dim", text: Math.round(a.secs) + "s" }))) : h("p", { class: "dim", text: t("work_idle") })));
-  if (show.has("notifications") && st.notifications.length) box.append(panel(t("notif_title"), ...st.notifications.map(n => h("div", { class: "row" }, h("span", { class: "grow", text: n.text }), h("span", { class: "dim", text: when(n.ts) })))));
-  if (show.has("memory")) box.append(panel(t("memory_title"), h("span", { class: "dim", text: t("memory_counts", { f: st.memory.fact || 0, r: st.memory.rule || 0 }) })));
+  const card = (title, ...kids) => h("section", { class: "home-card" }, h("h2", { text: title }), ...kids);
+  if (show.has("tasks")) left.append(card(t("tasks_open", { n: st.open_tasks }),
+    ...tk.tasks.filter(x => !x.done).slice(0, 4).map(x => h("div", { class: "home-list-row" },
+      h("span", { text: x.title }), h("small", { text: x.due || "" }))),
+    h("button", { class: "home-link", onclick: () => go("manage"), text: t("home_review") })));
+  if (show.has("memory")) left.append(card(t("memory_title"),
+    h("div", { class: "home-card-number", text: String(factCount) }),
+    h("p", { class: "dim", text: t("memory_counts", { f: st.memory.fact || 0, r: st.memory.rule || 0 }) }),
+    h("button", { class: "home-link", onclick: () => go("mind"), text: t("home_review") })));
+  if (show.has("drafts")) right.append(card(t("drafts_title", { n: dr.drafts.length }),
+    h("p", { class: "dim", text: dr.drafts.length ? t("drafts_note") : t("drafts_none") }),
+    h("button", { class: "home-link", onclick: () => { sub.manage = "drafts"; go("manage"); }, text: t("home_review") })));
+  if (show.has("work")) right.append(card(t("work_title"),
+    ac.running.length ? ac.running.map(a => h("div", { class: "home-list-row" }, h("span", { text: a.title }), h("small", { text: Math.round(a.secs) + "s" })))
+      : h("p", { class: "dim", text: t("work_idle") }),
+    h("button", { class: "home-link", onclick: () => go("work"), text: t("home_review") })));
+  if (show.has("notifications") && st.notifications.length) right.append(card(t("notif_title"),
+    ...st.notifications.slice(0, 3).map(n => h("div", { class: "home-list-row" }, h("span", { text: n.text }), h("small", { text: when(n.ts) })))));
 }
 function draftsPanel(list, after) {
   return panel(t("drafts_title", { n: list.length }), h("p", { class: "dim", text: t("drafts_note") }), ...list.map(d => h("div", { class: "row" },

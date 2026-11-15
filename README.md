@@ -24,7 +24,7 @@ less install.sh
 bash install.sh
 ```
 
-Choose a model provider in setup. API keys are entered privately and stored separately from `config.toml`. To run a local model server, choose an OpenAI-compatible provider and enter its local base URL. After setup, open the private console URL printed by setup. Start and inspect the service with:
+Choose **Quick setup** to set only the language, model and key; the dashboard stays local and optional integrations can be added later. **Custom setup** exposes the full choices. API keys are entered privately and stored separately from `config.toml`. To run a local model server, choose an OpenAI-compatible provider and enter its local base URL. When interactive setup finishes, nano Agent opens the dashboard and starts terminal chat. Next time, run `nano-agent launch` (or just `nano-agent` in a terminal). Type `/dashboard` in chat to reopen the browser and `/quit` to leave chat; the dashboard keeps running. Inspect the service with:
 
 ```bash
 nano-agent status
@@ -47,6 +47,8 @@ To remove nano Agent, run `nano-agent uninstall`; review its prompt carefully be
 The project includes the console logo and icon in `assets/`. These screenshots use a temporary fake-provider home and no personal account.
 
 ![nano Agent home console](docs/img/console-home.png)
+
+![nano Agent mobile dashboard](docs/img/console-mobile.png)
 
 ![nano Agent skills console](docs/img/console-skills.png)
 

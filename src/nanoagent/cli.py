@@ -13,11 +13,12 @@ import shutil
 import signal
 import subprocess
 import sys
+import textwrap
 import time
 import webbrowser
 from pathlib import Path
 
-from . import __version__, config, i18n, keystore, paths
+from . import __version__, branding, config, i18n, keystore, paths
 from .i18n import t
 
 
@@ -33,17 +34,23 @@ def _brand() -> None:
     white = "\x1b[1;38;2;245;242;238m"
     muted = "\x1b[38;2;135;151;168m"
     reset = "\x1b[0m"
-    print(f"\n  {orange}╭─{reset}  {muted}NANO AGENT  /  CONSOLE  ·  {__version__}{reset}")
-    print(f"  {orange}│{reset}")
-    print(f"  {orange}│{reset}   {white}N A N O{reset}")
-    print(f"  {orange}│{reset}   {orange}A G E N T{reset}")
-    print(f"  {orange}│{reset}")
-    print(f"  {orange}╰─{reset}  {muted}PERSONAL AI  ·  LOCAL FIRST{reset}\n")
+    width = min(72, shutil.get_terminal_size((80, 24)).columns - 4)
+    print(f"\n  {orange}◆{reset}  {white}NANO AGENT{reset}  {muted}/  CONSOLE  ·  {__version__}{reset}")
+    print(f"  \x1b[38;2;70;78;88m{'─' * width}{reset}\n")
+    for row in branding.wordmark(width=width):
+        print("  " + row)
+    print(f"\n  {muted}PERSONAL AI  /  LOCAL FIRST{reset}\n")
 
 
 def _open_console() -> None:
     url = console_url(with_token=True)
     _p("Opening your private console in the browser…")
+    if os.environ.get("WSL_DISTRO_NAME") and shutil.which("explorer.exe"):
+        try:
+            subprocess.Popen(["explorer.exe", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return
+        except OSError:
+            pass
     if not webbrowser.open(url):
         _p("Could not open a browser automatically. Run `nano-agent token` for your sign-in link.")
 
@@ -103,7 +110,7 @@ def cmd_start(a) -> int:
         kw["start_new_session"] = True
     proc = subprocess.Popen([sys.executable, "-m", "nanoagent", "serve"], **kw)
     paths.pid_path().write_text(str(proc.pid))
-    if sys.stdout.isatty():
+    if sys.stdout.isatty() and getattr(a, "show_brand", True):
         _brand()
         _p("  Starting your local assistant…")
     for attempt in range(40):
@@ -210,10 +217,10 @@ def cmd_setup(a) -> int:
                        "Settings → nano-agent config set     Models → nano-agent models --help")
         else:
             doctor.run(offline=True)
-        if not a.no_start and ui.yes(t("setup.start_q"), True):
-            return cmd_start(argparse.Namespace(foreground=False, open=True))
+        if not a.no_start:
+            return cmd_launch(argparse.Namespace(no_browser=False, no_chat=False))
         if ui._tty:
-            ui._frame("You’re all set", ["Run nano-agent start --open whenever you’re ready.",
+            ui._frame("You’re all set", ["Run nano-agent launch whenever you’re ready.",
                                            "Change settings with nano-agent config set <key> <value>.",
                                            "Explore commands with nano-agent --help."], "Enter → Close")
         else:
@@ -246,16 +253,55 @@ def cmd_chat(a) -> int:
     if a.text:
         _p(asyncio.run(agent.run(" ".join(a.text), session="cli")).text)
         return 0
-    _p(t("cli.chat_hint"))
+    interactive = sys.stdin.isatty() and sys.stdout.isatty()
+    if interactive:
+        _brand()
+        _p("  CHAT IS READY   /dashboard open console   /help commands   /quit leave chat\n")
+    else:
+        _p(t("cli.chat_hint"))
     while True:
         try:
-            line = input("> ").strip()
+            prompt = "\x1b[1;38;2;255;112;32myou › \x1b[0m" if interactive else "> "
+            line = input(prompt).strip()
         except (EOFError, KeyboardInterrupt):
+            if interactive:
+                _p("\n  Chat closed. The dashboard keeps running; use nano-agent stop to stop it.")
             return 0
         if line in ("/quit", "/exit"):
             return 0
+        if line == "/dashboard":
+            _open_console()
+            continue
+        if line == "/help":
+            _p("  /dashboard  Open the web console\n  /quit       Leave terminal chat\n  /help       Show these commands")
+            continue
         if line:
-            _p(asyncio.run(agent.run(line, session="cli")).text)
+            try:
+                reply = asyncio.run(agent.run(line, session="cli")).text
+                if interactive:
+                    _p("\n\x1b[1;38;2;255;112;32mnano Agent ›\x1b[0m")
+                    width = max(40, shutil.get_terminal_size((80, 24)).columns - 4)
+                    _p("\n".join(textwrap.fill(part, width=width, replace_whitespace=False) if part else ""
+                                 for part in reply.split("\n")) + "\n")
+                else:
+                    _p(reply)
+            except Exception:
+                _p("  Could not get a response. Run nano-agent doctor to check the model connection.")
+
+
+def cmd_launch(a) -> int:
+    """Open the dashboard and enter terminal chat in one command."""
+    if not config.get(config.load(), "models.chat"):
+        if not sys.stdin.isatty():
+            _p("No model is configured yet. Run nano-agent setup in a terminal.")
+            return 1
+        _p("No model is configured yet. Starting setup…")
+        return cmd_setup(argparse.Namespace(non_interactive=False, no_start=False))
+    rc = cmd_start(argparse.Namespace(foreground=False, open=not a.no_browser,
+                                      show_brand=a.no_chat or not sys.stdin.isatty()))
+    if rc or a.no_chat or not sys.stdin.isatty():
+        return rc
+    return cmd_chat(argparse.Namespace(text=[]))
 
 
 def cmd_update(_a) -> int:
@@ -516,6 +562,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--foreground", action="store_true")
     s.add_argument("--open", action="store_true", help="open the signed-in private console in your browser")
     s.set_defaults(fn=cmd_start)
+    s = sp.add_parser("launch", help="open the dashboard and enter terminal chat")
+    s.add_argument("--no-browser", action="store_true")
+    s.add_argument("--no-chat", action="store_true")
+    s.set_defaults(fn=cmd_launch)
     sp.add_parser("stop", help="stop the gateway").set_defaults(fn=cmd_stop)
     s = sp.add_parser("status")
     s.add_argument("--json", action="store_true")
@@ -608,6 +658,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = build_parser()
     a = ap.parse_args(argv)
     if not getattr(a, "fn", None):
+        if (argv is None or not argv) and sys.stdin.isatty() and sys.stdout.isatty():
+            return cmd_launch(argparse.Namespace(no_browser=False, no_chat=False))
         ap.print_help()
         return 0
     try:

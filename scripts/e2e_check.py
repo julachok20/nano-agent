@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import socket
 import subprocess
 import sys
 import tempfile
@@ -21,6 +22,14 @@ def main() -> int:
         cli = [sys.executable, "-m", "nanoagent"]
         subprocess.run(cli + ["setup", "--non-interactive", "--provider", "fake", "--model", "fake-1", "--name", "E2E", "--skip-test", "--no-start"],
                        cwd=ROOT, env=env, check=True)
+        from nanoagent import config
+
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", 0))
+            port = probe.getsockname()[1]
+        cfg = config.load()
+        cfg["gateway"]["port"] = port
+        config.save(cfg)
         subprocess.run(cli + ["start"], cwd=ROOT, env=env, check=True)
         try:
             from nanoagent import config, keystore

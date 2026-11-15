@@ -3,6 +3,8 @@
   "ui.login_title": "Sign in", "ui.login_help": "Paste your access token. Run `nano-agent token` in a terminal to see it.", "ui.login_token": "Access token",
   "ui.login_button": "Sign in", "ui.login_wrong": "That token is not right.", "ui.logout": "Sign out",
   "ui.pill_busy": "AI working: {n}", "ui.pill_idle": "AI idle",
+  "ui.home_kicker": "NANO AGENT / YOUR SPACE", "ui.home_title": "Your day, in focus", "ui.home_subtitle": "Tasks, decisions and your assistant in one place.",
+  "ui.home_chat": "Open chat →", "ui.home_talk": "TALK TO NANO", "ui.home_review": "Open →",
   "ui.orb_tap": "Tap", "ui.orb_hint": "Tap once to hear a hello, then tap to talk.", "ui.voice_unsupported": "This browser has no speech recognition. Type in Chat instead.",
   "ui.tasks_open": "Open tasks: {n}", "ui.work_title": "Background work", "ui.work_idle": "Nothing running right now.",
   "ui.notif_title": "Notifications", "ui.memory_title": "Memory", "ui.memory_counts": "{f} facts, {r} rules",
@@ -37,6 +39,7 @@
   "companion.plain": "Hey {name}, nice to have you here.",
 
   "setup.intro": "nano Agent setup. Nothing is saved until the end; press Ctrl+C any time to stop.",
+  "setup.mode_q": "Choose your setup", "setup.mode_quick": "Quick setup · model and key, local dashboard", "setup.mode_custom": "Custom setup · integrations and network access",
   "setup.lang_q": "Language / ภาษา", "setup.name_q": "What should I call you", "setup.tz_q": "Your time zone",
   "setup.provider_q": "Which AI provider do you want to use? (you can add more later)", "setup.base_url_q": "Base URL of the server",
   "setup.key_env": "Found ${env} in your environment. Use it?", "setup.key_where": "Get a key here: {url}", "setup.key_q": "API key for {name} (hidden)", "setup.key_optional": "(optional)",

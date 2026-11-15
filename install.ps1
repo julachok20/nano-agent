@@ -23,12 +23,14 @@ function Show-Screen([int]$Step, [string]$Title, [string[]]$Details = @()) {
         return
     }
     Write-Host "$esc[2J$esc[H" -NoNewline
-    Write-Host "`n  $esc[38;2;255;112;32m╭─$esc[0m  $esc[38;2;125;137;149mNANO AGENT  /  INSTALLER$esc[0m"
-    Write-Host "  $esc[38;2;255;112;32m│$esc[0m"
-    Write-Host "  $esc[38;2;255;112;32m│$esc[0m   $esc[1;38;2;248;248;246mN A N O$esc[0m"
-    Write-Host "  $esc[38;2;255;112;32m│$esc[0m   $esc[1;38;2;255;112;32mA G E N T$esc[0m"
-    Write-Host "  $esc[38;2;255;112;32m│$esc[0m"
-    Write-Host "  $esc[38;2;255;112;32m╰─$esc[0m  $esc[38;2;125;137;149mPERSONAL AI  ·  LOCAL FIRST$esc[0m`n"
+    Write-Host "`n  $esc[1;38;2;255;112;32m◆$esc[0m  $esc[1;38;2;248;248;246mNANO AGENT$esc[0m  $esc[38;2;125;137;149m/  INSTALLER$esc[0m"
+    Write-Host "  $esc[38;2;70;78;88m────────────────────────────────────────────────────────────$esc[0m`n"
+    if ([Console]::WindowWidth -ge 58) {
+        Write-Host "  $esc[1;38;2;248;248;246m╭╮ ╭╮ ╭──╮ ╭╮ ╭╮ ╭──╮$esc[0m    $esc[1;38;2;255;112;32m╭──╮ ╭──╮ ╭─── ╭╮ ╭╮ ┳━━┳$esc[0m"
+        Write-Host "  $esc[1;38;2;248;248;246m│╰╮│ ├──┤ │╰╮│ │  │$esc[0m    $esc[1;38;2;255;112;32m├──┤ │ ╭╮ ├──  │╰╮│   ┃$esc[0m"
+        Write-Host "  $esc[1;38;2;248;248;246m╵ ╰╯ ╵  ╵ ╵ ╰╯ ╰──╯$esc[0m    $esc[1;38;2;255;112;32m╵  ╵ ╰──╯ ╰─── ╵ ╰╯   ╵$esc[0m"
+    } else { Write-Host "  $esc[1;38;2;248;248;246mNANO $esc[1;38;2;255;112;32mAGENT$esc[0m" }
+    Write-Host "`n  $esc[38;2;125;137;149mPERSONAL AI  /  LOCAL FIRST$esc[0m`n"
     $labels = @('CHECK', 'INSTALL', 'SET UP', 'LAUNCH')
     $parts = for ($i = 1; $i -le 4; $i++) {
         if ($i -eq $Step) { "$esc[1;38;2;255;112;32m{0:00} {1}$esc[0m" -f $i, $labels[$i - 1] }

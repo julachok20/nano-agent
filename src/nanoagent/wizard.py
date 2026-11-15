@@ -17,7 +17,7 @@ import sys
 import textwrap
 import zoneinfo
 
-from . import __version__, config, db, i18n, keystore, paths
+from . import __version__, branding, config, db, i18n, keystore, paths
 from .i18n import t
 from .providers import make_provider
 from .providers.presets import ORDER, PRESETS
@@ -82,12 +82,12 @@ class TerminalUI(Prompter):
         rule = "\x1b[38;2;70;78;88m"
         reset = "\x1b[0m"
         lines = [
-            f"  {orange}╭─{reset}  {muted}NANO AGENT  /  SETUP  ·  {__version__}{reset}",
-            f"  {orange}│{reset}",
-            f"  {orange}│{reset}   {white}N A N O{reset}",
-            f"  {orange}│{reset}   {orange}A G E N T{reset}",
-            f"  {orange}│{reset}",
-            f"  {orange}╰─{reset}  {muted}PERSONAL AI  ·  LOCAL FIRST{reset}",
+            f"  {orange}◆{reset}  {white}NANO AGENT{reset}  {muted}/  SETUP  ·  {__version__}{reset}",
+            f"  {rule}{'─' * width}{reset}",
+            "",
+            *("  " + row for row in branding.wordmark(width=shutil.get_terminal_size((90, 28)).columns)),
+            "",
+            f"  {muted}PERSONAL AI  /  LOCAL FIRST{reset}",
             "",
         ]
         active = self.sections.index(self.section) if self.section in self.sections else 0
@@ -234,7 +234,7 @@ def exposure_hint(kind: str, port: int) -> list[str]:
     return []
 
 
-def collect(p: Prompter) -> dict:
+def collect(p: Prompter, *, quick: bool = False) -> dict:
     a: dict = {}
     p.say(t("setup.intro", "en") + "\n")
     if isinstance(p, TerminalUI):
@@ -242,8 +242,8 @@ def collect(p: Prompter) -> dict:
     a["language"] = p.choose(t("setup.lang_q", "en"), [("en", "English"), ("th", "ไทย (Thai)")], "en")
     L = a["language"]
     i18n.set_language(L)
-    a["owner_name"] = p.ask(t("setup.name_q"), "")
-    a["timezone"] = p.ask(t("setup.tz_q"), detect_timezone())
+    a["owner_name"] = "" if quick else p.ask(t("setup.name_q"), "")
+    a["timezone"] = detect_timezone() if quick else p.ask(t("setup.tz_q"), detect_timezone())
     p.say("")
     if isinstance(p, TerminalUI):
         p.section = "AI model"
@@ -260,7 +260,13 @@ def collect(p: Prompter) -> dict:
                 p.say(t("setup.key_where", url=pre["key_url"]))
             a["api_key"] = p.secret(t("setup.key_q", name=pre["label"]) + (" " + t("setup.key_optional") if not pre["needs_key"] else ""))
     a["chat_model"] = p.ask(t("setup.model_q"), pre["chat"])
-    a["fast_model"] = p.ask(t("setup.fast_q"), pre["fast"] or a["chat_model"])
+    a["fast_model"] = (pre["fast"] or a["chat_model"]) if quick else p.ask(t("setup.fast_q"), pre["fast"] or a["chat_model"])
+    if quick:
+        a["exposure"] = "local"
+        a["home"] = str(paths.home())
+        a["line_later"] = True
+        a["voice"] = {"enabled": True}
+        return a
     p.say("")
     if isinstance(p, TerminalUI):
         p.section = "Access"
@@ -390,11 +396,14 @@ def test_model(role: str = "chat") -> tuple[bool, str]:
 def run_interactive(p: Prompter | None = None) -> int:
     p = p or TerminalUI()
     try:
+        quick = False
         if isinstance(p, TerminalUI):
             if not p.intro():
                 p.say(t("setup.aborted"))
                 return 130
-        a = collect(p)
+            quick = p.choose(t("setup.mode_q"), [("quick", t("setup.mode_quick")),
+                                                 ("custom", t("setup.mode_custom"))], "quick") == "quick"
+        a = collect(p, quick=quick)
         if isinstance(p, TerminalUI):
             p.section = "Finish"
             p._frame("Review your setup", [

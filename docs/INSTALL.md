@@ -28,7 +28,7 @@ If the fallback venv is used, the executable lives in `~/.local/bin/nano-agent` 
 
 ## Setup and first run
 
-Choose a provider and model in the wizard. Enter API keys through its hidden prompt or a supported input method; never put keys in shell history. The local data home defaults to `~/.nano-agent`. Setup writes configuration and secrets there with restrictive permissions where the OS supports them.
+Choose **Quick setup** for language, model and key with local dashboard defaults. Use **Custom setup** for network access and optional integrations. Enter API keys through the hidden prompt or a supported input method; never put keys in shell history. The local data home defaults to `~/.nano-agent`. Setup writes configuration and secrets there with restrictive permissions where the OS supports them.
 
 ```bash
 nano-agent doctor --offline
@@ -36,7 +36,7 @@ nano-agent start
 nano-agent status
 ```
 
-Open the private console URL printed during setup. Run `nano-agent token` to print a login URL again; treat that URL as a password. Keep it private. On Windows, if the short command is not yet on PATH, use the full executable path above.
+Interactive setup starts the local service, opens the private dashboard, and enters terminal chat. Run `nano-agent launch` to do that again; `nano-agent launch --no-browser` or `--no-chat` skips either part. Type `/dashboard` inside terminal chat to reopen the browser and `/quit` to leave chat. The service continues until `nano-agent stop`. Run `nano-agent token` to print a login URL if automatic browser opening is unavailable; treat that URL as a password. Keep it private. On Windows, if the short command is not yet on PATH, use the full executable path above.
 
 ## Update and remove
 

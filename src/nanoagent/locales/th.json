@@ -3,6 +3,8 @@
   "ui.login_title": "เข้าสู่ระบบ", "ui.login_help": "วางโทเค็นของคุณ รัน `nano-agent token` ในเทอร์มินัลเพื่อดูโทเค็น", "ui.login_token": "โทเค็นเข้าใช้งาน",
   "ui.login_button": "เข้าสู่ระบบ", "ui.login_wrong": "โทเค็นไม่ถูกต้อง", "ui.logout": "ออกจากระบบ",
   "ui.pill_busy": "AI กำลังทำงาน {n} งาน", "ui.pill_idle": "AI ว่าง",
+  "ui.home_kicker": "NANO AGENT / พื้นที่ของคุณ", "ui.home_title": "วันนี้ของคุณในที่เดียว", "ui.home_subtitle": "งาน การตัดสินใจ และผู้ช่วยของคุณอยู่ด้วยกัน",
+  "ui.home_chat": "เปิดแชท →", "ui.home_talk": "คุยกับ NANO", "ui.home_review": "เปิดดู →",
   "ui.orb_tap": "แตะ", "ui.orb_hint": "แตะครั้งแรกเพื่อฟังคำทักทาย แล้วแตะอีกครั้งเพื่อพูด", "ui.voice_unsupported": "เบราว์เซอร์นี้ไม่รองรับการรู้จำเสียง พิมพ์ในหน้าแชทแทนได้",
   "ui.tasks_open": "งานที่ค้างอยู่: {n}", "ui.work_title": "งานเบื้องหลัง", "ui.work_idle": "ตอนนี้ไม่มีงานที่กำลังทำ",
   "ui.notif_title": "การแจ้งเตือน", "ui.memory_title": "ความจำ", "ui.memory_counts": "ข้อเท็จจริง {f} รายการ กฎ {r} รายการ",
@@ -37,6 +39,7 @@
   "companion.plain": "เฮ้ {name} ดีใจที่เจอกันนะ",
 
   "setup.intro": "ตั้งค่า nano Agent จะยังไม่บันทึกอะไรจนถึงขั้นตอนสุดท้าย กด Ctrl+C เพื่อหยุดได้ทุกเมื่อ",
+  "setup.mode_q": "เลือกรูปแบบการตั้งค่า", "setup.mode_quick": "ตั้งค่าเร็ว · โมเดลและคีย์ แดชบอร์ดในเครื่อง", "setup.mode_custom": "ตั้งค่าเอง · การเชื่อมต่อและเครือข่าย",
   "setup.lang_q": "Language / ภาษา", "setup.name_q": "ให้เรียกคุณว่าอะไร", "setup.tz_q": "เขตเวลาของคุณ",
   "setup.provider_q": "จะใช้ผู้ให้บริการ AI เจ้าไหน (เพิ่มทีหลังได้)", "setup.base_url_q": "Base URL ของเซิร์ฟเวอร์",
   "setup.key_env": "พบ ${env} ในสภาพแวดล้อมของคุณ ใช้ตัวนี้ไหม", "setup.key_where": "ขอคีย์ได้ที่: {url}", "setup.key_q": "API key ของ {name} (ไม่แสดงตอนพิมพ์)", "setup.key_optional": "(ไม่บังคับ)",
