@@ -16,13 +16,13 @@ BASH = shutil.which("bash")
 @pytest.mark.skipif(os.name == "nt" or not BASH, reason="POSIX installer runs on Unix or WSL")
 def test_install_script_syntax_and_dry_run():
     assert subprocess.run([BASH, "-n", str(ROOT / "install.sh")]).returncode == 0
-    p = subprocess.run([BASH, str(ROOT / "install.sh"), "--dry-run", "--from", "nanoagent==0.1.0"], capture_output=True, text=True,
+    p = subprocess.run([BASH, str(ROOT / "install.sh"), "--dry-run", "--method", "venv", "--from", "nanoagent==0.1.0"], capture_output=True, text=True,
                        env={**os.environ, "NANO_AGENT_ALLOW_ANY": "1"})
     if "native Windows" in p.stderr:
         pytest.skip("install.sh refuses native Windows by design (use WSL)")
     assert p.returncode == 0, p.stderr
     out = p.stdout
-    assert "Will run:" in out and "No sudo" in out and "dry run: nothing was changed" in out and "nanoagent==0.1.0" in out
+    assert "Method:    venv" in out and "Will run:" in out and "No sudo" in out and "dry run: nothing was changed" in out and "nanoagent==0.1.0" in out
 
 
 @pytest.mark.skipif(os.name == "nt" or not BASH, reason="POSIX installer runs on Unix or WSL")

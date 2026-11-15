@@ -11,7 +11,7 @@
 #   3. runs `nano-agent setup` (interactive wizard) unless you pass --no-setup
 # It never edits your shell profile, never uses sudo and never sends anything anywhere except to download the package.
 #
-# Options:  --no-setup   --yes   --dry-run   --from SPEC (pip spec: a folder, a wheel, nanoagent==0.1.0, a URL)   --ref GIT_REF   --help
+# Options:  --no-setup   --yes   --dry-run   --method auto|uv|pipx|venv   --from SPEC (pip spec: folder, wheel, package or URL)   --ref GIT_REF   --help
 # Environment: NANO_AGENT_REPO (default julachok20/nano-agent)  NANO_AGENT_REF  NANO_AGENT_SPEC  NANO_AGENT_FROM_PYPI=1  NANO_AGENT_HOME
 set -euo pipefail
 
@@ -21,6 +21,7 @@ SPEC="${NANO_AGENT_SPEC:-}"
 NO_SETUP=0
 YES=0
 DRY=0
+INSTALL_METHOD="auto"
 
 say() { printf '%s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
@@ -30,14 +31,16 @@ frame() {
   local step="$1" title="$2"
   shift 2
   printf '\033[2J\033[H'
-  printf '\n  \033[1;38;2;255;112;32m◆\033[0m  \033[1;38;2;248;248;246mNANO AGENT\033[0m  \033[38;2;125;137;149m/  INSTALLER\033[0m\n'
-  printf '  \033[38;2;70;78;88m────────────────────────────────────────────────────────────\033[0m\n\n'
+  printf '  \033[1;38;2;255;112;32m◆\033[0m  \033[1;38;2;248;248;246mNANO AGENT\033[0m  \033[38;2;125;137;149m/  INSTALLER\033[0m\n'
+  printf '  \033[38;2;70;78;88m────────────────────────────────────────────────────────────\033[0m\n'
   local cols
   cols=$(tput cols 2>/dev/null || echo 80)
-  if [ "$cols" -ge 58 ]; then
-    printf '  \033[1;38;2;248;248;246m╭╮ ╭╮ ╭──╮ ╭╮ ╭╮ ╭──╮\033[0m    \033[1;38;2;255;112;32m╭──╮ ╭──╮ ╭─── ╭╮ ╭╮ ┳━━┳\033[0m\n'
-    printf '  \033[1;38;2;248;248;246m│╰╮│ ├──┤ │╰╮│ │  │\033[0m    \033[1;38;2;255;112;32m├──┤ │ ╭╮ ├──  │╰╮│   ┃\033[0m\n'
-    printf '  \033[1;38;2;248;248;246m╵ ╰╯ ╵  ╵ ╵ ╰╯ ╰──╯\033[0m    \033[1;38;2;255;112;32m╵  ╵ ╰──╯ ╰─── ╵ ╰╯   ╵\033[0m\n'
+  if [ "$cols" -ge 60 ]; then
+    printf '  \033[1;38;2;248;248;246mN   N  AAA  N   N  OOO \033[0m    \033[1;38;2;255;112;32m AAA   GGGG EEEEE N   N TTTTT\033[0m\n'
+    printf '  \033[1;38;2;248;248;246mNN  N A   A NN  N O   O\033[0m    \033[1;38;2;255;112;32mA   A G     E     NN  N   T  \033[0m\n'
+    printf '  \033[1;38;2;248;248;246mN N N AAAAA N N N O   O\033[0m    \033[1;38;2;255;112;32mAAAAA G GGG EEEE  N N N   T  \033[0m\n'
+    printf '  \033[1;38;2;248;248;246mN  NN A   A N  NN O   O\033[0m    \033[1;38;2;255;112;32mA   A G   G E     N  NN   T  \033[0m\n'
+    printf '  \033[1;38;2;248;248;246mN   N A   A N   N  OOO \033[0m    \033[1;38;2;255;112;32mA   A  GGGG EEEEE N   N   T  \033[0m\n'
   else
     printf '  \033[1;38;2;248;248;246mNANO \033[1;38;2;255;112;32mAGENT\033[0m\n'
   fi
@@ -70,6 +73,7 @@ while [ $# -gt 0 ]; do
     --no-setup) NO_SETUP=1 ;;
     --yes|-y) YES=1 ;;
     --dry-run) DRY=1 ;;
+    --method) shift; [ $# -gt 0 ] || die "--method needs a value"; INSTALL_METHOD="$1" ;;
     --from) shift; [ $# -gt 0 ] || die "--from needs a value"; SPEC="$1" ;;
     --ref) shift; [ $# -gt 0 ] || die "--ref needs a value"; REF="$1" ;;
     -h|--help) sed -n '2,19p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//'; exit 0 ;;
@@ -110,16 +114,20 @@ fi
 # ---- 2. choose how to install ---------------------------------------------
 HOME_DIR="${NANO_AGENT_HOME:-$HOME/.nano-agent}"
 BIN_DIR="${NANO_AGENT_BIN_DIR:-$HOME/.local/bin}"
-if command -v uv >/dev/null 2>&1; then
-  METHOD="uv"
-  PLAN="uv tool install --python $PY --force \"$SPEC\"   (isolated tool environment managed by uv)"
-elif command -v pipx >/dev/null 2>&1; then
-  METHOD="pipx"
-  PLAN="pipx install --python $PY --force \"$SPEC\"   (isolated environment managed by pipx)"
-else
-  METHOD="venv"
-  PLAN="$PY -m venv \"$HOME_DIR/venv\" && \"$HOME_DIR/venv/bin/pip\" install \"$SPEC\"; link $BIN_DIR/nano-agent -> the venv"
-fi
+case "$INSTALL_METHOD" in
+  auto)
+    if command -v uv >/dev/null 2>&1; then METHOD="uv"
+    elif command -v pipx >/dev/null 2>&1; then METHOD="pipx"
+    else METHOD="venv"; fi ;;
+  uv|pipx) command -v "$INSTALL_METHOD" >/dev/null 2>&1 || die "$INSTALL_METHOD was selected but is not installed"; METHOD="$INSTALL_METHOD" ;;
+  venv) METHOD="venv" ;;
+  *) die "unknown method: $INSTALL_METHOD (choose auto, uv, pipx or venv)" ;;
+esac
+case "$METHOD" in
+  uv) PLAN="uv tool install --python $PY --force \"$SPEC\"   (isolated tool environment managed by uv)" ;;
+  pipx) PLAN="pipx install --python $PY --force \"$SPEC\"   (isolated environment managed by pipx)" ;;
+  venv) PLAN="$PY -m venv \"$HOME_DIR/venv\" && \"$HOME_DIR/venv/bin/pip\" install \"$SPEC\"; link $BIN_DIR/nano-agent -> the venv" ;;
+esac
 
 if [ -t 1 ]; then
   frame 2 "Ready to install" "OS: $OS · Python: $PYV" "Source: $SPEC" \

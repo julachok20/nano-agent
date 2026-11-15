@@ -18,7 +18,7 @@ From a local checkout on native Windows, use PowerShell:
 
 After the repository's `main` branch is published, download the script from its raw GitHub URL, inspect it, then run it. A private or absent repository gives HTTP 404 to unauthenticated users. The Windows installer can offer to install Python 3.12 with `winget --scope user` if Python is missing; it asks first.
 
-Both scripts prefer `uv`, then `pipx`, then a private virtual environment under `~/.nano-agent` (Windows: `%USERPROFILE%\.nano-agent`). Setup starts after installation. On Linux and macOS use `--no-setup`, `--dry-run`, `--from SPEC`; on Windows use `-NoSetup`, `-DryRun`, `-From SPEC`. For example, `bash install.sh --dry-run --from .` or `.\install.ps1 -DryRun -From .`. A local checkout, wheel, or pip URL can be used as `SPEC`.
+Both scripts prefer `uv`, then `pipx`, then a private virtual environment under `~/.nano-agent` (Windows: `%USERPROFILE%\.nano-agent`). Setup starts after installation. On Linux and macOS use `--no-setup`, `--dry-run`, `--from SPEC`; on Windows use `-NoSetup`, `-DryRun`, `-From SPEC`. For example, `bash install.sh --dry-run --from .` or `.\install.ps1 -DryRun -From .`. On Linux, macOS, or WSL, `--method venv` explicitly selects the private virtual environment, even when `uv` or `pipx` is installed. A local checkout, wheel, or pip URL can be used as `SPEC`.
 
 If the fallback venv is used, the executable lives in `~/.local/bin/nano-agent` on Unix. On Windows it lives in `%USERPROFILE%\.nano-agent\venv\Scripts\nano-agent.exe`; a `nano-agent.cmd` launcher is also placed in `%USERPROFILE%\.local\bin`. Add that bin folder to your PATH if you want to use the short command in every new shell.
 
