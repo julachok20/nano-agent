@@ -21,6 +21,7 @@ SELF = {"scripts/secrets_scan.py"}
 SKIP_DIRS = {".git", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache", "node_modules", "build", "dist", ".mypy_cache"}
 SKIP_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".pdf", ".zip", ".whl", ".gz", ".pyc", ".db", ".sqlite"}
 ALLOWED_EMAIL = re.compile(r"(@example\.(com|org|net)$|@users\.noreply\.github\.com$|^noreply@|@localhost$|^git@github\.com$|\.invalid$)", re.I)
+PUBLIC_REPO_SLUG = re.compile(r"(?<![A-Za-z0-9_])julachok20/nano-agent(?=$|[/\s\"'})])", re.I)
 
 RULES: list[tuple[str, re.Pattern]] = [
     ("api key (sk-)", re.compile(r"\bsk-[A-Za-z0-9_\-]{20,}")),
@@ -51,6 +52,8 @@ def entropy(s: str) -> float:
 def scan_line(line: str) -> list[str]:
     if "scan:allow" in line:
         return []
+    # The published project slug is intentional; it does not exempt any other owner identifier.
+    line = PUBLIC_REPO_SLUG.sub("public-owner/nano-agent", line)
     hits = [name for name, rx in RULES if rx.search(line)]
     for m in EMAIL.finditer(line):
         if not ALLOWED_EMAIL.search(m.group(0)):
