@@ -80,9 +80,10 @@ jobs:
           /tmp/clean/bin/nano-agent doctor --offline
       - name: Installer end to end (private venv method)
         run: |
-          export HOME="$(mktemp -d)"
-          bash install.sh --yes --no-setup --from "$GITHUB_WORKSPACE"
-          "$HOME/.local/bin/nano-agent" --version
+          export NANO_AGENT_HOME="$(mktemp -d)/home"
+          export NANO_AGENT_BIN_DIR="$(mktemp -d)/bin"
+          bash install.sh --yes --no-setup --method venv --from "$GITHUB_WORKSPACE"
+          "$NANO_AGENT_BIN_DIR/nano-agent" --version
 
   install-windows:
     name: Windows installer smoke test
@@ -95,6 +96,8 @@ jobs:
       - name: Check Windows installer syntax and dry run
         shell: pwsh
         run: |
-          $null = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path .\install.ps1), [ref]$null, [ref]$parseErrors)
+          $tokens = $null
+          $parseErrors = $null
+          $null = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path .\install.ps1), [ref]$tokens, [ref]$parseErrors)
           if ($parseErrors) { throw ($parseErrors | Out-String) }
           .\install.ps1 -DryRun -From (Get-Location).Path
