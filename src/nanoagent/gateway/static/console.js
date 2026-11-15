@@ -108,20 +108,26 @@ async function vHome() {
     h("div", { class: "home-grid" },
       h("div", { id: "home-left", class: "home-stack" }),
       h("section", { class: "home-focus" },
-        h("div", { class: "home-kicker", text: t("home_talk") }),
-        h("div", { id: "home-clock", class: "home-clock" }),
-        h("div", { id: "orb", class: "orb", "data-state": "idle", onclick: orbTap, text: t("orb_tap") }),
+        h("div", { class: "home-focus-top" }, h("span", { class: "home-kicker", text: "03 / COMPANION" }), h("span", { class: "home-live", text: "● LIVE" })),
+        h("div", { class: "home-dial" },
+          h("div", { class: "home-dial-ticks" }, ...Array.from({ length: 48 }, (_, i) => h("i", { style: `--tick:${i}` }))),
+          h("div", { class: "home-dial-core" },
+            h("div", { id: "home-clock", class: "home-clock" }),
+            h("button", { id: "orb", class: "orb", "data-state": "idle", onclick: orbTap, "aria-label": t("orb_tap") }, h("img", { src: "/static/logo-icon.png", alt: "" })),
+            h("div", { class: "home-dial-action", text: t("orb_tap") }))),
+        h("div", { class: "home-welcome", text: t("home_talk") }),
         h("div", { id: "heard", class: "home-heard" }),
         h("div", { id: "said", class: "home-said" }),
         h("p", { class: "dim", text: t("orb_hint") })),
-      h("div", { id: "home-right", class: "home-stack" })));
+      h("div", { id: "home-right", class: "home-stack" }),
+      h("div", { id: "home-activity", class: "home-activity" })));
   refreshHome();
 }
 async function refreshHome() {
   if (tab !== "home") return;
   const [st, dr, tk, ac] = await Promise.all([api("/state"), api("/drafts"), api("/tasks"), api("/activity")]);
-  const left = $("#home-left"), right = $("#home-right"), metrics = $("#home-metrics");
-  if (!left || !right || !metrics) return;
+  const left = $("#home-left"), right = $("#home-right"), metrics = $("#home-metrics"), activity = $("#home-activity");
+  if (!left || !right || !metrics || !activity) return;
   const factCount = (st.memory.fact || 0) + (st.memory.rule || 0);
   const metric = (value, label) => h("div", { class: "home-metric" }, h("strong", { text: String(value) }), h("span", { text: label }));
   metrics.replaceChildren(metric(st.open_tasks, t("sub_tasks")), metric(dr.drafts.length, t("sub_drafts")),
@@ -129,21 +135,30 @@ async function refreshHome() {
   $("#home-clock").textContent = new Date().toLocaleTimeString(lang === "th" ? "th-TH" : undefined, { hour: "2-digit", minute: "2-digit" });
   left.replaceChildren(); right.replaceChildren();
   const show = new Set((ME.prefs && ME.prefs["ui.panels"]) || ["work", "tasks", "memory", "drafts", "notifications", "system"]);
-  const card = (title, ...kids) => h("section", { class: "home-card" }, h("h2", { text: title }), ...kids);
+  let cardIndex = 0;
+  const card = (title, ...kids) => h("section", { class: "home-card" },
+    h("div", { class: "home-card-head" }, h("span", { class: "home-card-index", text: String(++cardIndex).padStart(2, "0") }), h("h2", { text: title }), h("span", { class: "home-card-cross", text: "+" })), ...kids);
+  const openTasks = tk.tasks.filter(x => !x.done);
+  const totalTasks = tk.tasks.length;
+  const taskPct = totalTasks ? Math.round((totalTasks - openTasks.length) / totalTasks * 100) : 0;
   if (show.has("tasks")) left.append(card(t("tasks_open", { n: st.open_tasks }),
-    ...tk.tasks.filter(x => !x.done).slice(0, 4).map(x => h("div", { class: "home-list-row" },
+    h("div", { class: "home-task-summary" }, h("div", { class: "home-task-ring", style: `--done:${taskPct}%` }, h("strong", { text: `${totalTasks - openTasks.length}/${totalTasks}` })),
+      h("div", null, h("strong", { text: String(st.open_tasks) }), h("small", { text: t("sub_tasks") }))),
+    ...openTasks.slice(0, 4).map(x => h("div", { class: "home-list-row" },
       h("span", { text: x.title }), h("small", { text: x.due || "" }))),
     h("button", { class: "home-link", onclick: () => go("manage"), text: t("home_review") })));
   if (show.has("memory")) left.append(card(t("memory_title"),
-    h("div", { class: "home-card-number", text: String(factCount) }),
+    h("div", { class: "home-memory-map" }, h("div", { class: "home-memory-center", text: String(factCount) }),
+      ...Array.from({ length: Math.min(8, factCount) }, (_, i) => h("i", { class: "home-memory-node", style: `--node:${i};--nodes:${Math.min(8, factCount)}` }))),
     h("p", { class: "dim", text: t("memory_counts", { f: st.memory.fact || 0, r: st.memory.rule || 0 }) }),
     h("button", { class: "home-link", onclick: () => go("mind"), text: t("home_review") })));
   if (show.has("drafts")) right.append(card(t("drafts_title", { n: dr.drafts.length }),
     h("p", { class: "dim", text: dr.drafts.length ? t("drafts_note") : t("drafts_none") }),
     h("button", { class: "home-link", onclick: () => { sub.manage = "drafts"; go("manage"); }, text: t("home_review") })));
-  if (show.has("work")) right.append(card(t("work_title"),
-    ac.running.length ? ac.running.map(a => h("div", { class: "home-list-row" }, h("span", { text: a.title }), h("small", { text: Math.round(a.secs) + "s" })))
-      : h("p", { class: "dim", text: t("work_idle") }),
+  if (show.has("work")) activity.replaceChildren(card(t("work_title"),
+    h("div", { class: "home-activity-strip" },
+      ac.running.length ? ac.running.slice(0, 4).map(a => h("div", { class: "home-activity-item" }, h("i", { class: "home-activity-dot" }), h("span", { text: a.title }), h("small", { text: Math.round(a.secs) + "s" })))
+        : h("div", { class: "home-activity-item" }, h("i", { class: "home-activity-dot idle" }), h("span", { text: t("work_idle") }))),
     h("button", { class: "home-link", onclick: () => go("work"), text: t("home_review") })));
   if (show.has("notifications") && st.notifications.length) right.append(card(t("notif_title"),
     ...st.notifications.slice(0, 3).map(n => h("div", { class: "home-list-row" }, h("span", { text: n.text }), h("small", { text: when(n.ts) })))));
