@@ -1,5 +1,5 @@
 # nano Agent installer for native Windows. Runs in the current user account.
-# Download and inspect before running: irm https://raw.githubusercontent.com/julachok20/nano-agent/main/install.ps1 | iex # scan:allow
+# Download and inspect before running: irm https://raw.githubusercontent.com/julachok20/nano-agent/main/install.ps1 | iex
 param(
     [switch]$DryRun,
     [switch]$NoSetup,
@@ -8,9 +8,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repo = if ($env:NANO_AGENT_REPO) { $env:NANO_AGENT_REPO } else { 'julachok20/nano-agent' } # scan:allow
+$repo = if ($env:NANO_AGENT_REPO) { $env:NANO_AGENT_REPO } else { 'julachok20/nano-agent' }
 $ref = if ($env:NANO_AGENT_REF) { $env:NANO_AGENT_REF } else { 'main' }
-$spec = if ($From) { $From } elseif ($env:NANO_AGENT_SPEC) { $env:NANO_AGENT_SPEC } else { "https://codeload.github.com/$repo/tar.gz/$ref" } # scan:allow
+$spec = if ($From) { $From } elseif ($env:NANO_AGENT_SPEC) { $env:NANO_AGENT_SPEC } else { "https://codeload.github.com/$repo/tar.gz/$ref" }
 $agentHome = if ($env:NANO_AGENT_HOME) { $env:NANO_AGENT_HOME } else { Join-Path $HOME '.nano-agent' }
 $binDir = if ($env:NANO_AGENT_BIN_DIR) { $env:NANO_AGENT_BIN_DIR } else { Join-Path $HOME '.local\bin' }
 $isInteractive = [Environment]::UserInteractive -and -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected

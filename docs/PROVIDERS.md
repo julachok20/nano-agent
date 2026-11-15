@@ -26,3 +26,5 @@ Replace the sample URL and model with the values from your server. Use `nano-age
 ## Troubleshooting
 
 Run `nano-agent doctor --offline` first to check local configuration, then `nano-agent models test` to make one live request. A connection error usually means the server URL or network path is wrong. An authentication error points to the key; a model error points to its identifier or account access. The `fast` and `vision` roles are optional and use the chat role if unset. Never paste a key or token into a bug report; redact URLs containing credentials.
+
+`nano-agent models list` should show the configured provider and the `chat` role. A successful `models test` reports the model and a completed response; the fake provider returns a synthetic response without network access. If a local server test fails, first confirm that its `/v1` endpoint and chosen model are available from the same machine. Hosted calls and billing are controlled by the provider account, not by nano Agent.

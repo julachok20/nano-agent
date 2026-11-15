@@ -20,3 +20,7 @@ Never expose the model server, Docker socket, SSH, database files, secrets file 
 Cloudflare Tunnel can provide a public HTTPS URL for the webhook without opening an inbound port, but a tunnel that forwards the whole gateway also exposes console routes. Configure the tunnel or an edge proxy to allow only the webhook path. Tailscale Funnel is public; Tailscale Serve stays on your tailnet. Test from a device outside your local network and confirm both that LINE can reach `/webhook/line` and that unrelated routes are refused.
 
 The gateway's `gateway.public_url` is the address users and LINE see; `gateway.host` is the local bind address. Keep the bind on loopback when a same-machine proxy or tunnel forwards to it. Preserve HTTPS through the public edge and protect the owner console token as a password. Avoid posting token-bearing console URLs or proxy logs.
+
+## Verify route boundaries
+
+After configuring a proxy, request `/healthz` from the intended network and confirm it responds. From an unauthenticated browser, an `/api/me` request must return 401; the public console HTML shell contains no owner data until login. A public LINE edge should forward `/webhook/line` only and reject `/api/me`, `/console`, and `/static/` routes. If a route is reachable from a network where it should not be, close the proxy route first, then check its path rules and firewall.

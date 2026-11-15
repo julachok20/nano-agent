@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # nano Agent installer for Linux, macOS and WSL. No sudo, no system changes: it installs into your home folder only.
 #
-#   curl -fsSL https://raw.githubusercontent.com/julachok20/nano-agent/main/install.sh | bash # scan:allow
+#   curl -fsSL https://raw.githubusercontent.com/julachok20/nano-agent/main/install.sh | bash
 #   (safer: download it, read it, then run it:  curl -fsSLO <same url> && less install.sh && bash install.sh)
 #
 # What it does, in order (it prints the plan before it starts):
@@ -12,10 +12,10 @@
 # It never edits your shell profile, never uses sudo and never sends anything anywhere except to download the package.
 #
 # Options:  --no-setup   --yes   --dry-run   --from SPEC (pip spec: a folder, a wheel, nanoagent==0.1.0, a URL)   --ref GIT_REF   --help
-# Environment: NANO_AGENT_REPO (default julachok20/nano-agent)  NANO_AGENT_REF  NANO_AGENT_SPEC  NANO_AGENT_FROM_PYPI=1  NANO_AGENT_HOME  # scan:allow
+# Environment: NANO_AGENT_REPO (default julachok20/nano-agent)  NANO_AGENT_REF  NANO_AGENT_SPEC  NANO_AGENT_FROM_PYPI=1  NANO_AGENT_HOME
 set -euo pipefail
 
-REPO="${NANO_AGENT_REPO:-julachok20/nano-agent}" # scan:allow
+REPO="${NANO_AGENT_REPO:-julachok20/nano-agent}"
 REF="${NANO_AGENT_REF:-main}"
 SPEC="${NANO_AGENT_SPEC:-}"
 NO_SETUP=0

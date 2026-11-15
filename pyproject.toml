@@ -43,8 +43,8 @@ all = ["nanoagent[keyring,system,mcp,google]"]
 nano-agent = "nanoagent.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/julachok20/nano-agent" # scan:allow
-Issues = "https://github.com/julachok20/nano-agent/issues" # scan:allow
+Homepage = "https://github.com/julachok20/nano-agent"
+Issues = "https://github.com/julachok20/nano-agent/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

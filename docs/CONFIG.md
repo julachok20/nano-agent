@@ -26,3 +26,7 @@ nano-agent doctor --offline
 `NANO_AGENT_HOME` changes the location for all local state. Set it **before** setup and keep it consistent when starting or stopping the service. Back up the entire directory while the service is stopped if you want to preserve configuration, memory, skills and logs. Do not commit the directory to Git or upload it to support tickets. If a change causes trouble, use `nano-agent doctor --offline`, review `nano-agent logs`, and restore a known good backup of the data directory.
 
 The app never needs a provider key in a command argument. Use the setup hidden prompt or `nano-agent models set-key NAME --api-key-stdin` / `--api-key-env VAR`. The environment variable method is useful in scripts but still requires you to protect the process environment. See [PROVIDERS.md](PROVIDERS.md).
+
+## Check a change
+
+After changing a setting, run `nano-agent config show` to confirm the effective value, then `nano-agent doctor --offline`. If the service is already running, use `nano-agent stop` followed by `nano-agent start` for settings that affect the listener or integrations. If a value is rejected, run `nano-agent config set --help` and compare it with the schema in `src/nanoagent/config.py`; restore the previous value rather than editing a live data file blindly.

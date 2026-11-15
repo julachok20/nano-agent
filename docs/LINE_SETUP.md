@@ -21,3 +21,7 @@ The LINE connector and delivery path have not been verified against a live accou
 The same web checklist is available locally with `nano-agent line guide`. Keep the long-lived access token and channel secret out of Git and screenshots. If Verify fails, confirm the public DNS and TLS certificate, the exact `/webhook/line` path, and that the gateway is running. A failed signature check means the secret does not match the channel or the request was altered.
 
 Optional LIFF access is separate: create a LINE Login channel, add a LIFF app with endpoint `https://YOUR-PUBLIC-URL/console` and `openid` scope, then copy the LIFF ID. Only do this if you intentionally expose a protected console path; the default local console cannot be opened from LINE on another device.
+
+## Check the connection
+
+Run `nano-agent line status` after setup. It should report the channel configuration and whether an owner is paired; a configured channel alone does not prove the webhook is reachable. Use LINE Developers' **Verify** action for the webhook, then test only with a dedicated test account and chat, never real contacts. The repository's fake LINE tests check signatures and routing but do not verify delivery in a real LINE account. If pairing or delivery fails, inspect `nano-agent logs --follow` with tokens redacted and confirm the exact public webhook URL, channel secret, and owner pairing.

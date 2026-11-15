@@ -4,23 +4,19 @@ nano Agent supports native Windows, Linux, macOS and WSL with Python 3.11 or new
 
 ## Installer
 
-On Linux, macOS or WSL, download and inspect the script, then run it:
+From a local checkout on Linux, macOS or WSL:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/julachok20/nano-agent/main/install.sh # scan:allow
-less install.sh
-bash install.sh
+bash install.sh --from .
 ```
 
-On native Windows, use PowerShell:
+From a local checkout on native Windows, use PowerShell:
 
 ```powershell
-Invoke-WebRequest https://raw.githubusercontent.com/julachok20/nano-agent/main/install.ps1 -OutFile install.ps1 # scan:allow
-Get-Content .\install.ps1
-.\install.ps1
+.\install.ps1 -From .
 ```
 
-The short form is `irm https://raw.githubusercontent.com/julachok20/nano-agent/main/install.ps1 | iex`, but reading the downloaded script first is recommended. The Windows installer can offer to install Python 3.12 with `winget --scope user` if Python is missing; it asks first. <!-- scan:allow -->
+After the repository's `main` branch is published, download the script from its raw GitHub URL, inspect it, then run it. A private or absent repository gives HTTP 404 to unauthenticated users. The Windows installer can offer to install Python 3.12 with `winget --scope user` if Python is missing; it asks first.
 
 Both scripts prefer `uv`, then `pipx`, then a private virtual environment under `~/.nano-agent` (Windows: `%USERPROFILE%\.nano-agent`). Setup starts after installation. On Linux and macOS use `--no-setup`, `--dry-run`, `--from SPEC`; on Windows use `-NoSetup`, `-DryRun`, `-From SPEC`. For example, `bash install.sh --dry-run --from .` or `.\install.ps1 -DryRun -From .`. A local checkout, wheel, or pip URL can be used as `SPEC`.
 
@@ -40,7 +36,13 @@ Interactive setup starts the local service, opens the private dashboard, and ent
 
 ## Update and remove
 
-Use `nano-agent update` to update the installed package. To remove it, run `nano-agent uninstall` and review the prompt: deleting the data directory removes local memory, skills, logs and settings. Back up data before removal if you may need it later.
+Use `nano-agent update` to update the installed package. `nano-agent uninstall` stops the service and keeps local data. `nano-agent uninstall --purge` also deletes memory, skills, logs, and settings after confirmation. Back up data before purging if you may need it later.
+
+## Expected result and troubleshooting
+
+Installation prints the detected OS, Python interpreter, source, method, and data location before asking to continue. Interactive setup then offers Quick or Custom setup, starts the local service, opens the console, and starts terminal chat. Check with `nano-agent status` and `nano-agent doctor --offline`; a healthy local service reports a console URL on `127.0.0.1` and no failed mandatory checks.
+
+If the download URL returns 404, use a local checkout with `--from .` until the repository is published. If `nano-agent` is not found after a fallback venv install, use the full executable path above or add its bin directory to PATH. If startup fails, run `nano-agent logs --follow` and `nano-agent doctor --offline` before changing configuration.
 
 ## From source
 

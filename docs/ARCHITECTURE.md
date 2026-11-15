@@ -100,7 +100,7 @@ src/nanoagent/
   gateway/      app (FastAPI), auth, line (connector), console (HTML), static/
   voice/        stt, tts adapters
 tests/          synthetic data only; a fake provider drives the agent
-tools/          secrets_scan.py, preview_console.py
+scripts/        secrets_scan.py, preview_console.py, e2e_check.py
 ```
 
 ## 5. Data layout (`~/.nano-agent`, override with `NANO_AGENT_HOME`)
@@ -116,9 +116,10 @@ logs/             gateway.log (secrets masked)
 
 ## 6. Request flows
 
-**Console.** Browser opens `http://127.0.0.1:8099/console?token=<owner token>` once; the server sets an
-HttpOnly same-site cookie and redirects. Every `/api/*` route and the console page depend on `require_owner`.
-A test enumerates all registered routes and fails if one is reachable without the owner credential.
+**Console.** The CLI opens `/console` with the owner token in a URL fragment, which is not sent to the server.
+The page exchanges it once for an HttpOnly same-site cookie, then removes the fragment. The HTML shell and static
+assets are public but contain no owner data; private `/api/*` routes require the owner credential. A test enumerates
+registered routes and fails if a private route is reachable without it.
 
 **LINE (optional).** LINE posts to `/webhook/line`. The body is verified with HMAC-SHA256 over the raw bytes
 and the channel secret before anything is parsed. Only the configured owner user id is served; all other

@@ -8,20 +8,16 @@
 
 The installer supports Windows, Linux, macOS and WSL. It installs an isolated command and opens the terminal setup wizard. It does not request administrator rights or edit your shell profile.
 
-**Windows PowerShell** (download and inspect the script first):
+From a local checkout, run **Windows PowerShell**:
 
 ```powershell
-Invoke-WebRequest https://raw.githubusercontent.com/julachok20/nano-agent/main/install.ps1 -OutFile install.ps1 # scan:allow
-Get-Content .\install.ps1
-.\install.ps1
+.\install.ps1 -From .
 ```
 
-**Linux, macOS or WSL:**
+Or **Linux, macOS, or WSL**:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/julachok20/nano-agent/main/install.sh -o install.sh # scan:allow
-less install.sh
-bash install.sh
+bash install.sh --from .
 ```
 
 Choose **Quick setup** to set only the language, model and key; the dashboard stays local and optional integrations can be added later. **Custom setup** exposes the full choices. API keys are entered privately and stored separately from `config.toml`. To run a local model server, choose an OpenAI-compatible provider and enter its local base URL. When interactive setup finishes, nano Agent opens the dashboard and starts terminal chat. Next time, run `nano-agent launch` (or just `nano-agent` in a terminal). Type `/dashboard` in chat to reopen the browser and `/quit` to leave chat; the dashboard keeps running. Inspect the service with:
@@ -32,7 +28,9 @@ nano-agent doctor --offline
 nano-agent logs --follow
 ```
 
-To remove nano Agent, run `nano-agent uninstall`; review its prompt carefully because it can remove the local data directory.
+To stop and remove the installed command while keeping local data, run `nano-agent uninstall`. Only `nano-agent uninstall --purge` deletes the local data directory, after confirmation. Back it up first.
+
+The hosted install URLs in [the install guide](docs/INSTALL.md) work only after the repository and its `main` branch are published. A private or missing repository returns 404 to an unauthenticated download.
 
 ## What it can do
 
@@ -51,6 +49,8 @@ The project includes the console logo and icon in `assets/`. These screenshots u
 ![nano Agent mobile dashboard](docs/img/console-mobile.png)
 
 ![nano Agent skills console](docs/img/console-skills.png)
+
+Choose **Dark**, **Modern**, **Calm**, or **Minimal** in Settings → Appearance. The choice is saved locally. The Chat tab supports direct conversation; Home, Manage, System, Automations, Skills, Memory, and Settings use the same navigation and panel design. See [Modern](docs/img/console-modern.png), [Calm](docs/img/console-calm.png), [Minimal](docs/img/console-minimal.png), and [Chat](docs/img/console-chat.png) previews.
 
 Recreate them with `python scripts/preview_console.py --screenshots --out docs/img` after installing Playwright Chromium.
 

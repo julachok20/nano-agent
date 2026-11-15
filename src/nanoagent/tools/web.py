@@ -18,7 +18,7 @@ from . import tool
 
 TRANSPORT: httpx.AsyncBaseTransport | None = None   # tests inject a MockTransport
 MAX_BYTES = 1_500_000
-UA = "nano-agent/0.1 (+https://github.com/julachok20/nano-agent)"  # scan:allow
+UA = "nano-agent/0.1 (+https://github.com/julachok20/nano-agent)"
 
 
 class BlockedURL(Exception):
