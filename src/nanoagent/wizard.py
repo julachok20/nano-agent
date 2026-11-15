@@ -11,10 +11,8 @@ from __future__ import annotations
 import asyncio
 import getpass
 import os
-import re
 import shutil
 import sys
-import textwrap
 import zoneinfo
 
 from . import __version__, branding, config, db, i18n, keystore, paths
@@ -74,39 +72,25 @@ class TerminalUI(Prompter):
             for line in body:
                 self.say(line)
             return
-        width = max(30, min(72, shutil.get_terminal_size((90, 28)).columns - 4))
-        orange = "\x1b[1;38;2;255;112;32m"
-        white = "\x1b[1;38;2;245;242;238m"
-        muted = "\x1b[38;2;135;151;168m"
+        size = shutil.get_terminal_size((90, 28))
+        columns = size.columns
+        orange = branding.ORANGE
+        white = branding.WHITE
+        muted = branding.MUTED
         green = "\x1b[38;2;125;185;150m"
-        rule = "\x1b[38;2;70;78;88m"
-        reset = "\x1b[0m"
-        lines = [
-            f"  {orange}◆{reset}  {white}NANO AGENT{reset}  {muted}/  SETUP  ·  {__version__}{reset}",
-            f"  {rule}{'─' * width}{reset}",
-            "",
-            *("  " + row for row in branding.wordmark(width=shutil.get_terminal_size((90, 28)).columns)),
-            "",
-            f"  {muted}PERSONAL AI  /  LOCAL FIRST{reset}",
-            "",
-        ]
+        reset = branding.RESET
+        panel = branding.card(title, body, width=columns)
+        masthead = branding.banner("SETUP", version=__version__, width=columns)
+        if len(masthead) + len(panel) + 6 > size.lines:
+            masthead = branding.banner("SETUP", version=__version__, width=columns, compact=True)
+        lines = masthead
         active = self.sections.index(self.section) if self.section in self.sections else 0
         progress = f"{green}{'●' * active}{orange}◉{muted}{'○' * (len(self.sections) - active - 1)}{reset}"
-        lines.extend([
-            f"  {progress}  {muted}{active + 1:02d}/{len(self.sections):02d}{reset}  {white}{self.section}{reset}",
-            "",
-            f"  {rule}{'─' * width}{reset}",
-            f"  {white}{title}{reset}",
-            f"  {rule}{'─' * width}{reset}",
-        ])
-        for item in body:
-            plain = re.sub(r"\x1b\[[0-9;]*m", "", str(item))
-            if len(plain) <= width - 2:
-                lines.append("  " + str(item))
-            else:
-                for chunk in textwrap.wrap(plain, width=width - 2, replace_whitespace=False, drop_whitespace=True):
-                    lines.append("  " + chunk)
-        lines.extend(["", f"  {rule}{'─' * width}{reset}", f"  {muted}{footer[:width]}{reset}", ""])
+        hot = "\x1b[48;2;255;112;32m\x1b[1;38;2;18;20;22m"
+        lines.extend(["", f"  {progress}  {hot} {active + 1:02d} / {len(self.sections):02d} {reset}  "
+                      f"{white}{self.section}{reset}", "",
+                      *panel, "",
+                      f"  {muted}{footer[:max(0, columns - 4)]}{reset}", ""])
         sys.stdout.write("\x1b[2J\x1b[H" + "\n".join(lines) + "\n")
         sys.stdout.flush()
 
@@ -118,10 +102,8 @@ class TerminalUI(Prompter):
     def intro(self) -> bool:
         self.section = "Welcome"
         self._frame("Your private AI, ready when you are", [
-            "",
             "A few choices, then your assistant is ready.",
             "Nothing is saved until you finish setup.",
-            "",
             "Use ↑ / ↓ to choose, Enter to continue, Ctrl+C to quit.",
         ], "Enter → Start setup     q → Quit")
         if self._tty:
@@ -187,8 +169,12 @@ class TerminalUI(Prompter):
         selected = next((i for i, (key, _) in enumerate(options) if key == default), 0)
         while True:
             hot, reset = "\x1b[48;2;255;112;32m\x1b[1;38;2;15;15;15m", "\x1b[0m"
-            body = [q, ""] + [((hot + "  › " + label + "  " + reset) if i == selected else "    " + label) for i, (_, label) in enumerate(options)]
-            self._frame(self.section, body, "↑/↓ Move     Enter → Select     Ctrl+C → Quit")
+            page_size = max(1, shutil.get_terminal_size((90, 28)).lines - 18)
+            start = selected // page_size * page_size
+            end = min(start + page_size, len(options))
+            body = [q, ""] + [((hot + "  › " + label + "  " + reset) if i == selected else "    " + label)
+                               for i, (_, label) in enumerate(options) if start <= i < end]
+            self._frame(self.section, body, f"{start + 1}-{end}/{len(options)}   ↑/↓ Move   Enter Select   Ctrl+C Quit")
             key = self._read_key()
             if key in ("\x1b[A", "k"):
                 selected = (selected - 1) % len(options)

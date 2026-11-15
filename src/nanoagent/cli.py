@@ -26,20 +26,12 @@ def _p(s: str = "") -> None:
     print(s)
 
 
-def _brand() -> None:
+def _brand(section: str = "CONSOLE") -> None:
     """Small terminal welcome; keep redirected output and scripts quiet."""
     if not sys.stdout.isatty():
         return
-    orange = "\x1b[1;38;2;255;112;32m"
-    white = "\x1b[1;38;2;245;242;238m"
-    muted = "\x1b[38;2;135;151;168m"
-    reset = "\x1b[0m"
-    width = min(72, shutil.get_terminal_size((80, 24)).columns - 4)
-    print(f"\n  {orange}◆{reset}  {white}NANO AGENT{reset}  {muted}/  CONSOLE  ·  {__version__}{reset}")
-    print(f"  \x1b[38;2;70;78;88m{'─' * width}{reset}\n")
-    for row in branding.wordmark(width=width):
-        print("  " + row)
-    print(f"\n  {muted}PERSONAL AI  /  LOCAL FIRST{reset}\n")
+    columns = shutil.get_terminal_size((80, 24)).columns
+    print("\n".join(["", *branding.banner(section, version=__version__, width=columns), ""]))
 
 
 def _open_console() -> None:
@@ -255,8 +247,13 @@ def cmd_chat(a) -> int:
         return 0
     interactive = sys.stdin.isatty() and sys.stdout.isatty()
     if interactive:
-        _brand()
-        _p("  CHAT IS READY   /dashboard open console   /help commands   /quit leave chat\n")
+        _brand("CHAT")
+        for row in branding.card("Terminal chat", ["Your assistant is ready.", "",
+                                                    "/dashboard  Open the web console",
+                                                    "/help  Show commands   /quit  Leave chat"],
+                                 width=shutil.get_terminal_size((80, 24)).columns):
+            _p(row)
+        _p()
     else:
         _p(t("cli.chat_hint"))
     while True:
