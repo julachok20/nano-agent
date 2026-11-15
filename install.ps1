@@ -16,34 +16,69 @@ $binDir = if ($env:NANO_AGENT_BIN_DIR) { $env:NANO_AGENT_BIN_DIR } else { Join-P
 $isInteractive = [Environment]::UserInteractive -and -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected
 $esc = [char]27
 
+function Write-CardRow([int]$Width, [string]$Plain, [string]$Styled) {
+    $padding = ' ' * [Math]::Max(0, $Width - $Plain.Length)
+    Write-Host "  $esc[38;2;70;78;88m│$esc[0m $Styled$padding $esc[38;2;70;78;88m│$esc[0m"
+}
+
+function Write-DetailRow([int]$Width, [string]$Plain) {
+    if ($Plain -match '^([^:]+:)(.*)$') {
+        $styled = "$esc[1;38;2;255;112;32m$($Matches[1])$esc[0m$esc[38;2;190;202;214m$($Matches[2])$esc[0m"
+    } else {
+        $styled = "$esc[38;2;190;202;214m$Plain$esc[0m"
+    }
+    Write-CardRow $Width $Plain $styled
+}
+
 function Show-Screen([int]$Step, [string]$Title, [string[]]$Details = @()) {
     if (-not $isInteractive -or $env:NO_COLOR) {
         Write-Host "nano Agent / $Title"
         foreach ($detail in $Details) { Write-Host "  $detail" }
         return
     }
+    $width = [Math]::Max(20, [Math]::Min(68, [Console]::WindowWidth - 6))
+    $line = '─' * ($width + 2)
     Write-Host "$esc[2J$esc[H" -NoNewline
-    Write-Host "  $esc[1;38;2;255;112;32m◆$esc[0m  $esc[1;38;2;248;248;246mNANO AGENT$esc[0m  $esc[38;2;125;137;149m/  INSTALLER$esc[0m"
-    Write-Host "  $esc[38;2;70;78;88m────────────────────────────────────────────────────────────$esc[0m"
+    Write-Host ("  $esc[1;38;2;255;112;32m◆$esc[0m  $esc[1;38;2;248;248;246mNANO AGENT$esc[0m  $esc[38;2;125;137;149m/ INSTALLER$esc[0m  $esc[38;2;115;128;142m{0:00} / 04$esc[0m" -f $Step)
+    Write-Host "  $esc[38;2;70;78;88m$line$esc[0m"
+    Write-Host ''
     if ([Console]::WindowWidth -ge 60) {
-        Write-Host "  $esc[1;38;2;248;248;246m█   █  ███  █   █  ███ $esc[0m    $esc[1;38;2;255;112;32m ███   ████ █████ █   █ █████$esc[0m"
-        Write-Host "  $esc[1;38;2;248;248;246m██  █ █   █ ██  █ █   █$esc[0m    $esc[1;38;2;255;112;32m█   █ █     █     ██  █   █  $esc[0m"
-        Write-Host "  $esc[1;38;2;248;248;246m█ █ █ █████ █ █ █ █   █$esc[0m    $esc[1;38;2;255;112;32m█████ █  ██ ████  █ █ █   █  $esc[0m"
-        Write-Host "  $esc[1;38;2;248;248;246m█  ██ █   █ █  ██ █   █$esc[0m    $esc[1;38;2;255;112;32m█   █ █   █ █     █  ██   █  $esc[0m"
-        Write-Host "  $esc[1;38;2;248;248;246m█   █ █   █ █   █  ███ $esc[0m    $esc[1;38;2;255;112;32m█   █  ███  █████ █   █   █  $esc[0m"
-    } else { Write-Host "  $esc[1;38;2;248;248;246mNANO $esc[1;38;2;255;112;32mAGENT$esc[0m" }
-    Write-Host "`n  $esc[38;2;125;137;149mPERSONAL AI  /  LOCAL FIRST$esc[0m`n"
-    $labels = @('CHECK', 'INSTALL', 'SET UP', 'LAUNCH')
-    $parts = for ($i = 1; $i -le 4; $i++) {
-        if ($i -eq $Step) { "$esc[1;38;2;255;112;32m{0:00} {1}$esc[0m" -f $i, $labels[$i - 1] }
-        elseif ($i -lt $Step) { "$esc[38;2;125;185;150m✓ {0}$esc[0m" -f $labels[$i - 1] }
-        else { "$esc[38;2;115;128;142m{0:00} {1}$esc[0m" -f $i, $labels[$i - 1] }
+        Write-Host "  $esc[38;2;255;112;32m▌$esc[0m  $esc[1;38;2;248;248;246m█   █  ███  █   █  ███ $esc[0m    $esc[1;38;2;255;140;59m ███   ████ █████ █   █ █████$esc[0m"
+        Write-Host "  $esc[38;2;255;112;32m▌$esc[0m  $esc[1;38;2;248;248;246m██  █ █   █ ██  █ █   █$esc[0m    $esc[1;38;2;255;126;42m█   █ █     █     ██  █   █  $esc[0m"
+        Write-Host "  $esc[38;2;255;112;32m▌$esc[0m  $esc[1;38;2;248;248;246m█ █ █ █████ █ █ █ █   █$esc[0m    $esc[1;38;2;255;112;32m█████ █  ██ ████  █ █ █   █  $esc[0m"
+        Write-Host "  $esc[38;2;255;112;32m▌$esc[0m  $esc[1;38;2;248;248;246m█  ██ █   █ █  ██ █   █$esc[0m    $esc[1;38;2;239;95;28m█   █ █   █ █     █  ██   █  $esc[0m"
+        Write-Host "  $esc[38;2;255;112;32m▌$esc[0m  $esc[1;38;2;248;248;246m█   █ █   █ █   █  ███ $esc[0m    $esc[1;38;2;222;82;24m█   █  ███  █████ █   █   █  $esc[0m"
+    } else { Write-Host "  $esc[38;2;255;112;32m▌$esc[0m  $esc[1;38;2;248;248;246mNANO $esc[1;38;2;255;112;32mAGENT$esc[0m" }
+    if ([Console]::WindowWidth -ge 60) {
+        Write-Host "  $esc[38;2;255;112;32m▔▔$esc[0m  $esc[38;2;125;137;149mPERSONAL AI  ·  LOCAL FIRST  ·  PRIVATE BY DEFAULT$esc[0m"
+        Write-Host ''
+        $labels = @('CHECK', 'INSTALL', 'SET UP', 'LAUNCH')
+        $parts = for ($i = 1; $i -le 4; $i++) {
+            if ($i -eq $Step) { "$esc[48;2;255;112;32m$esc[1;38;2;18;20;22m {0:00} {1} $esc[0m" -f $i, $labels[$i - 1] }
+            elseif ($i -lt $Step) { "$esc[38;2;125;185;150m✓ {0}$esc[0m" -f $labels[$i - 1] }
+            else { "$esc[38;2;115;128;142m{0:00} {1}$esc[0m" -f $i, $labels[$i - 1] }
+        }
+        Write-Host ('  ' + ($parts -join "  $esc[38;2;70;78;88m━━$esc[0m  "))
+    } else {
+        Write-Host "  $esc[38;2;255;112;32m▔▔$esc[0m  $esc[38;2;125;137;149mLOCAL FIRST$esc[0m"
+        Write-Host ''
+        Write-Host ("  $esc[1;38;2;255;112;32m{0:00} / 04$esc[0m  {1}" -f $Step, $Title)
     }
-    Write-Host ('  ' + ($parts -join "  $esc[38;2;70;78;88m/$esc[0m  "))
-    Write-Host "`n  $esc[38;2;70;78;88m────────────────────────────────────────────────────────────$esc[0m"
-    Write-Host "  $esc[1;38;2;248;248;246m$Title$esc[0m"
-    Write-Host "  $esc[38;2;70;78;88m────────────────────────────────────────────────────────────$esc[0m"
-    foreach ($detail in $Details) { Write-Host "  $esc[38;2;190;202;214m$detail$esc[0m" }
+    Write-Host ''
+    Write-Host "  $esc[38;2;70;78;88m╭$line╮$esc[0m"
+    $shortTitle = if ($Title.Length -gt $width - 2) { $Title.Substring(0, $width - 4) + '…' } else { $Title }
+    Write-CardRow $width "◆ $shortTitle" "$esc[1;38;2;255;112;32m◆$esc[0m $esc[1;38;2;248;248;246m$shortTitle$esc[0m"
+    if ($Details.Count -gt 0) { Write-CardRow $width '' '' }
+    foreach ($detail in $Details) {
+        $remaining = [string]$detail
+        while ($remaining.Length -gt $width) {
+            $chunk = $remaining.Substring(0, $width)
+            Write-DetailRow $width $chunk
+            $remaining = $remaining.Substring($width)
+        }
+        Write-DetailRow $width $remaining
+    }
+    Write-Host "  $esc[38;2;70;78;88m╰$line╯$esc[0m"
     Write-Host ''
 }
 
@@ -92,9 +127,10 @@ $plan = switch ($method) {
     'pipx' { "pipx install --python $($python.Version) --force $spec" }
     default { "Create $agentHome\venv; pip install $spec; link $binDir\nano-agent.exe" }
 }
+$sourceLabel = if ($spec -eq "https://codeload.github.com/$repo/tar.gz/$ref") { "$repo · $ref" } else { $spec }
 Show-Screen 2 'Ready to install' @(
     "OS: Windows · Python: $($python.Version)",
-    "Source: $spec",
+    "Source: $sourceLabel",
     "Method: $method · Data: $agentHome",
     "Will run: $plan",
     'Next: install package → configure assistant → open console',
@@ -102,7 +138,7 @@ Show-Screen 2 'Ready to install' @(
 )
 if ($DryRun) { Write-Host 'dry run: nothing was changed.'; return }
 if (-not $Yes -and $isInteractive) {
-    $answer = Read-Host '  ›  Press Enter to install (n to cancel)'
+    $answer = Read-Host '  [ ENTER ] Install now    [ N ] Cancel'
     if ($answer -match '^(n|no)$') { Write-Host 'aborted.'; return }
 }
 

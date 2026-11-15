@@ -26,46 +26,79 @@ INSTALL_METHOD="auto"
 say() { printf '%s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
+frame_row() {
+  local width="$1" plain="$2" styled="$3" pad=$((width - ${#2}))
+  [ "$pad" -ge 0 ] || pad=0
+  printf '  \033[38;2;70;78;88m│\033[0m %s%*s \033[38;2;70;78;88m│\033[0m\n' "$styled" "$pad" ''
+}
+
+frame_detail() {
+  local width="$1" plain="$2" styled esc=$'\033'
+  if [[ "$plain" == *:* ]]; then
+    styled="${esc}[1;38;2;255;112;32m${plain%%:*}:${esc}[0m${esc}[38;2;190;202;214m${plain#*:}${esc}[0m"
+  else
+    styled="${esc}[38;2;190;202;214m${plain}${esc}[0m"
+  fi
+  frame_row "$width" "$plain" "$styled"
+}
+
 frame() {
   [ -t 1 ] || return 0
   local step="$1" title="$2"
   shift 2
-  printf '\033[2J\033[H'
-  printf '  \033[1;38;2;255;112;32m◆\033[0m  \033[1;38;2;248;248;246mNANO AGENT\033[0m  \033[38;2;125;137;149m/  INSTALLER\033[0m\n'
-  printf '  \033[38;2;70;78;88m────────────────────────────────────────────────────────────\033[0m\n'
-  local cols
+  local cols width line i label detail chunk short_title esc=$'\033'
   cols=$(tput cols 2>/dev/null || echo 80)
+  width=$((cols - 6))
+  [ "$width" -le 68 ] || width=68
+  [ "$width" -ge 20 ] || width=20
+  printf -v line '%*s' "$((width + 2))" ''
+  line=${line// /─}
+  printf '\033[2J\033[H'
+  printf '  \033[1;38;2;255;112;32m◆\033[0m  \033[1;38;2;248;248;246mNANO AGENT\033[0m  \033[38;2;125;137;149m/ INSTALLER\033[0m  \033[38;2;115;128;142m%02d / 04\033[0m\n' "$step"
+  printf '  \033[38;2;70;78;88m%s\033[0m\n\n' "$line"
   if [ "$cols" -ge 60 ]; then
-    printf '  \033[1;38;2;248;248;246m█   █  ███  █   █  ███ \033[0m    \033[1;38;2;255;112;32m ███   ████ █████ █   █ █████\033[0m\n'
-    printf '  \033[1;38;2;248;248;246m██  █ █   █ ██  █ █   █\033[0m    \033[1;38;2;255;112;32m█   █ █     █     ██  █   █  \033[0m\n'
-    printf '  \033[1;38;2;248;248;246m█ █ █ █████ █ █ █ █   █\033[0m    \033[1;38;2;255;112;32m█████ █  ██ ████  █ █ █   █  \033[0m\n'
-    printf '  \033[1;38;2;248;248;246m█  ██ █   █ █  ██ █   █\033[0m    \033[1;38;2;255;112;32m█   █ █   █ █     █  ██   █  \033[0m\n'
-    printf '  \033[1;38;2;248;248;246m█   █ █   █ █   █  ███ \033[0m    \033[1;38;2;255;112;32m█   █  ███  █████ █   █   █  \033[0m\n'
+    printf '  \033[38;2;255;112;32m▌\033[0m  \033[1;38;2;248;248;246m█   █  ███  █   █  ███ \033[0m    \033[1;38;2;255;140;59m ███   ████ █████ █   █ █████\033[0m\n'
+    printf '  \033[38;2;255;112;32m▌\033[0m  \033[1;38;2;248;248;246m██  █ █   █ ██  █ █   █\033[0m    \033[1;38;2;255;126;42m█   █ █     █     ██  █   █  \033[0m\n'
+    printf '  \033[38;2;255;112;32m▌\033[0m  \033[1;38;2;248;248;246m█ █ █ █████ █ █ █ █   █\033[0m    \033[1;38;2;255;112;32m█████ █  ██ ████  █ █ █   █  \033[0m\n'
+    printf '  \033[38;2;255;112;32m▌\033[0m  \033[1;38;2;248;248;246m█  ██ █   █ █  ██ █   █\033[0m    \033[1;38;2;239;95;28m█   █ █   █ █     █  ██   █  \033[0m\n'
+    printf '  \033[38;2;255;112;32m▌\033[0m  \033[1;38;2;248;248;246m█   █ █   █ █   █  ███ \033[0m    \033[1;38;2;222;82;24m█   █  ███  █████ █   █   █  \033[0m\n'
   else
-    printf '  \033[1;38;2;248;248;246mNANO \033[1;38;2;255;112;32mAGENT\033[0m\n'
+    printf '  \033[38;2;255;112;32m▌\033[0m  \033[1;38;2;248;248;246mNANO \033[1;38;2;255;112;32mAGENT\033[0m\n'
   fi
-  printf '\n  \033[38;2;125;137;149mPERSONAL AI  /  LOCAL FIRST\033[0m\n\n'
-  printf '  '
-  local i label
-  for i in 1 2 3 4; do
-    case "$i" in 1) label='CHECK' ;; 2) label='INSTALL' ;; 3) label='SET UP' ;; 4) label='LAUNCH' ;; esac
-    if [ "$i" -eq "$step" ]; then
-      printf '\033[1;38;2;255;112;32m%02d %s\033[0m' "$i" "$label"
-    elif [ "$i" -lt "$step" ]; then
-      printf '\033[38;2;125;185;150m✓ %s\033[0m' "$label"
-    else
-      printf '\033[38;2;115;128;142m%02d %s\033[0m' "$i" "$label"
-    fi
-    [ "$i" -eq 4 ] || printf '  \033[38;2;70;78;88m/\033[0m  '
-  done
-  printf '\n\n  \033[38;2;70;78;88m────────────────────────────────────────────────────────────\033[0m\n'
-  printf '  \033[1;38;2;248;248;246m%s\033[0m\n' "$title"
-  printf '  \033[38;2;70;78;88m────────────────────────────────────────────────────────────\033[0m\n'
+  if [ "$cols" -ge 60 ]; then
+    printf '  \033[38;2;255;112;32m▔▔\033[0m  \033[38;2;125;137;149mPERSONAL AI  ·  LOCAL FIRST  ·  PRIVATE BY DEFAULT\033[0m\n\n'
+    printf '  '
+    for i in 1 2 3 4; do
+      case "$i" in 1) label='CHECK' ;; 2) label='INSTALL' ;; 3) label='SET UP' ;; 4) label='LAUNCH' ;; esac
+      if [ "$i" -eq "$step" ]; then
+        printf '\033[48;2;255;112;32m\033[1;38;2;18;20;22m %02d %s \033[0m' "$i" "$label"
+      elif [ "$i" -lt "$step" ]; then
+        printf '\033[38;2;125;185;150m✓ %s\033[0m' "$label"
+      else
+        printf '\033[38;2;115;128;142m%02d %s\033[0m' "$i" "$label"
+      fi
+      [ "$i" -eq 4 ] || printf '  \033[38;2;70;78;88m━━\033[0m  '
+    done
+  else
+    printf '  \033[38;2;255;112;32m▔▔\033[0m  \033[38;2;125;137;149mLOCAL FIRST\033[0m\n\n'
+    printf '  \033[1;38;2;255;112;32m%02d / 04\033[0m  %s' "$step" "$title"
+  fi
+  printf '\n\n  \033[38;2;70;78;88m╭%s╮\033[0m\n' "$line"
+  short_title="$title"
+  [ "${#short_title}" -le "$((width - 2))" ] || short_title="${title:0:width-4}…"
+  frame_row "$width" "◆ $short_title" "${esc}[1;38;2;255;112;32m◆${esc}[0m ${esc}[1;38;2;248;248;246m$short_title${esc}[0m"
+  [ "$#" -eq 0 ] || frame_row "$width" '' ''
   while [ $# -gt 0 ]; do
-    printf '  \033[38;2;190;202;214m%s\033[0m\n' "$1"
+    detail="$1"
+    while [ "${#detail}" -gt "$width" ]; do
+      chunk="${detail:0:width}"
+      frame_detail "$width" "$chunk"
+      detail="${detail:width}"
+    done
+    frame_detail "$width" "$detail"
     shift
   done
-  printf '\n'
+  printf '  \033[38;2;70;78;88m╰%s╯\033[0m\n\n' "$line"
 }
 
 while [ $# -gt 0 ]; do
@@ -130,7 +163,9 @@ case "$METHOD" in
 esac
 
 if [ -t 1 ]; then
-  frame 2 "Ready to install" "OS: $OS · Python: $PYV" "Source: $SPEC" \
+  SOURCE_LABEL="$SPEC"
+  [ "$SPEC" != "https://codeload.github.com/${REPO}/tar.gz/${REF}" ] || SOURCE_LABEL="$REPO · $REF"
+  frame 2 "Ready to install" "OS: $OS · Python: $PYV" "Source: $SOURCE_LABEL" \
     "Method: $METHOD · Data: $HOME_DIR" "Next: install package → configure assistant → open console"
 else
   say "nano Agent installer"
@@ -145,7 +180,7 @@ fi
 if [ "$DRY" = "1" ]; then say "dry run: nothing was changed."; exit 0; fi
 
 if [ "$YES" = "0" ] && [ -r /dev/tty ] && [ -t 1 ]; then
-  printf '  \033[1;38;2;255;112;32m›\033[0m  Press Enter to install  \033[38;2;115;128;142m(n to cancel)\033[0m '
+  printf '  \033[1;38;2;255;112;32m[ ENTER ]\033[0m  Install now     \033[38;2;115;128;142m[ N ]  Cancel\033[0m  '
   read -r ans </dev/tty || ans=""
   case "${ans:-y}" in n|N|no|NO) say "aborted."; exit 1 ;; esac
 fi
