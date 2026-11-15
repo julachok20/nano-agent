@@ -2,8 +2,31 @@
 
 import os
 import re
+from io import StringIO
+
+import pytest
 
 from nanoagent import wizard
+
+
+class FakeTTY(StringIO):
+    def isatty(self):
+        return True
+
+
+def test_setup_uses_alternate_screen_and_restores_it_on_error(monkeypatch):
+    output = FakeTTY()
+    monkeypatch.setattr(wizard.sys, "stdin", FakeTTY())
+    monkeypatch.setattr(wizard.sys, "stdout", output)
+    monkeypatch.setenv("TERM", "xterm-256color")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+
+    with pytest.raises(RuntimeError):
+        with wizard.setup_screen():
+            raise RuntimeError("setup failed")
+
+    assert output.getvalue().startswith("\x1b[?1049h")
+    assert output.getvalue().endswith("\x1b[?1049l")
 
 
 def test_setup_menu_can_reach_last_provider_on_24_line_terminal(monkeypatch):

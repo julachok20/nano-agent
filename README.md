@@ -20,7 +20,7 @@ Or **Linux, macOS, or WSL**:
 bash install.sh
 ```
 
-Choose **Quick setup** to set only the language, model and key; the dashboard stays local and optional integrations can be added later. **Custom setup** exposes the full choices. API keys are entered privately and stored separately from `config.toml`. To run a local model server, choose an OpenAI-compatible provider and enter its local base URL. When interactive setup finishes, nano Agent opens the dashboard and starts terminal chat. Next time, run `nano-agent launch` (or just `nano-agent` in a terminal). Type `/dashboard` in chat to reopen the browser and `/quit` to leave chat; the dashboard keeps running. Inspect the service with:
+Choose **Quick setup** for language, model, key, and connector choices; the dashboard stays local. Both setup modes ask whether to connect LINE now, later, or use only the dashboard and terminal chat, and whether to prepare Google for later. **Custom setup** also exposes network and storage choices. API keys are entered privately and stored separately from `config.toml`. To run a local model server, choose an OpenAI-compatible provider and enter its local base URL. The interactive installer and setup use temporary terminal screens so their steps leave no scrollback when you finish. nano Agent then opens the dashboard and starts terminal chat. Next time, run `nano-agent launch` (or just `nano-agent` in a terminal). Type `/dashboard` in chat to reopen the browser and `/quit` to leave chat; the dashboard keeps running. Inspect the service with:
 
 ```bash
 nano-agent status

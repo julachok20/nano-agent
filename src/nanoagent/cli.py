@@ -197,25 +197,26 @@ def cmd_setup(a) -> int:
             if not ok and a.strict:
                 return 2
         return 0
-    rc = wizard.run_interactive()
+    with wizard.setup_screen():
+        rc = wizard.run_interactive()
+        if rc == 0:
+            from . import doctor
+            ui = wizard.TerminalUI()
+            checks = doctor.checks(offline=True)
+            if ui._tty:
+                ui.section = "Finish"
+                passed = sum(c["level"] == "ok" for c in checks)
+                issues = [f"!  {c['name']}: {c['detail']}" for c in checks if c["level"] in ("warn", "fail")]
+                ui._frame("Setup complete", [f"{passed} system checks passed.",
+                                             *(issues or ["Your assistant is ready."])],
+                          "Enter → Open console and chat" if not a.no_start else "Enter → Close setup")
+                ui._read_key()
+            else:
+                doctor.run(offline=True)
     if rc == 0:
-        from . import doctor
-        ui = wizard.TerminalUI()
-        checks = doctor.checks(offline=True)
-        if ui._tty:
-            ui.section = "Finish"
-            ui._frame("System check", [f"{'✓' if c['level'] == 'ok' else '!' if c['level'] == 'warn' else '·'}  {c['name']}: {c['detail']}"
-                                        for c in checks if c["level"] in ("ok", "warn", "fail")],
-                       "Settings → nano-agent config set     Models → nano-agent models --help")
-        else:
-            doctor.run(offline=True)
         if not a.no_start:
             return cmd_launch(argparse.Namespace(no_browser=False, no_chat=False))
-        if ui._tty:
-            ui._frame("You’re all set", ["Run nano-agent launch whenever you’re ready.",
-                                           "Change settings with nano-agent config set <key> <value>.",
-                                           "Explore commands with nano-agent --help."], "Enter → Close")
-        else:
+        if not ui._tty:
             _p(t("setup.next_steps"))
     return rc
 

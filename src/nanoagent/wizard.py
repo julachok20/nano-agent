@@ -14,6 +14,7 @@ import os
 import shutil
 import sys
 import zoneinfo
+from contextlib import contextmanager
 
 from . import __version__, branding, config, db, i18n, keystore, paths
 from .i18n import t
@@ -55,10 +56,26 @@ class Prompter:
             self.say("  ?")
 
 
+@contextmanager
+def setup_screen():
+    """Keep interactive setup out of the terminal's normal scrollback."""
+    active = (sys.stdin.isatty() and sys.stdout.isatty() and os.environ.get("TERM") != "dumb"
+              and "NO_COLOR" not in os.environ)
+    if active:
+        sys.stdout.write("\x1b[?1049h\x1b[2J\x1b[H")
+        sys.stdout.flush()
+    try:
+        yield
+    finally:
+        if active:
+            sys.stdout.write("\x1b[?1049l")
+            sys.stdout.flush()
+
+
 class TerminalUI(Prompter):
     """Small dependency-free full-screen setup UI with keyboard menus."""
 
-    sections = ("Welcome", "General", "AI model", "Access", "Integrations", "Finish")
+    sections = ("Welcome", "General", "AI model", "Access", "Connectors", "Finish")
 
     def __init__(self, input_fn=input, secret_fn=getpass.getpass, out=print):
         super().__init__(input_fn, secret_fn, out)
@@ -250,22 +267,24 @@ def collect(p: Prompter, *, quick: bool = False) -> dict:
     if quick:
         a["exposure"] = "local"
         a["home"] = str(paths.home())
-        a["line_later"] = True
-        a["voice"] = {"enabled": True}
-        return a
+    else:
+        p.say("")
+        if isinstance(p, TerminalUI):
+            p.section = "Access"
+        a["exposure"] = p.choose(t("setup.exposure_q"), [("local", t("setup.exp_local")), ("tailscale", t("setup.exp_tailscale")),
+                                                          ("cloudflare", t("setup.exp_cloudflare")), ("domain", t("setup.exp_domain"))], "local")
+        if a["exposure"] != "local":
+            a["public_url"] = p.ask(t("setup.public_url_q"), "")
+        a["home"] = p.ask(t("setup.home_q"), str(paths.home()))
     p.say("")
     if isinstance(p, TerminalUI):
-        p.section = "Access"
-    a["exposure"] = p.choose(t("setup.exposure_q"), [("local", t("setup.exp_local")), ("tailscale", t("setup.exp_tailscale")),
-                                                      ("cloudflare", t("setup.exp_cloudflare")), ("domain", t("setup.exp_domain"))], "local")
-    if a["exposure"] != "local":
-        a["public_url"] = p.ask(t("setup.public_url_q"), "")
-    cur = str(paths.home())
-    a["home"] = p.ask(t("setup.home_q"), cur)
-    p.say("")
-    if isinstance(p, TerminalUI):
-        p.section = "Integrations"
+        p.section = "Connectors"
     line = p.choose(t("setup.line_q"), [("later", t("setup.line_later_opt")), ("now", t("setup.line_now_opt")), ("no", t("setup.line_no_opt"))], "later")
+    if line == "now" and isinstance(p, TerminalUI) and p._tty:
+        p._frame("LINE connector", [t("setup.line_info_channel"), t("setup.line_info_keys"),
+                                    t("setup.line_info_webhook")], "Enter → Enter credentials    q → Later")
+        if p._read_key().lower() == "q":
+            line = "later"
     if line == "now":
         p.say(t("line.guide"))
         a["line"] = {"enabled": True, "channel_secret": p.secret(t("setup.line_secret_q")), "channel_token": p.secret(t("setup.line_token_q")),
@@ -274,11 +293,14 @@ def collect(p: Prompter, *, quick: bool = False) -> dict:
         a["line_later"] = True
     if p.yes(t("setup.google_q"), False):
         a["google"] = True
-    a["voice"] = {"enabled": p.yes(t("setup.voice_q"), True)}
-    if shutil.which("docker"):
-        a["sandbox"] = p.yes(t("setup.sandbox_q"), False)
+    if quick:
+        a["voice"] = {"enabled": True}
     else:
-        p.say(t("setup.sandbox_nodocker"))
+        a["voice"] = {"enabled": p.yes(t("setup.voice_q"), True)}
+        if shutil.which("docker"):
+            a["sandbox"] = p.yes(t("setup.sandbox_q"), False)
+        else:
+            p.say(t("setup.sandbox_nodocker"))
     return a
 
 
@@ -389,17 +411,25 @@ def run_interactive(p: Prompter | None = None) -> int:
                 return 130
             quick = p.choose(t("setup.mode_q"), [("quick", t("setup.mode_quick")),
                                                  ("custom", t("setup.mode_custom"))], "quick") == "quick"
+            if quick:
+                p.sections = ("Welcome", "General", "AI model", "Connectors", "Finish")
         a = collect(p, quick=quick)
         if isinstance(p, TerminalUI):
             p.section = "Finish"
-            p._frame("Review your setup", [
+            line_status = "Enabled" if a.get("line", {}).get("enabled") else "Later" if a.get("line_later") else "Not connected"
+            review = [
                 f"Name: {a.get('owner_name') or 'Not set'}",
                 f"Language: {a.get('language', 'en')} · Time zone: {a.get('timezone', 'UTC')}",
                 f"Model: {a.get('provider', 'Not set')} / {a.get('chat_model', '')}",
                 f"Console access: {a.get('exposure', 'local')}",
-                f"LINE: {'Enabled' if a.get('line', {}).get('enabled') else 'Not connected'} · Voice: {'On' if a.get('voice', {}).get('enabled') else 'Off'}",
+                f"LINE: {line_status} · Voice: {'On' if a.get('voice', {}).get('enabled') else 'Off'}",
                 "Your API key is hidden and is not shown in this review.",
-            ], "Enter → Save settings     Ctrl+C → Cancel")
+            ]
+            if a.get("line", {}).get("enabled") and a.get("exposure") == "local":
+                review.append(t("setup.line_webhook_hint"))
+            if a.get("google"):
+                review.append(t("setup.google_later_hint"))
+            p._frame("Review your setup", review, "Enter → Save settings     Ctrl+C → Cancel")
             if not p.yes("Save these settings?", True):
                 p.say(t("setup.aborted"))
                 return 130
@@ -424,8 +454,8 @@ def run_interactive(p: Prompter | None = None) -> int:
                  ("Model connection: ready" if ok else "Model connection: needs attention — run nano-agent models test"),
                  "Settings   nano-agent config set <key> <value>",
                  "Models     nano-agent models --help",
-                 "LINE       nano-agent line --help",
-                 "Google     nano-agent google --help"]
+                 "LINE       nano-agent line guide" if a.get("line_later") or s["line"] else "LINE       not connected",
+                 "Google     nano-agent google auth" if a.get("google") else "Google     not connected"]
         p.section = "Finish"
         p._frame("Setup complete", lines, "Next → Start the assistant and open your console")
     return 0

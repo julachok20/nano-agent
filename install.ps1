@@ -18,6 +18,21 @@ $agentHome = if ($env:NANO_AGENT_HOME) { $env:NANO_AGENT_HOME } else { Join-Path
 $binDir = if ($env:NANO_AGENT_BIN_DIR) { $env:NANO_AGENT_BIN_DIR } else { Join-Path $HOME '.local\bin' }
 $isInteractive = [Environment]::UserInteractive -and -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected
 $esc = [char]27
+$script:screenActive = $false
+
+function Enter-InstallerScreen {
+    if ($isInteractive -and -not $DryRun -and -not $env:NO_COLOR) {
+        Write-Host "$esc[?1049h" -NoNewline
+        $script:screenActive = $true
+    }
+}
+
+function Exit-InstallerScreen {
+    if ($script:screenActive) {
+        Write-Host "$esc[?1049l" -NoNewline
+        $script:screenActive = $false
+    }
+}
 
 function Write-CardRow([int]$Width, [string]$Plain, [string]$Styled) {
     $padding = ' ' * [Math]::Max(0, $Width - $Plain.Length)
@@ -109,6 +124,8 @@ function Invoke-Python($Selected, [string[]]$Arguments) {
     if ($LASTEXITCODE -ne 0) { throw "Python command failed with exit code $LASTEXITCODE" }
 }
 
+Enter-InstallerScreen
+try {
 Show-Screen 1 'Checking this computer…'
 $python = Find-Python
 if (-not $python) {
@@ -177,11 +194,16 @@ if ($LASTEXITCODE -ne 0) { throw 'The installed command did not run.' }
 if ($method -eq 'venv' -and -not (($env:PATH -split ';') -contains $binDir)) {
     Write-Host "Command launcher: $launcher (add $binDir to PATH later if you want 'nano-agent' everywhere)."
 }
-if ($NoSetup) { Write-Host 'Installed. Next: nano-agent setup'; return }
+if ($NoSetup) { Exit-InstallerScreen; Write-Host 'Installed. Next: nano-agent setup'; return }
 if ($isInteractive) {
     Show-Screen 3 'Installation complete · opening setup…'
+    Exit-InstallerScreen
+    Write-Host 'Installed. Opening setup…'
     & $agent setup
     if ($LASTEXITCODE -ne 0) { throw 'Setup did not finish.' }
 } else {
     Write-Host "Installed. Run: $agent setup"
+}
+} finally {
+    Exit-InstallerScreen
 }

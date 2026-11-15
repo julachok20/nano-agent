@@ -101,13 +101,30 @@ def test_interactive_wizard_english_end_to_end(home, monkeypatch):
     assert FAKE_KEY not in text and "Tailscale" in text and "Cloudflare" in text and "Local only" in text and "(hidden)" in text
 
 
-def test_quick_setup_uses_local_defaults_with_three_choices(home):
-    s = Script(["1", "12", ""], [])  # English, fake provider, default model
+def test_quick_setup_asks_about_connectors_and_uses_local_defaults(home):
+    s = Script(["1", "12", "", "1", "n"], [])  # English, fake provider, default model, LINE later, no Google
     a = wizard.collect(s.prompter(), quick=True)
     assert s.a == []
     assert a["provider"] == "fake" and a["exposure"] == "local"
     assert a["home"] == str(home) and a["line_later"] is True
     assert a["fast_model"] and a["voice"]["enabled"]
+    assert any("connector" in str(item).lower() for item in s.out)
+
+
+def test_quick_setup_can_collect_line_connector_credentials(home):
+    s = Script(["1", "12", "", "2", "", "n"], ["line-secret-x", "line-token-x"])
+    a = wizard.collect(s.prompter(), quick=True)
+    assert s.a == []
+    assert a["line"]["enabled"] and a["line"]["channel_secret"] == "line-secret-x"
+    assert a["exposure"] == "local"
+
+
+def test_quick_setup_can_skip_line_and_prepare_google(home):
+    s = Script(["1", "12", "", "3", "y"], [])
+    a = wizard.collect(s.prompter(), quick=True)
+    assert s.a == []
+    assert "line" not in a and "line_later" not in a
+    assert a["google"] is True
 
 
 def test_launch_starts_dashboard_without_chat_when_requested(monkeypatch):

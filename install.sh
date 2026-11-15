@@ -23,9 +23,35 @@ NO_SETUP=0
 YES=0
 DRY=0
 INSTALL_METHOD="auto"
+SCREEN_ACTIVE=0
+ERROR_REPORTED=0
 
 say() { printf '%s\n' "$*"; }
-die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+leave_screen() {
+  if [ "$SCREEN_ACTIVE" = "1" ]; then
+    printf '\033[?1049l'
+    SCREEN_ACTIVE=0
+  fi
+}
+die() { leave_screen; ERROR_REPORTED=1; printf 'error: %s\n' "$*" >&2; exit 1; }
+finish_screen() {
+  local status=$?
+  if [ "$SCREEN_ACTIVE" = "1" ]; then
+    leave_screen
+    if [ "$status" -ne 0 ] && [ "$ERROR_REPORTED" = "0" ]; then
+      printf 'nano Agent installation stopped (exit %s). Rerun with NO_COLOR=1 bash install.sh to see the full error.\n' "$status" >&2
+    fi
+  fi
+  return 0
+}
+trap finish_screen EXIT
+enter_screen() {
+  if [ "$DRY" = "0" ] && [ -t 1 ] && [ -r /dev/tty ] &&
+     [ "${TERM:-dumb}" != "dumb" ] && [ -z "${NO_COLOR+x}" ]; then
+    printf '\033[?1049h'
+    SCREEN_ACTIVE=1
+  fi
+}
 
 frame_row() {
   local width="$1" plain="$2" styled="$3" pad
@@ -45,7 +71,7 @@ frame_detail() {
 }
 
 frame() {
-  [ -t 1 ] || return 0
+  [ -t 1 ] && [ -z "${NO_COLOR+x}" ] || return 0
   local step="$1" title="$2"
   shift 2
   local cols width line i label detail chunk short_title esc=$'\033'
@@ -117,7 +143,8 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-# The installer itself owns the first screen, before checking or changing anything.
+# The alternate screen keeps first-run steps out of normal terminal scrollback.
+enter_screen
 frame 1 "Checking this computer…"
 
 # ---- 1. OS and Python ------------------------------------------------------
@@ -172,7 +199,7 @@ case "$METHOD" in
   venv) PLAN="$PY -m venv \"$HOME_DIR/venv\" && \"$HOME_DIR/venv/bin/pip\" install \"$SPEC\"; link $BIN_DIR/nano-agent -> the venv" ;;
 esac
 
-if [ -t 1 ]; then
+if [ -t 1 ] && [ -z "${NO_COLOR+x}" ]; then
   SOURCE_LABEL="$SPEC"
   [ "$SPEC" != "https://codeload.github.com/${REPO}/tar.gz/${REF}" ] || SOURCE_LABEL="$REPO · $REF"
   [ "$SPEC" != "$SCRIPT_DIR" ] || SOURCE_LABEL="Local checkout · $SPEC"
@@ -231,12 +258,16 @@ esac
 
 # ---- 3. setup ---------------------------------------------------------------
 if [ "$NO_SETUP" = "1" ]; then
+  leave_screen
   say ""; say "Installed. Next: nano-agent setup"
   exit 0
 fi
 say ""
 if [ -r /dev/tty ] && [ -t 1 ]; then
   frame 3 "Installation complete · opening setup…"
+  leave_screen
+  say "Installed. Opening setup…"
   exec "$BIN" setup </dev/tty
 fi
+leave_screen
 say "Installed. No terminal for the wizard here, so run it yourself: nano-agent setup"

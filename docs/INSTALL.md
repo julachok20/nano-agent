@@ -24,7 +24,7 @@ If the fallback venv is used, the executable lives in `~/.local/bin/nano-agent` 
 
 ## Setup and first run
 
-Choose **Quick setup** for language, model and key with local dashboard defaults. Use **Custom setup** for network access and optional integrations. Enter API keys through the hidden prompt or a supported input method; never put keys in shell history. The local data home defaults to `~/.nano-agent`. Setup writes configuration and secrets there with restrictive permissions where the OS supports them.
+Choose **Quick setup** for language, model, key, and connector choices with local dashboard defaults. Both modes ask whether to connect LINE now, later, or use only the dashboard and terminal chat, and whether to prepare Google for later. Use **Custom setup** for network access, storage, voice, and sandbox options. LINE can save its secret and token during Quick setup, but receiving messages requires a public HTTPS webhook configured afterward. Enter API keys through the hidden prompt or a supported input method; never put keys in shell history. The local data home defaults to `~/.nano-agent`. Setup writes configuration and secrets there with restrictive permissions where the OS supports them. On a compatible interactive terminal, the installer and wizard use alternate screens that disappear from scrollback when setup ends. If installation fails, the installer restores the normal screen and prints an error; rerun with `NO_COLOR=1 bash install.sh` for full command output.
 
 ```bash
 nano-agent doctor --offline
