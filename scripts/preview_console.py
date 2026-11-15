@@ -86,7 +86,7 @@ def main() -> int:
                     page.locator("nav button").first.wait_for(timeout=10000)
                     page.screenshot(path=str(args.out / "console-skills.png"), full_page=True)
                     page.locator("nav button").first.click()
-                    page.locator(".home-card").first.wait_for(timeout=10000)
+                    page.locator(".jv-panel").first.wait_for(timeout=10000)
                     page.screenshot(path=str(args.out / "console-home.png"), full_page=True)
                     page.set_viewport_size({"width": 390, "height": 844})
                     page.screenshot(path=str(args.out / "console-mobile.png"), full_page=True)

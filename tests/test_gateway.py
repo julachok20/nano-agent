@@ -86,6 +86,7 @@ def test_security_headers_and_static_whitelist(client):
     r = client.get("/console")
     assert r.headers["x-content-type-options"] == "nosniff" and "default-src 'self'" in r.headers["content-security-policy"]
     assert client.get("/static/console.js").status_code == 200
+    assert client.get("/static/dashboard.css").headers["content-type"].startswith("text/css")
     assert client.get("/static/../config.py").status_code in (404, 422)
     assert client.get("/static/secrets.toml").status_code == 404
     assert client.get("/api/me").headers.get("cache-control") == "no-store"

@@ -97,71 +97,118 @@ async function orbTap() {
   if (!openerSpoken) { openerSpoken = true; const o = await api("/companion/opener"); $("#said").textContent = o.text; await speak(o.text); return; }
   listen();
 }
+function sv(tag, props = {}, ...kids) {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(props)) e.setAttribute(k, String(v));
+  for (const c of kids.flat()) if (c) e.append(c);
+  return e;
+}
+function dialPoint(r, deg) { const a = deg * Math.PI / 180; return [200 + r * Math.sin(a), 200 - r * Math.cos(a)]; }
+function nanoDial(tasks = []) {
+  const svg = sv("svg", { class: "jv-dial", viewBox: "-34 -34 468 468", "aria-hidden": "true" });
+  for (let i = 0; i < 60; i++) {
+    const big = i % 5 === 0, [x1, y1] = dialPoint(big ? 174 : 179, i * 6), [x2, y2] = dialPoint(188, i * 6);
+    svg.append(sv("line", { x1, y1, x2, y2, stroke: "#38d4ff", "stroke-opacity": big ? .9 : .35, "stroke-width": big ? 2.2 : 1 }));
+  }
+  svg.append(sv("circle", { cx: 200, cy: 200, r: 168, fill: "none", stroke: "#38d4ff", "stroke-opacity": .2, "stroke-width": 2 }),
+    sv("circle", { class: "jv-spin", cx: 200, cy: 200, r: 118, fill: "none", stroke: "#38d4ff", "stroke-opacity": .4, "stroke-dasharray": "2 7" }),
+    sv("circle", { cx: 200, cy: 200, r: 100, fill: "none", stroke: "#38d4ff", "stroke-opacity": .45 }));
+  for (const [label, deg] of [["06", 0], ["09", 90], ["12", 180], ["15", 270]]) {
+    const [x, y] = dialPoint(210, deg), txt = sv("text", { x, y: y + 5, fill: "#8bb0c4", "font-size": 15, "text-anchor": "middle" });
+    txt.textContent = label; svg.append(txt);
+  }
+  const now = new Date(), hour = now.getHours() + now.getMinutes() / 60;
+  if (hour >= 6 && hour <= 18) {
+    const deg = (hour - 6) * 30, [x1, y1] = dialPoint(100, deg), [x2, y2] = dialPoint(160, deg);
+    svg.append(sv("line", { x1, y1, x2, y2, stroke: "#fff", "stroke-width": 2 }), sv("circle", { cx: x2, cy: y2, r: 6, fill: "#fff" }));
+  }
+  const today = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+  for (const task of tasks.filter(x => !x.done && x.due && x.due.startsWith(today)).slice(0, 4)) {
+    const m = /\b(\d{1,2}):(\d{2})\b/.exec(task.due);
+    if (!m) continue;
+    const dueHour = Number(m[1]) + Number(m[2]) / 60;
+    if (dueHour < 6 || dueHour > 18) continue;
+    const [x, y] = dialPoint(150, (dueHour - 6) * 30);
+    svg.append(sv("circle", { cx: x, cy: y, r: 9, fill: "#fbbf24" }));
+  }
+  svg.append(sv("circle", { cx: 200, cy: 200, r: 92, fill: "none", stroke: "#34d399", "stroke-width": 3 }),
+    sv("circle", { cx: 200, cy: 200, r: 86, fill: "#0c1f2c", stroke: "#34d399", "stroke-width": 2 }));
+  const clip = sv("clipPath", { id: "nano-dial-clip" }, sv("circle", { cx: 200, cy: 200, r: 82 }));
+  svg.append(sv("defs", {}, clip), sv("image", { href: "/static/logo-icon.png", x: 118, y: 118, width: 164, height: 164, "clip-path": "url(#nano-dial-clip)", preserveAspectRatio: "xMidYMid meet" }));
+  return svg;
+}
+function jvPanel(area, title, number, ...kids) {
+  return h("section", { class: "jv-panel", style: `grid-area:${area}` },
+    h("h3", null, h("span", { text: title }), h("i", { text: number })), ...kids);
+}
+function jvEmpty(message) { return h("p", { class: "jv-note", text: message }); }
+function jvGo(label, target, section) { return h("button", { class: "jv-link", onclick: () => { if (section) sub[target] = section; go(target); }, text: label }); }
+function jvMemoryGraph(count) {
+  const svg = sv("svg", { class: "jv-memory-graph", viewBox: "0 0 300 150", "aria-hidden": "true" });
+  const points = [[40, 30], [92, 12], [150, 28], [232, 40], [262, 98], [200, 128], [110, 132], [34, 96], [200, 74]];
+  points.slice(0, Math.min(count, points.length)).forEach(([x, y], i) => {
+    svg.append(sv("line", { x1: 150, y1: 78, x2: x, y2: y, stroke: "#38d4ff", "stroke-opacity": .35 }),
+      sv("circle", { cx: x, cy: y, r: 6, fill: ["#38d4ff", "#7dd3fc", "#fbbf24", "#34d399"][i % 4] }));
+  });
+  const center = sv("text", { x: 150, y: 84, "text-anchor": "middle", fill: "#e6f5fc", "font-size": 15 }); center.textContent = String(count);
+  svg.append(sv("circle", { cx: 150, cy: 78, r: 20, fill: "#0c1f2c", stroke: "#e6f5fc", "stroke-width": 2 }), center);
+  return svg;
+}
 async function vHome() {
   const v = clear();
-  v.append(
-    h("section", { class: "home-intro" },
-      h("div", null, h("div", { class: "home-kicker", text: t("home_kicker") }),
-        h("h1", { text: t("home_title") }), h("p", { text: t("home_subtitle") })),
-      h("button", { class: "home-chat-button", onclick: () => go("chat"), text: t("home_chat") })),
-    h("div", { id: "home-metrics", class: "home-metrics" }),
-    h("div", { class: "home-grid" },
-      h("div", { id: "home-left", class: "home-stack" }),
-      h("section", { class: "home-focus" },
-        h("div", { class: "home-focus-top" }, h("span", { class: "home-kicker", text: "03 / COMPANION" }), h("span", { class: "home-live", text: "● LIVE" })),
-        h("div", { class: "home-dial" },
-          h("div", { class: "home-dial-ticks" }, ...Array.from({ length: 48 }, (_, i) => h("i", { style: `--tick:${i}` }))),
-          h("div", { class: "home-dial-core" },
-            h("div", { id: "home-clock", class: "home-clock" }),
-            h("button", { id: "orb", class: "orb", "data-state": "idle", onclick: orbTap, "aria-label": t("orb_tap") }, h("img", { src: "/static/logo-icon.png", alt: "" })),
-            h("div", { class: "home-dial-action", text: t("orb_tap") }))),
-        h("div", { class: "home-welcome", text: t("home_talk") }),
-        h("div", { id: "heard", class: "home-heard" }),
-        h("div", { id: "said", class: "home-said" }),
-        h("p", { class: "dim", text: t("orb_hint") })),
-      h("div", { id: "home-right", class: "home-stack" }),
-      h("div", { id: "home-activity", class: "home-activity" })));
+  const date = new Date(), hour = date.getHours();
+  const greeting = lang === "th" ? (hour < 11 ? "สวัสดีตอนเช้า" : hour < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น")
+    : (hour < 11 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening");
+  v.append(h("div", { class: "jv-head" },
+    h("div", null, h("small", { text: date.toLocaleDateString(lang === "th" ? "th-TH" : undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" }) }),
+      h("strong", { text: greeting })), h("div", { id: "home-clock", class: "jv-clock" })),
+    h("div", { class: "jv-grid" },
+      h("div", { id: "home-chat-panel", class: "jv-slot", style: "grid-area:chat" }),
+      h("div", { id: "home-task-panel", class: "jv-slot", style: "grid-area:task" }),
+      h("div", { id: "home-news-panel", class: "jv-slot", style: "grid-area:news" }),
+      h("div", { class: "jv-core", style: "grid-area:core" }, h("button", { id: "orb", class: "jv-orb", "data-state": "idle", onclick: orbTap, "aria-label": t("orb_tap") }, nanoDial())),
+      h("div", { class: "jv-welcome", style: "grid-area:wel" }, h("h2", { text: lang === "th" ? "ยินดีต้อนรับกลับมา" : "Welcome back" }),
+        h("p", { id: "home-welcome-note", text: lang === "th" ? "แตะวงกลมเพื่อคุยกับ Nano Agent" : "Tap the circle to talk to Nano Agent" }),
+        h("div", { class: "jv-wave", "aria-hidden": "true" }, ...Array.from({ length: 33 }, (_, i) => h("i", { style: `--i:${i};--h:${Math.round(10 + 40 * Math.abs(Math.sin(i * .55)) * (1 - Math.abs(i - 16) / 22))}px` }))),
+        h("div", { id: "heard", class: "jv-heard" }), h("div", { id: "said", class: "jv-said" }), jvGo(t("home_chat"), "chat")),
+      h("div", { id: "home-project-panel", class: "jv-slot", style: "grid-area:proj" }),
+      h("div", { id: "home-memory-panel", class: "jv-slot", style: "grid-area:mem" }),
+      h("div", { id: "home-approval-panel", class: "jv-slot", style: "grid-area:appr" }),
+      h("div", { id: "home-activity-panel", class: "jv-slot", style: "grid-area:bg" })));
   refreshHome();
 }
 async function refreshHome() {
   if (tab !== "home") return;
   const [st, dr, tk, ac] = await Promise.all([api("/state"), api("/drafts"), api("/tasks"), api("/activity")]);
-  const left = $("#home-left"), right = $("#home-right"), metrics = $("#home-metrics"), activity = $("#home-activity");
-  if (!left || !right || !metrics || !activity) return;
+  if (!$("#home-chat-panel")) return;
+  $("#orb").replaceChildren(nanoDial(tk.tasks));
   const factCount = (st.memory.fact || 0) + (st.memory.rule || 0);
-  const metric = (value, label) => h("div", { class: "home-metric" }, h("strong", { text: String(value) }), h("span", { text: label }));
-  metrics.replaceChildren(metric(st.open_tasks, t("sub_tasks")), metric(dr.drafts.length, t("sub_drafts")),
-    metric(ac.running.length, t("sub_activity")), metric(factCount, t("memory_title")));
-  $("#home-clock").textContent = new Date().toLocaleTimeString(lang === "th" ? "th-TH" : undefined, { hour: "2-digit", minute: "2-digit" });
-  left.replaceChildren(); right.replaceChildren();
-  const show = new Set((ME.prefs && ME.prefs["ui.panels"]) || ["work", "tasks", "memory", "drafts", "notifications", "system"]);
-  let cardIndex = 0;
-  const card = (title, ...kids) => h("section", { class: "home-card" },
-    h("div", { class: "home-card-head" }, h("span", { class: "home-card-index", text: String(++cardIndex).padStart(2, "0") }), h("h2", { text: title }), h("span", { class: "home-card-cross", text: "+" })), ...kids);
+  $("#home-clock").textContent = new Date().toLocaleTimeString(lang === "th" ? "th-TH" : undefined, { hour: "2-digit", minute: "2-digit", hour12: false });
   const openTasks = tk.tasks.filter(x => !x.done);
   const totalTasks = tk.tasks.length;
-  const taskPct = totalTasks ? Math.round((totalTasks - openTasks.length) / totalTasks * 100) : 0;
-  if (show.has("tasks")) left.append(card(t("tasks_open", { n: st.open_tasks }),
-    h("div", { class: "home-task-summary" }, h("div", { class: "home-task-ring", style: `--done:${taskPct}%` }, h("strong", { text: `${totalTasks - openTasks.length}/${totalTasks}` })),
-      h("div", null, h("strong", { text: String(st.open_tasks) }), h("small", { text: t("sub_tasks") }))),
-    ...openTasks.slice(0, 4).map(x => h("div", { class: "home-list-row" },
-      h("span", { text: x.title }), h("small", { text: x.due || "" }))),
-    h("button", { class: "home-link", onclick: () => go("manage"), text: t("home_review") })));
-  if (show.has("memory")) left.append(card(t("memory_title"),
-    h("div", { class: "home-memory-map" }, h("div", { class: "home-memory-center", text: String(factCount) }),
-      ...Array.from({ length: Math.min(8, factCount) }, (_, i) => h("i", { class: "home-memory-node", style: `--node:${i};--nodes:${Math.min(8, factCount)}` }))),
-    h("p", { class: "dim", text: t("memory_counts", { f: st.memory.fact || 0, r: st.memory.rule || 0 }) }),
-    h("button", { class: "home-link", onclick: () => go("mind"), text: t("home_review") })));
-  if (show.has("drafts")) right.append(card(t("drafts_title", { n: dr.drafts.length }),
-    h("p", { class: "dim", text: dr.drafts.length ? t("drafts_note") : t("drafts_none") }),
-    h("button", { class: "home-link", onclick: () => { sub.manage = "drafts"; go("manage"); }, text: t("home_review") })));
-  if (show.has("work")) activity.replaceChildren(card(t("work_title"),
-    h("div", { class: "home-activity-strip" },
-      ac.running.length ? ac.running.slice(0, 4).map(a => h("div", { class: "home-activity-item" }, h("i", { class: "home-activity-dot" }), h("span", { text: a.title }), h("small", { text: Math.round(a.secs) + "s" })))
-        : h("div", { class: "home-activity-item" }, h("i", { class: "home-activity-dot idle" }), h("span", { text: t("work_idle") }))),
-    h("button", { class: "home-link", onclick: () => go("work"), text: t("home_review") })));
-  if (show.has("notifications") && st.notifications.length) right.append(card(t("notif_title"),
-    ...st.notifications.slice(0, 3).map(n => h("div", { class: "home-list-row" }, h("span", { text: n.text }), h("small", { text: when(n.ts) })))));
+  const rows = items => items.map(([title, detail, pct]) => h("div", { class: "jv-row" }, h("span", { class: "jv-dot" }), h("span", { class: "jv-name", text: title }),
+    h("span", { class: "jv-rowbar" }, h("i", { style: `width:${pct}%` })), h("em", { text: detail })));
+  $("#home-chat-panel").replaceChildren(jvPanel("chat", t("tab_chat"), "01",
+    h("div", { class: "jv-split" }, h("span", { class: "jv-big", text: "0" }), h("div", { class: "jv-bars" }, ...Array.from({ length: 24 }, () => h("b", { style: "height:5%" })))),
+    jvEmpty("No linked chats to review"), jvGo(t("home_chat"), "chat")));
+  const completed = totalTasks - openTasks.length, pct = totalTasks ? completed / totalTasks : 0;
+  $("#home-task-panel").replaceChildren(jvPanel("task", t("sub_tasks"), "02",
+    h("div", { class: "jv-ringrow" },
+      h("div", { class: "jv-ring", style: `--done:${Math.round(pct * 100)}%` }, h("span", { text: `${completed}/${totalTasks}` })),
+      h("div", { class: "jv-task-rows" }, openTasks.length ? rows(openTasks.slice(0, 3).map(x => [x.title, x.due || "", x.priority === 1 ? 30 : x.priority === 2 ? 60 : 90])) : jvEmpty("No urgent tasks"))),
+    h("div", { class: "jv-segments" }, ...Array.from({ length: 10 }, (_, i) => h("i", { class: i < Math.round(pct * 10) ? "on" : "" })))));
+  $("#home-news-panel").replaceChildren(jvPanel("news", "News", "05", jvEmpty("No news feed connected")));
+  $("#home-project-panel").replaceChildren(jvPanel("proj", "Projects", "03", jvEmpty("No projects tracked yet")));
+  $("#home-memory-panel").replaceChildren(jvPanel("mem", t("memory_title"), "04", jvMemoryGraph(factCount),
+    h("div", { class: "jv-pct" }, h("span", { class: "jv-big", text: String(factCount) }), h("small", { text: t("memory_counts", { f: st.memory.fact || 0, r: st.memory.rule || 0 }) })), jvGo(t("home_review"), "mind")));
+  $("#home-approval-panel").replaceChildren(jvPanel("appr", t("drafts_title", { n: dr.drafts.length }), "06",
+    dr.drafts.length ? rows(dr.drafts.slice(0, 3).map(d => [d.channel + " → " + d.target, "Review", 60])) : jvEmpty(t("drafts_none")),
+    jvGo(t("home_review"), "manage", "drafts")));
+  const recent = [...ac.running, ...ac.done.slice(0, 3)];
+  $("#home-activity-panel").replaceChildren(jvPanel("bg", t("work_title"), "07",
+    recent.length ? recent.map(a => h("div", { class: "jv-activity-row" }, h("span", { class: "jv-dot " + (a.status === "running" ? "running" : "") }),
+      h("span", { text: a.title }), h("small", { text: a.status === "running" ? Math.round(a.secs) + "s" : a.status }))) : jvEmpty(t("work_idle")),
+    jvGo(t("home_review"), "work")));
 }
 function draftsPanel(list, after) {
   return panel(t("drafts_title", { n: list.length }), h("p", { class: "dim", text: t("drafts_note") }), ...list.map(d => h("div", { class: "row" },

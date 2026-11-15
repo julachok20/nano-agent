@@ -100,6 +100,6 @@ main:has(.home-grid){max-width:1550px;padding:22px clamp(18px,2.6vw,38px)}
 def page() -> str:
     return f"""<!doctype html><html lang="en" data-accent="cyan" data-density="normal" data-size="m"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex">
-<title>nano Agent</title><link rel="icon" href="/static/favicon.png"><style>{CSS}</style></head><body>
+<title>nano Agent</title><link rel="icon" href="/static/favicon.png"><style>{CSS}</style><link rel="stylesheet" href="/static/dashboard.css?v={__version__}"></head><body>
 <header><img src="/static/logo-icon.png" alt=""><b>nano Agent</b><span class="sp"></span><span id="pill" class="pill"><i></i><span id="pilltxt"></span></span></header>
 <main id="view"></main><nav id="tabs"></nav><script src="/static/console.js?v={__version__}"></script></body></html>"""
