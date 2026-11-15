@@ -6,7 +6,17 @@
 
 ## Quick start
 
-The installer supports Linux, macOS and WSL. Native Windows is not supported in this preview. It installs an isolated command and starts the setup wizard; it does not use sudo or edit shell startup files.
+The installer supports Windows, Linux, macOS and WSL. It installs an isolated command and opens the terminal setup wizard. It does not request administrator rights or edit your shell profile.
+
+**Windows PowerShell** (download and inspect the script first):
+
+```powershell
+Invoke-WebRequest https://raw.githubusercontent.com/julachok20/nano-agent/main/install.ps1 -OutFile install.ps1 # scan:allow
+Get-Content .\install.ps1
+.\install.ps1
+```
+
+**Linux, macOS or WSL:**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/julachok20/nano-agent/main/install.sh -o install.sh # scan:allow
@@ -14,7 +24,7 @@ less install.sh
 bash install.sh
 ```
 
-Choose a model provider in setup. API keys are entered privately and stored separately from `config.toml`. To run a local model server, choose an OpenAI-compatible provider and enter its local base URL. After setup, open the private console URL printed by the installer. Start and inspect the service with:
+Choose a model provider in setup. API keys are entered privately and stored separately from `config.toml`. To run a local model server, choose an OpenAI-compatible provider and enter its local base URL. After setup, open the private console URL printed by setup. Start and inspect the service with:
 
 ```bash
 nano-agent status
@@ -34,7 +44,13 @@ To remove nano Agent, run `nano-agent uninstall`; review its prompt carefully be
 
 ## Screenshots
 
-The project includes the console logo and icon in `assets/`. A sample-data console preview is generated with `python scripts/preview_console.py`; it writes local screenshots and does not connect to an account or provider.
+The project includes the console logo and icon in `assets/`. These screenshots use a temporary fake-provider home and no personal account.
+
+![nano Agent home console](docs/img/console-home.png)
+
+![nano Agent skills console](docs/img/console-skills.png)
+
+Recreate them with `python scripts/preview_console.py --screenshots --out docs/img` after installing Playwright Chromium.
 
 ## Safety and privacy
 

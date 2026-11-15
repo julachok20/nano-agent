@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
@@ -83,3 +83,18 @@ jobs:
           export HOME="$(mktemp -d)"
           bash install.sh --yes --no-setup --from "$GITHUB_WORKSPACE"
           "$HOME/.local/bin/nano-agent" --version
+
+  install-windows:
+    name: Windows installer smoke test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check Windows installer syntax and dry run
+        shell: pwsh
+        run: |
+          $null = [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path .\install.ps1), [ref]$null, [ref]$parseErrors)
+          if ($parseErrors) { throw ($parseErrors | Out-String) }
+          .\install.ps1 -DryRun -From (Get-Location).Path

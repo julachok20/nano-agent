@@ -37,8 +37,18 @@ def main() -> int:
                        cwd=ROOT, env=env, check=True, stdout=subprocess.DEVNULL)
         import uvicorn
 
+        from nanoagent import db
         from nanoagent.gateway.app import create_app
 
+        now = time.time()
+        db.run("INSERT INTO tasks(ts,title,due,priority) VALUES(?,?,?,?)",
+               (now, "Review this week's priorities", now + 86400, 2))
+        db.run("INSERT INTO tasks(ts,title,due,priority) VALUES(?,?,?,?)",
+               (now, "Plan a weekend project", now + 172800, 3))
+        db.run("INSERT INTO memory(ts,kind,text,source) VALUES(?,?,?,?)",
+               (now, "fact", "Prefers concise daily updates", "sample preview"))
+        db.run("INSERT INTO memory(ts,kind,text,source) VALUES(?,?,?,?)",
+               (now, "rule", "Ask before sending messages", "sample preview"))
         app = create_app()
         cfg = {"host": "127.0.0.1", "port": 0, "log_level": "error", "access_log": False}
         server = uvicorn.Server(uvicorn.Config(app, **cfg))
@@ -63,7 +73,6 @@ def main() -> int:
             opener.open(req).read()
             # Use browser hash login only in the temporary local preview.
             url = base + "/console#token=" + token + "&tab=mind&sub=skills"
-            (args.out / "console-preview.url.txt").write_text(url + "\n", encoding="utf-8")
             if args.screenshots:
                 try:
                     from playwright.sync_api import sync_playwright
@@ -73,7 +82,8 @@ def main() -> int:
                 with sync_playwright() as p:
                     browser = p.chromium.launch(headless=True)
                     page = browser.new_page(viewport={"width": 1440, "height": 1000}, device_scale_factor=1)
-                    page.goto(url, wait_until="networkidle")
+                    page.goto(url, wait_until="domcontentloaded")
+                    page.locator("nav button").first.wait_for(timeout=10000)
                     page.screenshot(path=str(args.out / "console-skills.png"), full_page=True)
                     page.locator("nav button").first.click()
                     page.wait_for_timeout(500)
@@ -81,7 +91,8 @@ def main() -> int:
                     browser.close()
             if args.open:
                 webbrowser.open(url)
-            print(f"Preview URL written to {args.out / 'console-preview.url.txt'}")
+                input("Preview is open. Press Enter to stop the temporary server. ")
+            print(f"Sample preview finished. Screenshots: {args.out if args.screenshots else 'not requested'}")
             if not args.screenshots:
                 print("Add --screenshots to capture pages (install Playwright Chromium first).")
         finally:

@@ -11,11 +11,13 @@ from __future__ import annotations
 import asyncio
 import getpass
 import os
+import re
 import shutil
 import sys
+import textwrap
 import zoneinfo
 
-from . import config, db, i18n, keystore, paths
+from . import __version__, config, db, i18n, keystore, paths
 from .i18n import t
 from .providers import make_provider
 from .providers.presets import ORDER, PRESETS
@@ -53,6 +55,147 @@ class Prompter:
             if v in keys:
                 return v
             self.say("  ?")
+
+
+class TerminalUI(Prompter):
+    """Small dependency-free full-screen setup UI with keyboard menus."""
+
+    sections = ("Welcome", "General", "AI model", "Access", "Integrations", "Finish")
+
+    def __init__(self, input_fn=input, secret_fn=getpass.getpass, out=print):
+        super().__init__(input_fn, secret_fn, out)
+        self.section = "Welcome"
+        self.message = ""
+        self._tty = sys.stdin.isatty() and sys.stdout.isatty() and os.environ.get("TERM") != "dumb" and "NO_COLOR" not in os.environ
+
+    def _frame(self, title: str, body: list[str], footer: str = "↑↓ Select   Enter Continue   Ctrl+C Quit") -> None:
+        if not self._tty:
+            self.say(title)
+            for line in body:
+                self.say(line)
+            return
+        width = max(30, min(72, shutil.get_terminal_size((90, 28)).columns - 4))
+        orange = "\x1b[1;38;2;255;112;32m"
+        white = "\x1b[1;38;2;245;242;238m"
+        muted = "\x1b[38;2;135;151;168m"
+        green = "\x1b[38;2;125;185;150m"
+        rule = "\x1b[38;2;70;78;88m"
+        reset = "\x1b[0m"
+        lines = [
+            f"  {orange}╭─{reset}  {muted}NANO AGENT  /  SETUP  ·  {__version__}{reset}",
+            f"  {orange}│{reset}",
+            f"  {orange}│{reset}   {white}N A N O{reset}",
+            f"  {orange}│{reset}   {orange}A G E N T{reset}",
+            f"  {orange}│{reset}",
+            f"  {orange}╰─{reset}  {muted}PERSONAL AI  ·  LOCAL FIRST{reset}",
+            "",
+        ]
+        active = self.sections.index(self.section) if self.section in self.sections else 0
+        progress = f"{green}{'●' * active}{orange}◉{muted}{'○' * (len(self.sections) - active - 1)}{reset}"
+        lines.extend([
+            f"  {progress}  {muted}{active + 1:02d}/{len(self.sections):02d}{reset}  {white}{self.section}{reset}",
+            "",
+            f"  {rule}{'─' * width}{reset}",
+            f"  {white}{title}{reset}",
+            f"  {rule}{'─' * width}{reset}",
+        ])
+        for item in body:
+            plain = re.sub(r"\x1b\[[0-9;]*m", "", str(item))
+            if len(plain) <= width - 2:
+                lines.append("  " + str(item))
+            else:
+                for chunk in textwrap.wrap(plain, width=width - 2, replace_whitespace=False, drop_whitespace=True):
+                    lines.append("  " + chunk)
+        lines.extend(["", f"  {rule}{'─' * width}{reset}", f"  {muted}{footer[:width]}{reset}", ""])
+        sys.stdout.write("\x1b[2J\x1b[H" + "\n".join(lines) + "\n")
+        sys.stdout.flush()
+
+    def say(self, text: str = "") -> None:
+        self.message = text
+        if not self._tty:
+            super().say(text)
+
+    def intro(self) -> bool:
+        self.section = "Welcome"
+        self._frame("Your private AI, ready when you are", [
+            "",
+            "A few choices, then your assistant is ready.",
+            "Nothing is saved until you finish setup.",
+            "",
+            "Use ↑ / ↓ to choose, Enter to continue, Ctrl+C to quit.",
+        ], "Enter → Start setup     q → Quit")
+        if self._tty:
+            return self._read_key().lower() != "q"
+        return True
+
+    @staticmethod
+    def _read_key() -> str:
+        if os.name == "nt":
+            import msvcrt
+            key = msvcrt.getwch()
+            if key in ("\x00", "\xe0"):
+                return "\x1b[" + msvcrt.getwch()
+            if key == "\x03":
+                raise KeyboardInterrupt
+            return key
+        import termios
+        import tty
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            key = sys.stdin.read(1)
+            if key == "\x03":
+                raise KeyboardInterrupt
+            if key == "\x1b":
+                key += sys.stdin.read(2)
+            return key
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+    def ask(self, q: str, default: str = "") -> str:
+        if not self._tty:
+            return super().ask(q, default)
+        self._frame(self.section, [q, "Type a value and press Enter."], "Enter → Save this field     Ctrl+C → Quit")
+        value = self.input(f"  {q}" + (f" [{default}]" if default else "") + ": ").strip()
+        return value or default
+
+    def secret(self, q: str) -> str:
+        if not self._tty:
+            return super().secret(q)
+        self._frame(self.section, [q, "Input is hidden while you type."], "Enter → Save securely     Ctrl+C → Quit")
+        return self.secret_fn(f"  {q}: ").strip()
+
+    def yes(self, q: str, default: bool = True) -> bool:
+        if not self._tty:
+            return super().yes(q, default)
+        selected = 0 if default else 1
+        options = [(True, "Yes"), (False, "No")]
+        while True:
+            hot, reset = "\x1b[48;2;255;112;32m\x1b[1;38;2;15;15;15m", "\x1b[0m"
+            body = [q, "", *[((hot + "  › " + label + "  " + reset) if i == selected else "    " + label) for i, (_, label) in enumerate(options)]]
+            self._frame(self.section, body, "↑/↓ Move     Enter → Select     Ctrl+C → Quit")
+            key = self._read_key()
+            if key in ("\x1b[A", "\x1b[B", "k", "j"):
+                selected = 1 - selected
+            elif key in ("\r", "\n", " "):
+                return options[selected][0]
+
+    def choose(self, q: str, options: list[tuple[str, str]], default: str) -> str:
+        if not self._tty:
+            return super().choose(q, options, default)
+        selected = next((i for i, (key, _) in enumerate(options) if key == default), 0)
+        while True:
+            hot, reset = "\x1b[48;2;255;112;32m\x1b[1;38;2;15;15;15m", "\x1b[0m"
+            body = [q, ""] + [((hot + "  › " + label + "  " + reset) if i == selected else "    " + label) for i, (_, label) in enumerate(options)]
+            self._frame(self.section, body, "↑/↓ Move     Enter → Select     Ctrl+C → Quit")
+            key = self._read_key()
+            if key in ("\x1b[A", "k"):
+                selected = (selected - 1) % len(options)
+            elif key in ("\x1b[B", "j"):
+                selected = (selected + 1) % len(options)
+            elif key in ("\r", "\n", " "):
+                return options[selected][0]
 
 
 def detect_timezone() -> str:
@@ -94,12 +237,16 @@ def exposure_hint(kind: str, port: int) -> list[str]:
 def collect(p: Prompter) -> dict:
     a: dict = {}
     p.say(t("setup.intro", "en") + "\n")
+    if isinstance(p, TerminalUI):
+        p.section = "General"
     a["language"] = p.choose(t("setup.lang_q", "en"), [("en", "English"), ("th", "ไทย (Thai)")], "en")
     L = a["language"]
     i18n.set_language(L)
     a["owner_name"] = p.ask(t("setup.name_q"), "")
     a["timezone"] = p.ask(t("setup.tz_q"), detect_timezone())
     p.say("")
+    if isinstance(p, TerminalUI):
+        p.section = "AI model"
     a["provider"] = p.choose(t("setup.provider_q"), [(k, PRESETS[k]["label"]) for k in ORDER], "openai")
     pre = PRESETS[a["provider"]]
     a["base_url"] = p.ask(t("setup.base_url_q"), pre["base_url"]) if a["provider"] in ("custom", "vllm", "lmstudio", "ollama") else pre["base_url"]
@@ -115,6 +262,8 @@ def collect(p: Prompter) -> dict:
     a["chat_model"] = p.ask(t("setup.model_q"), pre["chat"])
     a["fast_model"] = p.ask(t("setup.fast_q"), pre["fast"] or a["chat_model"])
     p.say("")
+    if isinstance(p, TerminalUI):
+        p.section = "Access"
     a["exposure"] = p.choose(t("setup.exposure_q"), [("local", t("setup.exp_local")), ("tailscale", t("setup.exp_tailscale")),
                                                       ("cloudflare", t("setup.exp_cloudflare")), ("domain", t("setup.exp_domain"))], "local")
     if a["exposure"] != "local":
@@ -122,6 +271,8 @@ def collect(p: Prompter) -> dict:
     cur = str(paths.home())
     a["home"] = p.ask(t("setup.home_q"), cur)
     p.say("")
+    if isinstance(p, TerminalUI):
+        p.section = "Integrations"
     line = p.choose(t("setup.line_q"), [("later", t("setup.line_later_opt")), ("now", t("setup.line_now_opt")), ("no", t("setup.line_no_opt"))], "later")
     if line == "now":
         p.say(t("line.guide"))
@@ -237,9 +388,26 @@ def test_model(role: str = "chat") -> tuple[bool, str]:
 
 
 def run_interactive(p: Prompter | None = None) -> int:
-    p = p or Prompter()
+    p = p or TerminalUI()
     try:
+        if isinstance(p, TerminalUI):
+            if not p.intro():
+                p.say(t("setup.aborted"))
+                return 130
         a = collect(p)
+        if isinstance(p, TerminalUI):
+            p.section = "Finish"
+            p._frame("Review your setup", [
+                f"Name: {a.get('owner_name') or 'Not set'}",
+                f"Language: {a.get('language', 'en')} · Time zone: {a.get('timezone', 'UTC')}",
+                f"Model: {a.get('provider', 'Not set')} / {a.get('chat_model', '')}",
+                f"Console access: {a.get('exposure', 'local')}",
+                f"LINE: {'Enabled' if a.get('line', {}).get('enabled') else 'Not connected'} · Voice: {'On' if a.get('voice', {}).get('enabled') else 'Off'}",
+                "Your API key is hidden and is not shown in this review.",
+            ], "Enter → Save settings     Ctrl+C → Cancel")
+            if not p.yes("Save these settings?", True):
+                p.say(t("setup.aborted"))
+                return 130
     except (KeyboardInterrupt, EOFError):
         p.say("\n" + t("setup.aborted"))
         return 130
@@ -256,4 +424,13 @@ def run_interactive(p: Prompter | None = None) -> int:
         p.say(t("setup.exposure_cmds"))
         for ln in exposure_hint(a["exposure"], config.load()["gateway"]["port"]):
             p.say("  " + ln)
+    if isinstance(p, TerminalUI):
+        lines = [f"Workspace: {s['home']}", f"Model: {s['model']}",
+                 ("Model connection: ready" if ok else "Model connection: needs attention — run nano-agent models test"),
+                 "Settings   nano-agent config set <key> <value>",
+                 "Models     nano-agent models --help",
+                 "LINE       nano-agent line --help",
+                 "Google     nano-agent google --help"]
+        p.section = "Finish"
+        p._frame("Setup complete", lines, "Next → Start the assistant and open your console")
     return 0

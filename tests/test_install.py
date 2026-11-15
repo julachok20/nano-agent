@@ -13,7 +13,7 @@ ROOT = Path(__file__).parents[1]
 BASH = shutil.which("bash")
 
 
-@pytest.mark.skipif(not BASH, reason="bash not available")
+@pytest.mark.skipif(os.name == "nt" or not BASH, reason="POSIX installer runs on Unix or WSL")
 def test_install_script_syntax_and_dry_run():
     assert subprocess.run([BASH, "-n", str(ROOT / "install.sh")]).returncode == 0
     p = subprocess.run([BASH, str(ROOT / "install.sh"), "--dry-run", "--from", "nanoagent==0.1.0"], capture_output=True, text=True,
@@ -25,7 +25,7 @@ def test_install_script_syntax_and_dry_run():
     assert "Will run:" in out and "No sudo" in out and "dry run: nothing was changed" in out and "nanoagent==0.1.0" in out
 
 
-@pytest.mark.skipif(not BASH, reason="bash not available")
+@pytest.mark.skipif(os.name == "nt" or not BASH, reason="POSIX installer runs on Unix or WSL")
 def test_install_script_rejects_unknown_options_and_never_uses_sudo():
     text = (ROOT / "install.sh").read_text(encoding="utf-8")
     code = "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("#"))
@@ -39,7 +39,7 @@ def test_install_script_rejects_unknown_options_and_never_uses_sudo():
 @pytest.mark.skipif(os.environ.get("NANO_SKIP_INSTALL_TEST") == "1", reason="NANO_SKIP_INSTALL_TEST=1")
 def test_wheel_installs_into_a_clean_venv_and_runs_on_a_fresh_home(tmp_path):
     wheels = tmp_path / "wheels"
-    r = subprocess.run([sys.executable, "-m", "pip", "wheel", str(ROOT), "--no-deps", "--no-build-isolation", "-w", str(wheels), "-q"], capture_output=True, text=True)
+    r = subprocess.run([sys.executable, "-m", "pip", "wheel", str(ROOT), "--no-deps", "-w", str(wheels), "-q"], capture_output=True, text=True)
     assert r.returncode == 0, r.stderr[-800:]
     whl = next(wheels.glob("nanoagent-*.whl"))
     venv = tmp_path / "venv"
@@ -50,6 +50,7 @@ def test_wheel_installs_into_a_clean_venv_and_runs_on_a_fresh_home(tmp_path):
     assert r.returncode == 0, r.stderr[-800:]
     env = {k: v for k, v in os.environ.items() if not k.startswith("NANO_")}
     env["NANO_AGENT_HOME"] = str(tmp_path / "fresh-home")
+    env["PYTHONIOENCODING"] = "utf-8"
     env["HOME"] = env["USERPROFILE"] = str(tmp_path)   # the pointer file must not land in a real home
     cli = str(bindir / f"nano-agent{exe}")
 

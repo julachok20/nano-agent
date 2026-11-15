@@ -9,3 +9,20 @@ Provider keys are stored in the secret store, separately from `config.toml`. Do 
 Use `nano-agent models list`, `nano-agent models add`, `nano-agent models set-key`, `nano-agent models use` and `nano-agent models test` for model management. Exact prompts are shown by `nano-agent models --help` and the setup wizard.
 
 Live calls require the provider's own account and credentials. CI uses fake responses and does not prove a hosted provider account works.
+
+## Choosing a provider
+
+Use the setup wizard for the first model. Hosted adapters send the prompt and selected context to that service. A local Ollama or OpenAI-compatible server can keep inference on your machine, depending on how that server is configured. For local OpenAI-compatible servers, enter the server's `/v1` base URL and the model identifier it exposes.
+
+```bash
+nano-agent models list
+nano-agent models add openai-compatible --name local --base-url http://127.0.0.1:1234/v1 --model my-model
+nano-agent models use chat local/my-model
+nano-agent models test
+```
+
+Replace the sample URL and model with the values from your server. Use `nano-agent models add --help` for the provider names and options supported by the installed version. A hosted provider usually needs a key; `nano-agent models set-key NAME` prompts privately, while `--api-key-stdin` and `--api-key-env VAR` support noninteractive setup.
+
+## Troubleshooting
+
+Run `nano-agent doctor --offline` first to check local configuration, then `nano-agent models test` to make one live request. A connection error usually means the server URL or network path is wrong. An authentication error points to the key; a model error points to its identifier or account access. The `fast` and `vision` roles are optional and use the chat role if unset. Never paste a key or token into a bug report; redact URLs containing credentials.

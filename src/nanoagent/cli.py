@@ -14,6 +14,7 @@ import signal
 import subprocess
 import sys
 import time
+import webbrowser
 from pathlib import Path
 
 from . import __version__, config, i18n, keystore, paths
@@ -22,6 +23,29 @@ from .i18n import t
 
 def _p(s: str = "") -> None:
     print(s)
+
+
+def _brand() -> None:
+    """Small terminal welcome; keep redirected output and scripts quiet."""
+    if not sys.stdout.isatty():
+        return
+    orange = "\x1b[1;38;2;255;112;32m"
+    white = "\x1b[1;38;2;245;242;238m"
+    muted = "\x1b[38;2;135;151;168m"
+    reset = "\x1b[0m"
+    print(f"\n  {orange}╭─{reset}  {muted}NANO AGENT  /  CONSOLE  ·  {__version__}{reset}")
+    print(f"  {orange}│{reset}")
+    print(f"  {orange}│{reset}   {white}N A N O{reset}")
+    print(f"  {orange}│{reset}   {orange}A G E N T{reset}")
+    print(f"  {orange}│{reset}")
+    print(f"  {orange}╰─{reset}  {muted}PERSONAL AI  ·  LOCAL FIRST{reset}\n")
+
+
+def _open_console() -> None:
+    url = console_url(with_token=True)
+    _p("Opening your private console in the browser…")
+    if not webbrowser.open(url):
+        _p("Could not open a browser automatically. Run `nano-agent token` for your sign-in link.")
 
 
 # ---------------------------------------------------------------- daemon
@@ -63,6 +87,8 @@ def cmd_start(a) -> int:
         return 1
     if (pid := _pid()) and _health(cfg):
         _p(t("cli.already_running", pid=pid))
+        if getattr(a, "open", False):
+            _open_console()
         return 0
     if a.foreground:
         from .gateway import app
@@ -77,14 +103,25 @@ def cmd_start(a) -> int:
         kw["start_new_session"] = True
     proc = subprocess.Popen([sys.executable, "-m", "nanoagent", "serve"], **kw)
     paths.pid_path().write_text(str(proc.pid))
-    for _ in range(40):
+    if sys.stdout.isatty():
+        _brand()
+        _p("  Starting your local assistant…")
+    for attempt in range(40):
         if _health(cfg):
             _p(t("cli.started", url=console_url(cfg)))
-            _p(t("cli.token_hint"))
+            if getattr(a, "open", False):
+                _open_console()
+            else:
+                _p(t("cli.token_hint"))
             return 0
         if proc.poll() is not None:
             break
+        if sys.stdout.isatty():
+            frames = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+            print(f"\r  {frames[attempt % len(frames)]} Loading console and checking services…", end="", flush=True)
         time.sleep(0.25)
+    if sys.stdout.isatty():
+        print()
     _p(t("cli.start_failed", log=str(paths.logs_dir() / "gateway.log")))
     return 1
 
@@ -164,11 +201,23 @@ def cmd_setup(a) -> int:
     rc = wizard.run_interactive()
     if rc == 0:
         from . import doctor
-        _p("")
-        doctor.run(offline=True)
-        if not a.no_start and wizard.Prompter().yes(t("setup.start_q"), True):
-            return cmd_start(argparse.Namespace(foreground=False))
-        _p(t("setup.next_steps"))
+        ui = wizard.TerminalUI()
+        checks = doctor.checks(offline=True)
+        if ui._tty:
+            ui.section = "Finish"
+            ui._frame("System check", [f"{'✓' if c['level'] == 'ok' else '!' if c['level'] == 'warn' else '·'}  {c['name']}: {c['detail']}"
+                                        for c in checks if c["level"] in ("ok", "warn", "fail")],
+                       "Settings → nano-agent config set     Models → nano-agent models --help")
+        else:
+            doctor.run(offline=True)
+        if not a.no_start and ui.yes(t("setup.start_q"), True):
+            return cmd_start(argparse.Namespace(foreground=False, open=True))
+        if ui._tty:
+            ui._frame("You’re all set", ["Run nano-agent start --open whenever you’re ready.",
+                                           "Change settings with nano-agent config set <key> <value>.",
+                                           "Explore commands with nano-agent --help."], "Enter → Close")
+        else:
+            _p(t("setup.next_steps"))
     return rc
 
 
@@ -465,6 +514,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sp.add_parser("start", help="start the gateway in the background")
     s.add_argument("--foreground", action="store_true")
+    s.add_argument("--open", action="store_true", help="open the signed-in private console in your browser")
     s.set_defaults(fn=cmd_start)
     sp.add_parser("stop", help="stop the gateway").set_defaults(fn=cmd_stop)
     s = sp.add_parser("status")

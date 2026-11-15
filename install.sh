@@ -25,6 +25,40 @@ DRY=0
 say() { printf '%s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
+frame() {
+  [ -t 1 ] || return 0
+  local step="$1" title="$2"
+  shift 2
+  printf '\033[2J\033[H'
+  printf '\n  \033[38;2;255;112;32m╭─\033[0m  \033[38;2;125;137;149mNANO AGENT  /  INSTALLER\033[0m\n'
+  printf '  \033[38;2;255;112;32m│\033[0m\n'
+  printf '  \033[38;2;255;112;32m│\033[0m   \033[1;38;2;248;248;246mN A N O\033[0m\n'
+  printf '  \033[38;2;255;112;32m│\033[0m   \033[1;38;2;255;112;32mA G E N T\033[0m\n'
+  printf '  \033[38;2;255;112;32m│\033[0m\n'
+  printf '  \033[38;2;255;112;32m╰─\033[0m  \033[38;2;125;137;149mPERSONAL AI  ·  LOCAL FIRST\033[0m\n\n'
+  printf '  '
+  local i label
+  for i in 1 2 3 4; do
+    case "$i" in 1) label='CHECK' ;; 2) label='INSTALL' ;; 3) label='SET UP' ;; 4) label='LAUNCH' ;; esac
+    if [ "$i" -eq "$step" ]; then
+      printf '\033[1;38;2;255;112;32m%02d %s\033[0m' "$i" "$label"
+    elif [ "$i" -lt "$step" ]; then
+      printf '\033[38;2;125;185;150m✓ %s\033[0m' "$label"
+    else
+      printf '\033[38;2;115;128;142m%02d %s\033[0m' "$i" "$label"
+    fi
+    [ "$i" -eq 4 ] || printf '  \033[38;2;70;78;88m/\033[0m  '
+  done
+  printf '\n\n  \033[38;2;70;78;88m────────────────────────────────────────────────────────────\033[0m\n'
+  printf '  \033[1;38;2;248;248;246m%s\033[0m\n' "$title"
+  printf '  \033[38;2;70;78;88m────────────────────────────────────────────────────────────\033[0m\n'
+  while [ $# -gt 0 ]; do
+    printf '  \033[38;2;190;202;214m%s\033[0m\n' "$1"
+    shift
+  done
+  printf '\n'
+}
+
 while [ $# -gt 0 ]; do
   case "$1" in
     --no-setup) NO_SETUP=1 ;;
@@ -37,6 +71,9 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+
+# The installer itself owns the first screen, before checking or changing anything.
+frame 1 "Checking this computer…"
 
 # ---- 1. OS and Python ------------------------------------------------------
 OS="$(uname -s 2>/dev/null || echo unknown)"
@@ -66,6 +103,7 @@ fi
 
 # ---- 2. choose how to install ---------------------------------------------
 HOME_DIR="${NANO_AGENT_HOME:-$HOME/.nano-agent}"
+BIN_DIR="${NANO_AGENT_BIN_DIR:-$HOME/.local/bin}"
 if command -v uv >/dev/null 2>&1; then
   METHOD="uv"
   PLAN="uv tool install --python $PY --force \"$SPEC\"   (isolated tool environment managed by uv)"
@@ -74,21 +112,26 @@ elif command -v pipx >/dev/null 2>&1; then
   PLAN="pipx install --python $PY --force \"$SPEC\"   (isolated environment managed by pipx)"
 else
   METHOD="venv"
-  PLAN="$PY -m venv \"$HOME_DIR/venv\" && \"$HOME_DIR/venv/bin/pip\" install \"$SPEC\"; link $HOME/.local/bin/nano-agent -> the venv"
+  PLAN="$PY -m venv \"$HOME_DIR/venv\" && \"$HOME_DIR/venv/bin/pip\" install \"$SPEC\"; link $BIN_DIR/nano-agent -> the venv"
 fi
 
-say "nano Agent installer"
-say "  OS:        $OS"
-say "  Python:    $PYV ($PY)"
-say "  Source:    $SPEC"
-say "  Method:    $METHOD"
-say "  Will run:  $PLAN"
-say "  Data dir:  $HOME_DIR (created later by 'nano-agent setup')"
-say "  No sudo, no shell-profile edits."
+if [ -t 1 ]; then
+  frame 2 "Ready to install" "OS: $OS · Python: $PYV" "Source: $SPEC" \
+    "Method: $METHOD · Data: $HOME_DIR" "Next: install package → configure assistant → open console"
+else
+  say "nano Agent installer"
+  say "  OS:        $OS"
+  say "  Python:    $PYV ($PY)"
+  say "  Source:    $SPEC"
+  say "  Method:    $METHOD"
+  say "  Will run:  $PLAN"
+  say "  Data dir:  $HOME_DIR (created later by 'nano-agent setup')"
+  say "  No sudo, no shell-profile edits."
+fi
 if [ "$DRY" = "1" ]; then say "dry run: nothing was changed."; exit 0; fi
 
 if [ "$YES" = "0" ] && [ -r /dev/tty ] && [ -t 1 ]; then
-  printf 'Continue? [Y/n] '
+  printf '  \033[1;38;2;255;112;32m›\033[0m  Press Enter to install  \033[38;2;115;128;142m(n to cancel)\033[0m '
   read -r ans </dev/tty || ans=""
   case "${ans:-y}" in n|N|no|NO) say "aborted."; exit 1 ;; esac
 fi
@@ -97,21 +140,25 @@ fi
 BIN=""
 case "$METHOD" in
   uv)
+    frame 2 "Installing nano Agent with uv…"
     uv tool install --python "$PY" --force "$SPEC"
     BIN="$(command -v nano-agent 2>/dev/null || true)"
-    [ -n "$BIN" ] || BIN="$(uv tool dir --bin 2>/dev/null || echo "$HOME/.local/bin")/nano-agent"
+    [ -n "$BIN" ] || BIN="$(uv tool dir --bin 2>/dev/null || echo "$BIN_DIR")/nano-agent"
     ;;
   pipx)
+    frame 2 "Installing nano Agent with pipx…"
     pipx install --python "$PY" --force "$SPEC"
-    BIN="$(command -v nano-agent 2>/dev/null || echo "$HOME/.local/bin/nano-agent")"
+    BIN="$(command -v nano-agent 2>/dev/null || echo "$BIN_DIR/nano-agent")"
     ;;
   venv)
+    frame 2 "Preparing your private environment…"
     mkdir -p "$HOME_DIR"
     "$PY" -m venv "$HOME_DIR/venv" || die "could not create a venv. On Debian/Ubuntu run: sudo apt install python3-venv"
+    frame 2 "Installing nano Agent into its private environment…"
     "$HOME_DIR/venv/bin/python" -m pip install --quiet --disable-pip-version-check "$SPEC"
-    mkdir -p "$HOME/.local/bin"
-    ln -sf "$HOME_DIR/venv/bin/nano-agent" "$HOME/.local/bin/nano-agent"
-    BIN="$HOME/.local/bin/nano-agent"
+    mkdir -p "$BIN_DIR"
+    ln -sf "$HOME_DIR/venv/bin/nano-agent" "$BIN_DIR/nano-agent"
+    BIN="$BIN_DIR/nano-agent"
     ;;
 esac
 
@@ -129,6 +176,7 @@ if [ "$NO_SETUP" = "1" ]; then
 fi
 say ""
 if [ -r /dev/tty ] && [ -t 1 ]; then
+  frame 3 "Installation complete · opening setup…"
   exec "$BIN" setup </dev/tty
 fi
 say "Installed. No terminal for the wizard here, so run it yourself: nano-agent setup"

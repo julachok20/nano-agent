@@ -9,3 +9,11 @@ Weekly review uses the configured model to suggest or apply only allowed prefere
 Model providers receive prompts and context sent to them. With a hosted provider, that data leaves your machine according to that provider's terms. Choose a local provider if you require local inference. Optional Google and LINE connections also transmit data to those services. Disable integrations you do not use.
 
 The project is early alpha. Verify actual retention and provider behavior for the version you install before using sensitive information.
+
+## Review and control
+
+Open **Mind → Learning** and **Mind → What I know about you** in the console to inspect learned items. Correct or remove anything inaccurate. `learning.enabled` can be set to false with `nano-agent config set learning.enabled false`. A disabled setting prevents new learning, but it does not delete existing local records; remove those separately if needed.
+
+The console and database are local by default, yet hosted model calls still send the context needed for a response to the selected provider. LINE and Google features send data to those services when enabled. A local model endpoint reduces external model traffic, but it does not change what optional integrations transmit. Review provider terms and keep backups encrypted if they contain private conversations or facts.
+
+Skills and web pages can contain instructions that conflict with your wishes. They are treated as untrusted input; outbound messages and code changes still require their approval flow. Review the pending action in the console before accepting it. See [SECURITY.md](../SECURITY.md) for the full boundary.
