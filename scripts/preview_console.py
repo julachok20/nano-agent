@@ -72,7 +72,7 @@ def main() -> int:
             opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor())
             opener.open(req).read()
             # Use browser hash login only in the temporary local preview.
-            url = base + "/console#token=" + token + "&tab=mind&sub=skills"
+            url = base + "/console#token=" + token + "&tab=skills"
             if args.screenshots:
                 try:
                     from playwright.sync_api import sync_playwright
@@ -98,21 +98,52 @@ def main() -> int:
                     page.locator(".chat-composer button").click()
                     page.locator(".chat-messages .msg.assistant").last.wait_for(timeout=15000)
                     page.screenshot(path=str(args.out / "console-chat-active.png"), full_page=True)
-                    page.locator("nav button").nth(5).click()
+                    page.locator("nav button").nth(6).click()
                     page.locator(".theme-options").wait_for(timeout=10000)
                     page.screenshot(path=str(args.out / "console-settings.png"), full_page=True)
-                    page.locator(".theme-option-black").click()
-                    page.locator("html[data-theme='black']").wait_for(timeout=10000)
+                    for index, name in ((2, "manage"), (3, "system"), (4, "automations"), (5, "skills")):
+                        page.locator("nav button").nth(index).click()
+                        page.locator(".view-heading").wait_for(timeout=10000)
+                        page.locator(".panel").first.wait_for(timeout=10000)
+                        if name != "system":  # live host and hardware details are not sample data
+                            page.screenshot(path=str(args.out / f"console-{name}.png"), full_page=True)
+                    page.locator("nav button").nth(6).click()
+                    page.locator(".settings-shortcuts button").first.click()
+                    page.locator(".view-heading").wait_for(timeout=10000)
+                    page.screenshot(path=str(args.out / "console-memory.png"), full_page=True)
+                    page.locator("nav button").nth(6).click()
+                    page.locator(".theme-option-modern").click()
+                    page.locator("html[data-theme='modern']").wait_for(timeout=10000)
                     page.reload(wait_until="domcontentloaded")
-                    page.locator("html[data-theme='black']").wait_for(timeout=10000)
+                    page.locator("html[data-theme='modern']").wait_for(timeout=10000)
                     page.locator(".jv-panel").first.wait_for(timeout=10000)
-                    page.screenshot(path=str(args.out / "console-black.png"), full_page=True)
-                    page.locator("nav button").nth(5).click()
+                    page.screenshot(path=str(args.out / "console-modern.png"), full_page=True)
+                    page.locator("nav button").nth(6).click()
+                    page.locator(".theme-option-calm").click()
+                    page.locator("html[data-theme='calm']").wait_for(timeout=10000)
+                    page.locator("nav button").first.click()
+                    page.locator(".jv-panel").first.wait_for(timeout=10000)
+                    page.screenshot(path=str(args.out / "console-calm.png"), full_page=True)
+                    page.locator("nav button").nth(6).click()
                     page.locator(".theme-option-minimal").click()
                     page.locator("html[data-theme='minimal']").wait_for(timeout=10000)
                     page.locator("nav button").first.click()
                     page.locator(".jv-panel").first.wait_for(timeout=10000)
                     page.screenshot(path=str(args.out / "console-minimal.png"), full_page=True)
+                    for theme in ("dark", "modern", "calm", "minimal"):
+                        page.locator("nav button").nth(6).click()
+                        page.locator(f".theme-option-{theme}").click()
+                        page.locator(f"html[data-theme='{theme}']").wait_for(timeout=10000)
+                        for width in (390, 1440):
+                            page.set_viewport_size({"width": width, "height": 900})
+                            for index in range(7):
+                                page.locator("nav button").nth(index).click()
+                                page.locator(".view-heading, .jv-head").first.wait_for(timeout=10000)
+                                if index not in (0, 1):
+                                    page.locator(".panel").first.wait_for(timeout=10000)
+                                actual = page.locator("html").evaluate("element => element.scrollWidth")
+                                if actual > width + 1:
+                                    raise AssertionError(f"horizontal overflow: {theme}, tab {index}, width {width}: {actual}")
                     browser.close()
             if args.open:
                 webbrowser.open(url)

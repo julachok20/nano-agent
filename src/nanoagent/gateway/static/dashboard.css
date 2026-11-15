@@ -16,7 +16,7 @@ main:has(.jv-grid){max-width:none;width:auto;padding:24px 28px 48px}
 .jv-core{display:flex;align-items:center;justify-content:center}.jv-orb{display:block;border:0;background:none;padding:0;border-radius:50%;width:100%;max-width:520px}.jv-dial{width:100%;height:auto;display:block}.jv-spin{transform-box:fill-box;transform-origin:center}.jv-orb[data-state=listening] .jv-dial{filter:drop-shadow(0 0 16px #34d39988)}.jv-orb[data-state=thinking] .jv-dial{filter:drop-shadow(0 0 18px #fbbf2488)}.jv-orb[data-state=speaking] .jv-dial{filter:drop-shadow(0 0 18px #60a5fa88)}
 .jv-welcome{text-align:center;align-self:center}.jv-welcome h2{display:block;font-size:30px;font-weight:600;margin:0 0 4px;text-shadow:0 0 22px #38d4ff88}.jv-welcome p{margin:0;color:var(--dim)}.jv-wave{display:flex;align-items:center;justify-content:center;gap:4px;height:56px;margin-top:8px}.jv-wave i{width:4px;border-radius:2px;background:var(--accent);height:var(--h);opacity:.85}.jv-heard,.jv-said{overflow-wrap:anywhere}.jv-heard{color:var(--dim);font-size:.85rem}.jv-said{font-size:.9rem;max-width:38ch;margin:auto}
 .jv-memory-graph{width:100%;height:150px;display:block}.jv-pct{display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px}.jv-pct small{color:var(--dim);text-align:right}.jv-activity-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #1a3d52}.jv-activity-row span:nth-child(2){flex:1}.jv-activity-row small{color:var(--dim)}
-@media(min-width:1001px){header{margin-left:208px}main{margin-left:208px}nav{width:208px;background:#0c1f2c}nav button{border-left:0;border-radius:8px;padding:10px}nav button.on{background:#09202e;border-left:0}nav:before{top:23px}}
+@media(min-width:1001px){body{padding-bottom:0}header{margin-left:208px;padding-left:28px}main{margin-left:208px}nav{position:fixed;top:0;left:0;right:auto;bottom:0;width:208px;flex-direction:column;align-items:stretch;gap:2px;border-top:0;border-right:1px solid var(--line);padding:76px 12px 16px;background:#0c1f2c}nav:before{content:"NANO AGENT";position:absolute;top:23px;left:17px;color:var(--accent);font:700 .76rem ui-monospace,Consolas,monospace;letter-spacing:.18em}nav button{flex:0;text-align:left;display:flex;align-items:center;gap:12px;border-left:0;border-radius:8px;padding:10px;font-size:.86rem}nav button.on{background:#09202e;border-left:0}nav button span{font-size:1.1rem;width:23px;text-align:center}}
 @media(max-width:1000px){main:has(.jv-grid){padding:16px 16px 96px}.jv-grid{grid-template-columns:1fr 1fr;grid-template-areas:"core core" "wel wel" "bg bg" "chat task" "proj mem" "appr news"}}
 @media(max-width:620px){.jv-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"core" "wel" "bg" "chat" "task" "proj" "mem" "appr" "news"}.jv-head strong{font-size:17px}.jv-clock{font-size:30px}.jv-orb{max-width:370px}}
 @media(prefers-reduced-motion:no-preference){.jv-spin{animation:jv-spin 60s linear infinite}@keyframes jv-spin{to{transform:rotate(360deg)}}.jv-wave i{animation:jv-wave 1.5s ease-in-out infinite;animation-delay:calc(var(--i)*-.09s)}@keyframes jv-wave{50%{transform:scaleY(.3)}}}
@@ -27,6 +27,7 @@ main:not(:has(.jv-grid)){max-width:1120px;padding:26px 28px 70px}
 .view-heading small{display:block;color:var(--accent);font-size:.7rem;font-weight:700;letter-spacing:.2em}.view-heading h1{font-size:clamp(1.75rem,3vw,2.5rem);line-height:1.1;margin:7px 0}.view-heading p{margin:0;color:var(--dim);font-size:.9rem}
 .panel{border-radius:3px;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 6%,var(--panel)),var(--panel) 65%);box-shadow:0 0 18px color-mix(in srgb,var(--accent) 10%,transparent);padding:20px;margin-bottom:16px}
 .panel h3{font-size:.82rem;text-transform:uppercase;letter-spacing:.14em;margin-bottom:15px}.chips{margin:0 0 20px}.chip{border-radius:3px}.row{padding:12px 0}.row .grow{overflow-wrap:anywhere}
+.chip{background:var(--panel);color:var(--txt)}.chip.on{background:var(--accent);color:var(--bg)}.row{border-color:var(--line)}.pill{background:var(--panel)}
 button:focus-visible,.btn:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(min-width:1001px){main:not(:has(.jv-grid)){margin-left:208px;margin-right:auto;max-width:1120px}nav{gap:2px}nav button{justify-content:flex-start}}
 
@@ -40,18 +41,29 @@ main:has(.chat-stage){max-width:1110px}
 .chat-composer{border-top:1px solid var(--line);padding:15px 18px 16px;margin-top:auto}.chat-composer textarea{min-height:72px;resize:vertical}.chat-composer-bottom{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:9px}.chat-composer-bottom small{color:var(--dim)}
 
 /* Saved appearance choices. */
-.theme-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:15px}.theme-option{display:flex;flex-direction:column;align-items:stretch;text-align:left;min-height:165px;padding:12px;border:1px solid var(--line);background:var(--bg);border-radius:5px}.theme-option.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.theme-option strong{margin:10px 0 3px;font-size:.94rem}.theme-option small{font-size:.76rem;color:var(--dim)}
-.theme-preview{height:68px;display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:6px;padding:9px;border-radius:3px;background:#06121b;border:1px solid #1a3d52}.theme-preview i{display:block;border:1px solid #247497;background:#0b2736}.theme-option-black .theme-preview{background:#050505;border-color:#303030}.theme-option-black .theme-preview i{border-color:#dc682c;background:#151515}.theme-option-minimal .theme-preview{background:#fafaf7;border-color:#dcded8}.theme-option-minimal .theme-preview i{border-color:#dcded8;background:#fff}.theme-option-minimal .theme-preview i:nth-child(2){border-top:3px solid #eb681f}
+.theme-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:15px}.theme-option{display:flex;flex-direction:column;align-items:stretch;text-align:left;min-height:165px;padding:12px;border:1px solid var(--line);background:var(--bg);border-radius:5px}.theme-option.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.theme-option strong{margin:10px 0 3px;font-size:.94rem}.theme-option small{font-size:.76rem;color:var(--dim)}
+.theme-preview{height:68px;display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:6px;padding:9px;border-radius:3px;background:#06121b;border:1px solid #1a3d52}.theme-preview i{display:block;border:1px solid #247497;background:#0b2736}.theme-option-modern .theme-preview{background:#050505;border-color:#303030}.theme-option-modern .theme-preview i{border-color:#dc682c;background:#151515}.theme-option-minimal .theme-preview{background:#fafaf7;border-color:#dcded8}.theme-option-minimal .theme-preview i{border-color:#dcded8;background:#fff}.theme-option-minimal .theme-preview i:nth-child(2){border-top:3px solid #eb681f}
+.theme-option-calm .theme-preview{background:#202c30;border-color:#596d69}.theme-option-calm .theme-preview i{border-color:#819b8d;background:#2c3a3c}
+.settings-shortcuts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}.settings-shortcuts button{border-radius:3px;min-height:42px}
 
 /* Black modern keeps the dashboard geometry with restrained Nano orange. */
-html[data-theme=black]{--bg:#050505;--panel:#101010;--line:#303030;--txt:#f2f0ed;--dim:#a4a3a1;--accent:#ff7a2a;--ok:#70d8aa}
-html[data-theme=black] body{background:radial-gradient(900px 500px at 50% -10%,#21150d,#050505 65%)}
-html[data-theme=black] header,html[data-theme=black] nav{background:#0d0d0d;border-color:var(--line)}
-html[data-theme=black] .jv-panel,html[data-theme=black] .panel{background:linear-gradient(180deg,#ff7a2a0b,#101010 70%);border-color:var(--line);box-shadow:0 0 14px #ff7a2a14}
-html[data-theme=black] .jv-panel h3,html[data-theme=black] .jv-head small,html[data-theme=black] .view-heading small{color:var(--accent)}
-html[data-theme=black] .jv-ring:before{background:#101010}html[data-theme=black] .jv-rowbar,html[data-theme=black] .jv-segments i{background:#303030}html[data-theme=black] .jv-segments i.on{background:var(--ok)}
-html[data-theme=black] nav button.on{background:#23170f;color:var(--accent)}
-html[data-theme=black] input,html[data-theme=black] textarea,html[data-theme=black] select{background:#080808;border-color:var(--line)}
+html[data-theme=modern]{--bg:#050505;--panel:#101010;--line:#303030;--txt:#f2f0ed;--dim:#a4a3a1;--accent:#ff7a2a;--ok:#70d8aa}
+html[data-theme=modern] body{background:radial-gradient(900px 500px at 50% -10%,#21150d,#050505 65%)}
+html[data-theme=modern] header,html[data-theme=modern] nav{background:#0d0d0d;border-color:var(--line)}
+html[data-theme=modern] .jv-panel,html[data-theme=modern] .panel{background:linear-gradient(180deg,#ff7a2a0b,#101010 70%);border-color:var(--line);box-shadow:0 0 14px #ff7a2a14}
+html[data-theme=modern] .jv-panel h3,html[data-theme=modern] .jv-head small,html[data-theme=modern] .view-heading small{color:var(--accent)}
+html[data-theme=modern] .jv-ring:before{background:#101010}html[data-theme=modern] .jv-rowbar,html[data-theme=modern] .jv-segments i{background:#303030}html[data-theme=modern] .jv-segments i.on{background:var(--ok)}
+html[data-theme=modern] nav button.on{background:#23170f;color:var(--accent)}
+html[data-theme=modern] input,html[data-theme=modern] textarea,html[data-theme=modern] select{background:#080808;border-color:var(--line)}
+
+/* Calm keeps the same console structure with low contrast slate and sage. */
+html[data-theme=calm]{--bg:#202c30;--panel:#2a393d;--line:#52666a;--txt:#eef2ed;--dim:#b9c8c3;--accent:#a9d0bd;--ok:#b5d9b9;--warn:#e5c693}
+html[data-theme=calm] body{background:radial-gradient(1100px 660px at 48% -15%,#385154,#202c30 65%)}
+html[data-theme=calm] header,html[data-theme=calm] nav{background:#263438;border-color:var(--line)}
+html[data-theme=calm] .jv-panel,html[data-theme=calm] .panel{background:linear-gradient(180deg,#a9d0bd12,#2a393d 72%);border-color:var(--line);box-shadow:0 6px 22px #121f2122}
+html[data-theme=calm] nav button.on{background:#35494b;color:var(--accent)}
+html[data-theme=calm] input,html[data-theme=calm] textarea,html[data-theme=calm] select{background:#243235;border-color:var(--line)}
+html[data-theme=calm] .jv-rowbar,html[data-theme=calm] .jv-segments i{background:#52666a}html[data-theme=calm] .jv-segments i.on{background:var(--ok)}
 
 /* Nano minimal uses open space and the orange from the logo. */
 html[data-theme=minimal]{--bg:#f8f8f5;--panel:#fff;--line:#deded8;--txt:#232323;--dim:#686a6a;--accent:#e95e16;--ok:#248865}
@@ -75,3 +87,5 @@ html[data-theme=minimal] .jv-memory-graph{height:105px}html[data-theme=minimal] 
 @media(min-width:1100px){html[data-theme=minimal] .jv-grid{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-areas:"core wel wel" "task task appr" "chat proj mem" "news bg bg"}html[data-theme=minimal] .jv-core{justify-content:flex-start}html[data-theme=minimal] .jv-welcome{align-self:center}}
 @media(max-width:620px){html[data-theme=minimal] .jv-welcome{text-align:center}html[data-theme=minimal] .jv-grid{grid-template-columns:1fr;grid-template-areas:"core" "wel" "bg" "chat" "task" "proj" "mem" "appr" "news"}}
 @media(max-width:700px){main:not(:has(.jv-grid)){padding:16px 16px 100px}.theme-options{grid-template-columns:1fr}.theme-option{min-height:0}.chat-messages{height:calc(100dvh - 335px);min-height:260px;padding:15px}.chat-composer-bottom small{font-size:.7rem}.chat-stage{min-height:0}.view-heading{margin-bottom:16px}}
+@media(max-width:1000px){nav button{min-width:0;font-size:.66rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+@media(min-width:701px) and (max-width:900px){.theme-options{grid-template-columns:repeat(2,minmax(0,1fr))}}

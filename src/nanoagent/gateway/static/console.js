@@ -55,11 +55,17 @@ async function liffLogin() {
 }
 
 // ---------- shell ----------
-const HUBS = [["home", "⌂", "tab_home"], ["chat", "✎", "tab_chat"], ["manage", "☑", "tab_manage"], ["mind", "✦", "tab_mind"], ["work", "◷", "tab_work"], ["settings", "⚙", "tab_settings"]];
-function drawTabs() { $("#tabs").replaceChildren(...HUBS.map(([k, ic, lb]) => h("button", { class: tab === k ? "on" : "", onclick: () => go(k) }, h("span", { text: ic }), t(lb)))); }
+const HUBS = [["home", "⌂", "tab_home"], ["chat", "✎", "tab_chat"], ["manage", "☑", "tab_manage"],
+  ["computer", "▣", "sub_system"], ["automation", "◷", "sub_auto"], ["skills", "✦", "sub_skills"], ["settings", "⚙", "tab_settings"]];
+const HUB_OF = { activity: "home", memory: "settings", learning: "settings", know: "settings", mind: "settings", work: "computer" };
+function drawTabs() { $("#tabs").replaceChildren(...HUBS.map(([k, ic, lb]) => h("button", { class: (HUB_OF[tab] || tab) === k ? "on" : "", onclick: () => go(k) },
+  h("span", { text: ic }), k === "automation" && innerWidth < 1001 ? (lang === "th" ? "ออโต้" : "Auto") : t(lb)))); }
 function go(k) { tab = k; drawTabs(); render(); }
-function render() { ({ home: vHome, chat: vChat, manage: vManage, mind: vMind, work: vWork, settings: vSettings })[tab](); }
-function applyUi(p) { const r = document.documentElement; if (p["ui.accent"]) r.dataset.accent = p["ui.accent"]; if (p["ui.theme"]) r.dataset.theme = p["ui.theme"]; if (p["ui.density"]) r.dataset.density = p["ui.density"]; if (p["ui.text_size"]) r.dataset.size = p["ui.text_size"]; }
+function render() { ({ home: vHome, chat: vChat, manage: vManage, computer: vWork, automation: vWork, skills: vMind,
+  settings: vSettings, activity: vWork, memory: vMind, learning: vMind, know: vMind, mind: vMind, work: vWork })[tab](); }
+function applyUi(p) { const r = document.documentElement; if (p["ui.accent"]) r.dataset.accent = p["ui.accent"];
+  if (p["ui.theme"]) r.dataset.theme = ({ spark: "dark", black: "modern" })[p["ui.theme"]] || p["ui.theme"];
+  if (p["ui.density"]) r.dataset.density = p["ui.density"]; if (p["ui.text_size"]) r.dataset.size = p["ui.text_size"]; }
 function viewHeading(title, detail, number) {
   return h("div", { class: "view-heading" }, h("div", null, h("small", { text: `NANO AGENT / ${String(number).padStart(2, "0")}` }), h("h1", { text: title }), h("p", { text: detail })));
 }
@@ -209,7 +215,7 @@ async function refreshHome() {
   $("#home-news-panel").replaceChildren(jvPanel("news", "News", "05", jvEmpty("No news feed connected")));
   $("#home-project-panel").replaceChildren(jvPanel("proj", "Projects", "03", jvEmpty("No projects tracked yet")));
   $("#home-memory-panel").replaceChildren(jvPanel("mem", t("memory_title"), "04", jvMemoryGraph(factCount),
-    h("div", { class: "jv-pct" }, h("span", { class: "jv-big", text: String(factCount) }), h("small", { text: t("memory_counts", { f: st.memory.fact || 0, r: st.memory.rule || 0 }) })), jvGo(t("home_review"), "mind")));
+    h("div", { class: "jv-pct" }, h("span", { class: "jv-big", text: String(factCount) }), h("small", { text: t("memory_counts", { f: st.memory.fact || 0, r: st.memory.rule || 0 }) })), jvGo(t("home_review"), "memory")));
   $("#home-approval-panel").replaceChildren(jvPanel("appr", t("drafts_title", { n: dr.drafts.length }), "06",
     dr.drafts.length ? rows(dr.drafts.slice(0, 3).map(d => [d.channel + " → " + d.target, "Review", 60])) : jvEmpty(t("drafts_none")),
     jvGo(t("home_review"), "manage", "drafts")));
@@ -217,7 +223,7 @@ async function refreshHome() {
   $("#home-activity-panel").replaceChildren(jvPanel("bg", t("work_title"), "07",
     recent.length ? recent.map(a => h("div", { class: "jv-activity-row" }, h("span", { class: "jv-dot " + (a.status === "running" ? "running" : "") }),
       h("span", { text: a.title }), h("small", { text: a.status === "running" ? Math.round(a.secs) + "s" : a.status }))) : jvEmpty(t("work_idle")),
-    jvGo(t("home_review"), "work")));
+    jvGo(t("home_review"), "activity")));
 }
 function draftsPanel(list, after) {
   return panel(t("drafts_title", { n: list.length }), h("p", { class: "dim", text: t("drafts_note") }), ...list.map(d => h("div", { class: "row" },
@@ -273,9 +279,10 @@ async function vManage() {
 
 // ---------- mind: memory, skills, learning ----------
 async function vMind() {
-  const v = clear(); const cur = sub.mind || "memory";
-  v.append(viewHeading(t("tab_mind"), lang === "th" ? "ความจำ ทักษะ และการเรียนรู้" : "Memory, skills, and learning", 4),
-    chips([["memory", t("sub_memory")], ["skills", t("sub_skills")], ["learning", t("sub_learning")], ["know", t("sub_know")]], cur, k => { sub.mind = k; vMind(); }));
+  const v = clear(); const fixed = ["skills", "memory", "learning", "know"].includes(tab) ? tab : null;
+  const cur = fixed || sub.mind || "memory";
+  v.append(viewHeading(t("sub_" + cur), lang === "th" ? "ความจำ ทักษะ และการเรียนรู้" : "Memory, skills, and learning", cur === "skills" ? 6 : 7));
+  if (!fixed) v.append(chips([["memory", t("sub_memory")], ["skills", t("sub_skills")], ["learning", t("sub_learning")], ["know", t("sub_know")]], cur, k => { sub.mind = k; vMind(); }));
   ({ memory: mMemory, skills: mSkills, learning: mLearning, know: mKnow })[cur](v);
 }
 async function mMemory(v) {
@@ -331,9 +338,10 @@ async function mKnow(v) {
 
 // ---------- work: activity, automations, system ----------
 async function vWork() {
-  const v = clear(); const cur = sub.work || "activity";
-  v.append(viewHeading(t("tab_work"), lang === "th" ? "กิจกรรม ระบบอัตโนมัติ และสถานะ" : "Activity, automations, and system status", 5),
-    chips([["activity", t("sub_activity")], ["auto", t("sub_auto")], ["system", t("sub_system")]], cur, k => { sub.work = k; vWork(); }));
+  const v = clear(); const fixed = ({ computer: "system", automation: "auto", activity: "activity" })[tab];
+  const cur = fixed || sub.work || "activity";
+  v.append(viewHeading(t("sub_" + cur), lang === "th" ? "กิจกรรม ระบบอัตโนมัติ และสถานะ" : "Activity, automations, and system status", 5));
+  if (!fixed) v.append(chips([["activity", t("sub_activity")], ["auto", t("sub_auto")], ["system", t("sub_system")]], cur, k => { sub.work = k; vWork(); }));
   if (cur === "activity") { const a = await api("/activity"); const row = x => h("div", { class: "row" }, h("span", { class: "tag " + (x.status === "done" ? "ok" : x.status === "failed" ? "bad" : "warn"), text: x.status }), h("span", { class: "grow" }, h("b", { text: x.title }), x.steps.length ? h("div", { class: "dim", text: x.steps.slice(-3).map(s => s.text).join(" · ") }) : null), h("span", { class: "dim", text: Math.round(x.secs) + "s" }));
     v.append(panel(t("running_title"), a.running.length ? a.running.map(row) : h("p", { class: "dim", text: t("work_idle") })), panel(t("recent_title"), a.done.map(row))); }
   if (cur === "auto") { const a = await api("/automations"); const nm = h("input", { placeholder: t("auto_name") }), pr = h("textarea", { placeholder: t("auto_prompt") }), sc = h("input", { placeholder: '{"daily": "08:00"}' });
@@ -354,11 +362,16 @@ async function vSettings() {
   const v = clear(); const name = h("input", { value: ME.owner_name || "" }), tz = h("input", { value: ME.timezone || "" });
   const lg = h("select", null, ["en", "th"].map(l => h("option", { value: l, selected: l === lang ? "" : null, text: l === "en" ? "English" : "ไทย" })));
   const themes = [
-    ["spark", "Spark dashboard", lang === "th" ? "จอข้อมูลแบบ Personal Assistant" : "The Personal Assistant dashboard layout"],
-    ["black", "Black modern", lang === "th" ? "พื้นดำ ขอบคม สีส้ม Nano" : "Deep black surfaces and Nano orange accents"],
-    ["minimal", "Nano minimal", lang === "th" ? "เรียบ โปร่ง ใช้งานง่าย" : "Light, open, and simple to use"]
+    ["dark", "Dark", lang === "th" ? "จอเข้มแบบ Personal Assistant" : "The Personal Assistant console look"],
+    ["modern", "Modern", lang === "th" ? "พื้นดำ ขอบคม สีส้ม Nano" : "Deep black surfaces and Nano orange accents"],
+    ["calm", "Calm", lang === "th" ? "โทนสีนุ่ม อ่านสบาย" : "Soft slate and sage for a quieter workspace"],
+    ["minimal", "Minimal", lang === "th" ? "เรียบ โปร่ง ใช้งานง่าย" : "Light, open, and simple to use"]
   ];
   v.append(viewHeading(t("tab_settings"), lang === "th" ? "ปรับหน้าตาและข้อมูลของคุณ" : "Make Nano Agent feel like yours", 6),
+    h("div", { class: "settings-shortcuts" },
+      h("button", { onclick: () => go("memory"), text: t("sub_memory") }),
+      h("button", { onclick: () => go("learning"), text: t("sub_learning") }),
+      h("button", { onclick: () => go("know"), text: t("sub_know") })),
     panel(lang === "th" ? "รูปแบบหน้าจอ" : "Appearance",
       h("p", { class: "dim", text: lang === "th" ? "เลือกหน้าตาที่ต้องการ เปลี่ยนได้ตลอด" : "Choose a look. You can change it any time." }),
       h("div", { class: "theme-options" }, themes.map(([key, title, detail]) => h("button", {
