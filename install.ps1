@@ -26,11 +26,9 @@ function Show-Screen([int]$Step, [string]$Title, [string[]]$Details = @()) {
     Write-Host "  $esc[1;38;2;255;112;32m◆$esc[0m  $esc[1;38;2;248;248;246mNANO AGENT$esc[0m  $esc[38;2;125;137;149m/  INSTALLER$esc[0m"
     Write-Host "  $esc[38;2;70;78;88m────────────────────────────────────────────────────────────$esc[0m"
     if ([Console]::WindowWidth -ge 60) {
-        Write-Host "  $esc[1;38;2;248;248;246mN   N  AAA  N   N  OOO $esc[0m    $esc[1;38;2;255;112;32m AAA   GGGG EEEEE N   N TTTTT$esc[0m"
-        Write-Host "  $esc[1;38;2;248;248;246mNN  N A   A NN  N O   O$esc[0m    $esc[1;38;2;255;112;32mA   A G     E     NN  N   T  $esc[0m"
-        Write-Host "  $esc[1;38;2;248;248;246mN N N AAAAA N N N O   O$esc[0m    $esc[1;38;2;255;112;32mAAAAA G GGG EEEE  N N N   T  $esc[0m"
-        Write-Host "  $esc[1;38;2;248;248;246mN  NN A   A N  NN O   O$esc[0m    $esc[1;38;2;255;112;32mA   A G   G E     N  NN   T  $esc[0m"
-        Write-Host "  $esc[1;38;2;248;248;246mN   N A   A N   N  OOO $esc[0m    $esc[1;38;2;255;112;32mA   A  GGGG EEEEE N   N   T  $esc[0m"
+        Write-Host "  $esc[1;38;2;248;248;246m╭╮ ╭╮ ╭──╮ ╭╮ ╭╮ ╭──╮$esc[0m    $esc[1;38;2;255;112;32m╭──╮ ╭──╮ ╭─── ╭╮ ╭╮ ┳━━┳$esc[0m"
+        Write-Host "  $esc[1;38;2;248;248;246m│╰╮│ ├──┤ │╰╮│ │  │$esc[0m    $esc[1;38;2;255;112;32m├──┤ │ ╭╮ ├──  │╰╮│   ┃$esc[0m"
+        Write-Host "  $esc[1;38;2;248;248;246m╵ ╰╯ ╵  ╵ ╵ ╰╯ ╰──╯$esc[0m    $esc[1;38;2;255;112;32m╵  ╵ ╰──╯ ╰─── ╵ ╰╯   ╵$esc[0m"
     } else { Write-Host "  $esc[1;38;2;248;248;246mNANO $esc[1;38;2;255;112;32mAGENT$esc[0m" }
     Write-Host "`n  $esc[38;2;125;137;149mPERSONAL AI  /  LOCAL FIRST$esc[0m`n"
     $labels = @('CHECK', 'INSTALL', 'SET UP', 'LAUNCH')
