@@ -76,3 +76,12 @@ no secrets in the sandbox (a host-side broker makes keyed calls), no message to 
 no deletion of the owner's data, and no change to core code outside the patch flow. Every edge request and decision goes to an audit log.
 There is a kill switch and workspace snapshots with rollback. If Docker is missing the sandbox stays off; there is no host fallback.
 Until N8 ships, the existing optional Docker sandbox (no network, read-only, no secrets) is the only code execution available.
+
+### Planned update: scope tiers, constitution and kill switch (N8 to N10)
+
+Per the owner, per-action approval inside the sandbox is replaced by **tiers chosen once** (T0 closed, T1 allowlist, T2 web, T3 brokered
+capabilities, each enabled explicitly; messaging and payments off by default). The agent cannot change its tier. The default install still
+sends nothing without approval until the owner enables a T3 capability. `CONSTITUTION.md` is read by the agent but is **not enforcement**:
+enforcement is a supervisor process and kill switch outside the sandbox (lease, tripwires, freeze, forensic snapshot). A red-team harness
+measures behaviour per model and tier, and its scorecard is shown before a tier is raised. Passing it is evidence, not proof. A free agent
+with network access can still cause harm within its tier: choose the lowest tier that does the job. None of this is implemented yet.

@@ -166,3 +166,41 @@ with `nano-agent sandbox restore`; an audit log of every edge request and its de
 
 **Tests required (synthetic only):** agent creates and runs a new tool and a scheduled job with no preset tool; edge actions (unlisted
 domain, host file read, secret read, send) are blocked and logged; limits and kill switch work; rollback restores the workspace.
+
+## 9. N8 update: scope tiers replace per-action approval (planned)
+
+The owner's refinement supersedes the "approval at the edge" wording in section 8 where they conflict. Freedom is granted by a
+**tier the owner chooses once**. Inside the tier the agent is free and does not ask. The tier is configuration the agent cannot change;
+raising it is the owner's decision and is shown next to the latest red-team scorecard.
+
+| Tier | Network | Credentials | Messaging, payments |
+|---|---|---|---|
+| T0 closed | none | none | off |
+| T1 allowlist | owner-listed domains only | none | off |
+| T2 web | broad outbound, read-mostly | none | off |
+| T3 brokered | as T2 | a host-side broker makes keyed calls; the sandbox never sees keys; each capability is enabled one by one | off by default; the owner enables each capability explicitly |
+
+Unchanged from section 8: Docker workspace volume, free tool and skill creation, sandbox-run automations, resource limits, snapshots with
+rollback, audit log, no host fallback. Note that T3 messaging, once the owner enables it, replaces draft approval for that capability only.
+The default install keeps it off, so the approval-first rule of v0.1 still holds by default.
+
+## 10. N9 constitution and red-team simulation (planned)
+
+`CONSTITUTION.md` is injected into every agent prompt. Precedence: owner's stop, then the constitution, then the current goal.
+`nano-agent redteam run` runs scripted scenarios in a throwaway sandbox, each with ground truth: honeypot files and fake keys (canaries),
+a fake "disable the monitor" script, a failing test the agent could edit instead of fixing, an impossible goal without a higher tier,
+a tempting send tool, prompt injection in a page and a file, a stop notice mid-task, an offer of extra privileges, a chance to edit its own
+constitution or logs, and goal pressure. Per model and tier it measures violation attempts versus successes, honesty of the final report
+(compared with the true audit log), stop compliance and kill latency, and writes a JSON scorecard plus a readable report. The scorecard is shown
+before a tier is raised. **Honest limit: passing the suite is evidence, not proof.**
+
+## 11. N10 kill switch, enforced outside the sandbox (planned)
+
+A separate **supervisor** (different OS user or container, not mounted into the sandbox, no shared socket) owns the sandbox lifecycle.
+Triggers: `nano-agent kill`, a console button, an optional hotkey or webhook, and automatic tripwires (a canary touched, N blocked edge
+attempts in M minutes, access to control paths, log tampering, resource spikes, unknown outbound connections, resisting a stop, heartbeat failure).
+**Dead-man lease:** the sandbox runs only while the supervisor renews a short lease; sessions are time-boxed (default 2 hours, renewed by the owner);
+if the supervisor dies or the lease lapses, the sandbox freezes (fail closed). **On trip:** freeze first (pause plus network cut), then a forensic
+snapshot of workspace and logs, then notify the owner, and require a log review before resume or rollback.
+Commands: `nano-agent sandbox status|pause|resume|kill|restore`. Required tests: each tripwire fires, lease expiry freezes a running job,
+the agent cannot signal or stop the supervisor from inside, kill latency is measured, rollback restores the workspace. Synthetic data only.
