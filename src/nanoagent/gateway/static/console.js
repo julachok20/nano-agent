@@ -172,7 +172,9 @@ function viewHeading(title, detail, number) {
 }
 async function pollPill() {
   try { const r = await api("/activity?count=1"); const n = r.running || 0; const p = $("#pill"); p.classList.toggle("busy", n > 0);
-    $("#pilltxt").textContent = n > 0 ? t("pill_busy", { n }) : t("pill_idle"); } catch (e) { /* login screen */ }
+    $("#pilltxt").textContent = n > 0 ? t("pill_busy", { n }) : t("pill_idle");
+    const orb = $("#orb"); if (orb) orb.dataset.working = n > 0 ? "true" : "false";
+  } catch (e) { /* login screen */ }
 }
 
 // ---------- home ----------
@@ -235,6 +237,12 @@ function waveBars(n = 5) {
   return h("div", { class: "orb-wave", "aria-hidden": "true" },
     ...Array.from({ length: n }, (_, i) => h("i", { style: `--i:${i};--h:${[14, 24, 34, 22, 12][i % 5]}px` })));
 }
+function assistantMascot() {
+  return h("span", { class: "assistant-mascot", "aria-hidden": "true" },
+    h("span", { class: "assistant-letter", text: "n" }),
+    h("span", { class: "assistant-eyes" }, h("i"), h("i")),
+    h("span", { class: "assistant-working" }, h("i"), h("i"), h("i")));
+}
 async function vHome() {
   const v = clear();
   const date = new Date(), hour = date.getHours();
@@ -273,7 +281,7 @@ async function vHome() {
           h("div", { class: "orb-aura" },
             waveBars(5),
             h("button", { id: "orb", class: "jv-orb", "data-state": "idle", onclick: orbTap, "aria-label": t("orb_tap") },
-              h("img", { src: "/static/logo-icon.png", alt: "n" }),
+              assistantMascot(),
               h("strong", { text: lang === "th" ? "แตะเพื่อพูด" : "Tap to speak" }),
               h("small", null, h("i"), h("span", { text: lang === "th" ? "พร้อมรับฟัง" : "Listening ready" }))),
             waveBars(5))),
