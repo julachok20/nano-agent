@@ -97,30 +97,49 @@ async function liffLogin() {
 // ---------- shell & theme ----------
 const HUBS = [
   ["home", "home", "tab_home"],
-  ["chat", "chat", "tab_chat"],
-  ["manage", "manage", "sub_tasks"],
-  ["projects", "projects", "Projects"],
-  ["memory", "memory", "memory_title"],
-  ["skills", "skills", "sub_skills"],
+  ["chat", "chat", "tab_chats"],
+  ["manage", "manage", "tab_manage"],
   ["automation", "auto", "sub_auto"],
+  ["customization", "sparkle", "tab_custom"],
   ["computer", "system", "sub_system"],
   ["settings", "settings", "tab_settings"]
 ];
-const HUB_OF = { activity: "home", learning: "settings", know: "settings", mind: "settings", work: "computer" };
+const MOBILE_HUBS = ["home", "chat", "manage", "automation"];
+const MORE_HUBS = [["customization", "sparkle", "tab_custom"], ["computer", "system", "sub_system"], ["settings", "settings", "tab_settings"]];
+const TABS = ["home", "chat", "manage", "projects", "automation", "customization", "memory", "skills", "learning", "know", "mind", "computer", "activity", "work", "settings"];
+const HUB_OF = { activity: "home", learning: "settings", know: "settings", mind: "settings", work: "computer", projects: "manage", memory: "customization", skills: "customization" };
+let moreOpen = false;
 function drawTabs() {
+  const mobile = innerWidth <= 820;
+  const hubBtn = ([k, ic, lb]) => h("button", { class: ((HUB_OF[tab] || tab) === k ? "on " : "") + (k === "computer" ? "nav-secondary" : ""), "data-tab": k, onclick: () => { moreOpen = false; go(k); } },
+    h("span", { class: "nav-ico" }, ico(ic)),
+    h("span", { class: "nav-lbl", text: k === "automation" && mobile ? (lang === "th" ? "ออโต้" : "Auto") : t(lb) }));
+  const moreOn = mobile && ["customization", "computer", "settings"].includes(HUB_OF[tab] || tab);
   $("#tabs").replaceChildren(
     h("a", { class: "nav-brand brand-lockup", href: "/console", "aria-label": "nano Agent home" },
-      h("span", { class: "logo-panel" }, h("img", { class: "wordmark", src: "/static/logo-nano-agent-official.webp", alt: "nano Agent" }))),
-    ...HUBS.map(([k, ic, lb]) =>
-      h("button", { class: ((HUB_OF[tab] || tab) === k ? "on " : "") + (["computer", "settings"].includes(k) ? "nav-secondary" : ""), "data-tab": k, onclick: () => go(k) },
-        h("span", { class: "nav-ico" }, ico(ic)),
-        h("span", { class: "nav-lbl", text: k === "projects" ? (lang === "th" ? "โปรเจกต์" : "Projects") : k === "automation" && innerWidth < 820 ? (lang === "th" ? "ออโต้" : "Auto") : t(lb) }))),
+      h("span", { class: "logo-wrap" },
+        h("img", { class: "logo logo-light-img", src: "/static/logo-light-theme.png", alt: "nano Agent" }),
+        h("img", { class: "logo logo-dark-img", src: "/static/logo-dark-theme.png", alt: "" }))),
+    ...HUBS.filter(([k]) => !mobile || MOBILE_HUBS.includes(k)).map(hubBtn),
+    ...(mobile ? [h("button", { class: "more-btn" + (moreOn ? " on" : ""), "data-tab": "more", "aria-expanded": moreOpen ? "true" : "false",
+      onclick: () => { moreOpen = !moreOpen; drawMore(); } },
+      h("span", { class: "nav-ico" }, ico("settings")), h("span", { class: "nav-lbl", text: t("tab_more") }))] : []),
     h("a", { class: "oss-link", href: "https://github.com/julachok20/nano-agent", target: "_blank", rel: "noopener noreferrer" },
       h("span", { class: "oss-label" }, ico("gh"), h("span", { text: "Open Source" })), ico("ext")));
+  drawMore();
+}
+// Mobile "More" sheet: Customization, System, Settings (same routes as the rail).
+function drawMore() {
+  let sheet = $("#more-sheet");
+  if (!moreOpen || innerWidth > 820) { if (sheet) sheet.remove(); return; }
+  if (!sheet) { sheet = h("div", { id: "more-sheet", class: "more-sheet" }); document.body.append(sheet); }
+  sheet.replaceChildren(...MORE_HUBS.map(([k, ic, lb]) => h("button", { class: "more-item" + ((HUB_OF[tab] || tab) === k ? " on" : ""), "data-tab": k,
+    onclick: () => { moreOpen = false; go(k); } }, ico(ic), h("span", { text: t(lb) }))));
 }
 function go(k) { tab = k; drawTabs(); render(); }
-function render() { ({ home: vHome, chat: vChat, manage: vManage, projects: vProjects, computer: vWork, automation: vWork, skills: vMind,
-  settings: vSettings, activity: vWork, memory: vMind, learning: vMind, know: vMind, mind: vMind, work: vWork })[tab](); }
+function render() { ({ home: vHome, chat: vChat, manage: vManage, projects: () => { sub.manage = "projects"; return vManage(); }, automation: vWork,
+  customization: vCustom, memory: vCustom, skills: vCustom, computer: vSystem, settings: vSettings,
+  activity: vWork, work: vWork, mind: vMind, learning: vMind, know: vMind })[tab](); }
 
 function currentBaseTheme() {
   const th = document.documentElement.dataset.theme || "dark";
@@ -148,6 +167,7 @@ function applyUi(p) {
 async function setTheme(next) {
   applyUi({ "ui.theme": next });
   if (tab === "settings") vSettings();
+  if (tab === "customization") vCustom();
   try {
     const r = await post("/learning/pref", { setting: "ui.theme", value: next });
     if (r.ok && ME.prefs) ME.prefs["ui.theme"] = next;
@@ -433,16 +453,15 @@ async function vChat() {
 }
 
 // ---------- manage ----------
-async function vProjects() {
-  const v = clear(), serial = viewSerial;
+async function vProjects() { sub.manage = "projects"; await vManage(); }
+async function renderProjects(v, serial) {
   const data = await api("/projects"), items = data.items || [];
   if (serial !== viewSerial) return;
   const name = h("input", { placeholder: lang === "th" ? "ชื่อโปรเจกต์" : "Project name", maxlength: 100 });
   const goal = h("input", { placeholder: lang === "th" ? "เป้าหมาย" : "Goal", maxlength: 500 });
   const deadline = h("input", { type: "date", "aria-label": lang === "th" ? "กำหนดส่ง" : "Deadline" });
   const next = h("input", { placeholder: lang === "th" ? "ขั้นต่อไป" : "Next step", maxlength: 300 });
-  v.append(viewHeading(lang === "th" ? "โปรเจกต์" : "Projects",
-    lang === "th" ? "ความคืบหน้า หมุดหมาย และสิ่งที่ติดขัด" : "Goals, milestones, and blockers in one place.", 4),
+  v.append(
     h("div", { class: "page-summary" },
       h("strong", { text: String(items.length) }), h("span", { text: lang === "th" ? "โปรเจกต์ที่กำลังทำ" : "active projects" })),
     panel(lang === "th" ? "เริ่มโปรเจกต์" : "Start a project",
@@ -482,12 +501,9 @@ async function vProjects() {
       h("button", { class: "bad project-close", onclick: async () => { if (confirm(lang === "th" ? "ปิดโปรเจกต์นี้?" : "Close this project?")) { const r = await post(`/projects/${p.id}/close`); if (r.ok) vProjects(); else toast(r.error); } }, text: lang === "th" ? "ปิดโปรเจกต์" : "Close project" })));
   }
 }
-async function vManage() {
-  const v = clear(), serial = viewSerial; const cur = sub.manage || "tasks";
-  v.append(viewHeading(t("sub_tasks"), lang === "th" ? "งานและรายการรออนุมัติ" : "Tasks and approvals in one place", 3),
-    chips([["tasks", t("sub_tasks")], ["calendar", lang === "th" ? "ปฏิทิน" : "Calendar"], ["drafts", t("sub_drafts")]], cur, k => { sub.manage = k; vManage(); }));
-  if (cur === "drafts") { const d = await api("/drafts"); if (serial !== viewSerial) return; v.append(d.drafts.length ? draftsPanel(d.drafts, vManage) : panel(t("drafts_none"))); return; }
-  if (cur === "calendar") { await vCalendar(v, serial); return; }
+async function renderTasks(v, serial) {
+  const dr = await api("/drafts"); if (serial !== viewSerial) return;
+  if (dr.drafts.length) v.append(draftsPanel(dr.drafts, vManage));
   const d = await api("/tasks"); const title = h("input", { placeholder: t("task_title") }), due = h("input", { placeholder: t("task_due") });
   if (serial !== viewSerial) return;
   const open = d.tasks.filter(x => !x.done), overdue = open.filter(x => x.due && new Date(x.due.replace(" ", "T")) < new Date());
@@ -501,6 +517,40 @@ async function vManage() {
   const rt = h("input", { placeholder: t("rem_text") }), rw = h("input", { placeholder: t("rem_when") });
   v.append(panel(t("reminders_title"), ...d.reminders.map(r => h("div", { class: "row" }, h("span", { class: "grow", text: r.text }), h("span", { class: "dim", text: r.due }))), rt, h("div", { style: "height:6px" }), rw,
     h("p", null, h("button", { onclick: async () => { const r = await act("/reminders", { text: rt.value, when: rw.value }); if (r.ok) vManage(); }, text: t("add") }))));
+}
+
+// ---------- management hub: Tasks, Projects, Calendar, Newspaper (visible tabs saved on this device) ----------
+const MGMT_TABS = [["tasks", () => t("sub_tasks")], ["projects", () => (lang === "th" ? "โปรเจกต์" : "Projects")],
+  ["calendar", () => (lang === "th" ? "ปฏิทิน" : "Calendar")], ["news", () => (lang === "th" ? "ข่าว" : "Newspaper")]];
+function mgmtHidden() {
+  try { const list = JSON.parse(localStorage.getItem("nano.mgmt.hidden") || "null"); return Array.isArray(list) ? list : ["news"]; } catch (e) { return ["news"]; }
+}
+function setMgmtHidden(list) { try { localStorage.setItem("nano.mgmt.hidden", JSON.stringify(list)); } catch (e) {} }
+async function vManage() {
+  const v = clear(), serial = viewSerial;
+  const hidden = mgmtHidden();
+  const visible = MGMT_TABS.filter(([k]) => !hidden.includes(k));
+  let cur = sub.manage || "tasks";
+  if (!visible.some(([k]) => k === cur)) cur = visible.length ? visible[0][0] : "";
+  sub.manage = cur;
+  v.append(viewHeading(lang === "th" ? "จัดการ" : "Management", lang === "th" ? "งาน โปรเจกต์ ปฏิทิน และข่าว ในที่เดียว" : "Tasks, projects, calendar, and news in one place.", 3));
+  v.append(h("div", { class: "mgmt-bar" },
+    chips(visible.map(([k, label]) => [k, label()]), cur, k => { sub.manage = k; vManage(); }),
+    h("button", { class: "tab-prefs", "aria-expanded": sub.managePrefs ? "true" : "false", onclick: () => { sub.managePrefs = !sub.managePrefs; vManage(); } },
+      lang === "th" ? "แสดง/ซ่อนแท็บ" : "Show or hide tabs")));
+  if (sub.managePrefs) v.append(panel(lang === "th" ? "แท็บที่แสดง" : "Visible tabs",
+    ...MGMT_TABS.map(([k, label]) => h("label", { class: "pref-row" },
+      h("input", { type: "checkbox", ...(hidden.includes(k) ? {} : { checked: true }), onchange: e => {
+        const next = e.target.checked ? hidden.filter(x => x !== k) : [...hidden, k];
+        if (next.length >= MGMT_TABS.length) { e.target.checked = true; toast(lang === "th" ? "ต้องแสดงอย่างน้อยหนึ่งแท็บ" : "Keep at least one tab visible"); return; }
+        setMgmtHidden(next); vManage(); } }),
+      h("span", { text: label() }))),
+    h("p", { class: "dim", text: lang === "th" ? "การตั้งค่านี้เก็บในเครื่องนี้" : "Saved on this device." })));
+  if (cur === "tasks") await renderTasks(v, serial);
+  else if (cur === "projects") await renderProjects(v, serial);
+  else if (cur === "calendar") await vCalendar(v, serial);
+  else if (cur === "news") v.append(newsPanel());
+  else v.append(panel(lang === "th" ? "ไม่มีแท็บที่แสดง" : "No tabs shown", h("p", { class: "dim", text: lang === "th" ? "เปิดแท็บอย่างน้อยหนึ่งแท็บใน แสดง/ซ่อนแท็บ" : "Turn at least one tab back on under Show or hide tabs." })));
 }
 
 async function vCalendar(v, serial) {
@@ -539,10 +589,10 @@ async function vCalendar(v, serial) {
 
 // ---------- mind: memory, skills, learning ----------
 async function vMind() {
-  const v = clear(); const fixed = ["skills", "memory", "learning", "know"].includes(tab) ? tab : null;
-  const cur = fixed || sub.mind || "memory";
+  const v = clear(); const fixed = ["learning", "know"].includes(tab) ? tab : null;
+  const cur = fixed || sub.mind || "learning";
   v.append(viewHeading(t("sub_" + cur), lang === "th" ? "ความจำ ทักษะ และการเรียนรู้" : "Memory, skills, and learning", cur === "skills" ? 6 : 7));
-  if (!fixed) v.append(chips([["memory", t("sub_memory")], ["skills", t("sub_skills")], ["learning", t("sub_learning")], ["know", t("sub_know")]], cur, k => { sub.mind = k; vMind(); }));
+  if (!fixed) v.append(chips([["learning", t("sub_learning")], ["know", t("sub_know")]], cur, k => { sub.mind = k; vMind(); }));
   ({ memory: mMemory, skills: mSkills, learning: mLearning, know: mKnow })[cur](v);
 }
 async function mMemory(v) {
@@ -553,16 +603,16 @@ async function mMemory(v) {
     ...kinds.flatMap(k => [h("strong", { text: String(overview[k] || 0) }), h("span", { text: k })])));
   const kind = h("select", { "aria-label": lang === "th" ? "ประเภทความจำ" : "Memory type" },
     kinds.map(k => h("option", { value: k, text: k })));
-  v.append(chips([["text", lang === "th" ? "ข้อความ" : "Text"], ["graph", lang === "th" ? "กราฟ" : "Graph"]], sub.memoryView || "text", x => { sub.memoryView = x; vMind(); }));
+  v.append(chips([["text", lang === "th" ? "ข้อความ" : "Text"], ["graph", lang === "th" ? "กราฟ" : "Graph"]], sub.memoryView || "text", x => { sub.memoryView = x; vCustom(); }));
   v.append(panel(t("memory_add"), h("div", { class: "memory-add" }, kind, inp),
-    h("p", null, h("button", { class: "pri", onclick: async () => { const r = await act("/memory", { text: inp.value, kind: kind.value }); if (r.ok) vMind(); }, text: t("add") }))));
+    h("p", null, h("button", { class: "pri", onclick: async () => { const r = await act("/memory", { text: inp.value, kind: kind.value }); if (r.ok) vCustom(); }, text: t("add") }))));
   if (sub.memoryView === "graph") {
     const graph = sv("svg", { class: "memory-graph", viewBox: "0 0 640 340", role: "img", "aria-label": lang === "th" ? "กราฟความจำ" : "Memory graph" });
     const center = [320, 166], positions = { fact: [155, 80], rule: [485, 80], lesson: [320, 274] };
     const textNode = (x, y, value, css) => { const el = sv("text", { x, y, "text-anchor": "middle", class: css }); el.textContent = value; return el; };
     for (const k of kinds) { const [x, y] = positions[k], rows = d.items.filter(m => m.kind === k);
       const node = sv("circle", { cx: x, cy: y, r: 35, class: "memory-node memory-" + k + ((sub.memoryKind || "all") === k ? " selected" : "") });
-      node.addEventListener("click", () => { sub.memoryKind = k; vMind(); });
+      node.addEventListener("click", () => { sub.memoryKind = k; vCustom(); });
       graph.append(sv("line", { x1: center[0], y1: center[1], x2: x, y2: y, class: "memory-link" }),
         node, textNode(x, y + 7, String(rows.length), "memory-count"),
         textNode(x, y + 56, k.toUpperCase(), "memory-label"));
@@ -572,10 +622,10 @@ async function mMemory(v) {
     v.append(panel(lang === "th" ? "แผนที่ความจำ" : "Memory map", graph,
       h("p", { class: "dim", text: lang === "th" ? "ความจำแบ่งเป็นข้อเท็จจริง กฎ และบทเรียน" : "Memories are grouped as facts, rules, and lessons." })));
   }
-  v.append(chips([["all", lang === "th" ? "ทั้งหมด" : "All"], ...kinds.map(k => [k, k])], sub.memoryKind || "all", x => { sub.memoryKind = x; vMind(); }));
+  v.append(chips([["all", lang === "th" ? "ทั้งหมด" : "All"], ...kinds.map(k => [k, k])], sub.memoryKind || "all", x => { sub.memoryKind = x; vCustom(); }));
   const shown = d.items.filter(m => (sub.memoryKind || "all") === "all" || m.kind === sub.memoryKind);
   v.append(panel(t("memory_title"), shown.length ? shown.map(m => h("div", { class: "row" }, h("span", { class: "tag", text: m.kind }), h("span", { class: "grow", text: m.text }), h("span", { class: "dim", text: m.source }),
-    h("button", { class: "bad", onclick: async () => { if (confirm(lang === "th" ? "ลืมรายการนี้?" : "Forget this memory?")) { await del("/memory/" + m.id); vMind(); } }, text: t("delete") }))) : h("p", { class: "dim", text: t("memory_none") })));
+    h("button", { class: "bad", onclick: async () => { if (confirm(lang === "th" ? "ลืมรายการนี้?" : "Forget this memory?")) { await del("/memory/" + m.id); vCustom(); } }, text: t("delete") }))) : h("p", { class: "dim", text: t("memory_none") })));
 }
 async function mSkills(v) {
   const serial = viewSerial, d = await api("/skills"); if (serial !== viewSerial) return;
@@ -590,9 +640,9 @@ async function mSkills(v) {
   v.append(panel(t("skills_title"), d.skills.some(s => !s.pending) ? d.skills.filter(s => !s.pending).map(skillRow) : h("p", { class: "dim", text: t("skills_none") })));
   const skName = h("input", { placeholder: lang === "th" ? "ชื่อทักษะ" : "Skill name" }), skDesc = h("input", { placeholder: lang === "th" ? "ทักษะนี้ทำอะไร" : "What this skill does" }), skBody = h("textarea", { placeholder: lang === "th" ? "คำแนะนำสำหรับ AI" : "Instructions for the assistant" });
   v.append(panel(lang === "th" ? "สร้างทักษะ" : "Create a skill", skName, skDesc, skBody,
-    h("button", { class: "pri", onclick: async () => { const r = await act("/skills", { name: skName.value, description: skDesc.value, body: skBody.value }); if (r.ok) vMind(); }, text: lang === "th" ? "สร้าง" : "Create" })));
-  v.append(panel(t("skill_import"), h("p", { class: "dim", text: t("skill_import_note") }), url, h("p", null, h("button", { onclick: async () => { const r = await post("/skills/import", { kind: "url", url: url.value }); toast(JSON.stringify((r.results || []).map(x => x.ok ? x.name : x.error))); vMind(); }, text: t("import_github") })),
-    txt, h("p", null, h("button", { onclick: async () => { const r = await post("/skills/import", { kind: "text", text: txt.value }); toast(JSON.stringify((r.results || []).map(x => x.ok ? x.name : x.error))); vMind(); }, text: t("import_text") }))));
+    h("button", { class: "pri", onclick: async () => { const r = await act("/skills", { name: skName.value, description: skDesc.value, body: skBody.value }); if (r.ok) vCustom(); }, text: lang === "th" ? "สร้าง" : "Create" })));
+  v.append(panel(t("skill_import"), h("p", { class: "dim", text: t("skill_import_note") }), url, h("p", null, h("button", { onclick: async () => { const r = await post("/skills/import", { kind: "url", url: url.value }); toast(JSON.stringify((r.results || []).map(x => x.ok ? x.name : x.error))); vCustom(); }, text: t("import_github") })),
+    txt, h("p", null, h("button", { onclick: async () => { const r = await post("/skills/import", { kind: "text", text: txt.value }); toast(JSON.stringify((r.results || []).map(x => x.ok ? x.name : x.error))); vCustom(); }, text: t("import_text") }))));
 }
 async function skillSheet(s) {
   const r = await api("/skills/" + encodeURIComponent(s.name)); const v = clear(); const ta = h("textarea", { style: "min-height:260px" }); ta.value = r.text || "";
@@ -601,8 +651,8 @@ async function skillSheet(s) {
       h("label", null, ack, " " + t("review_ack"))) : null,
     r.files?.length ? h("p", { class: "dim", text: (lang === "th" ? "ไฟล์: " : "Files: ") + r.files.join(", ") }) : null, ta,
     h("p", null, !r.pending ? h("button", { class: "pri", onclick: async () => { const b = ta.value.split(/^---\s*$/m); await api("/skills/" + encodeURIComponent(s.name), { method: "PUT", body: { body: (b[2] || ta.value).trim() } }); toast(t("saved")); }, text: t("save") }) : null,
-      h("button", { onclick: async () => { const x = await post("/skills/" + encodeURIComponent(s.name) + "/toggle", { enabled: r.pending ? true : !s.enabled, ack: ack.checked }); if (x.ok === false) toast(x.error); else { sub.mind = "skills"; vMind(); } }, text: r.pending ? t("skill_enable") : (s.enabled ? t("skill_disable") : t("skill_enable")) }),
-      h("button", { class: "bad", onclick: async () => { if (confirm(lang === "th" ? "ลบทักษะนี้?" : "Delete this skill?")) { await del("/skills/" + encodeURIComponent(s.name)); vMind(); } }, text: t("delete") }), h("button", { onclick: vMind, text: t("back") }))));
+      h("button", { onclick: async () => { const x = await post("/skills/" + encodeURIComponent(s.name) + "/toggle", { enabled: r.pending ? true : !s.enabled, ack: ack.checked }); if (x.ok === false) toast(x.error); else { sub.mind = "skills"; vCustom(); } }, text: r.pending ? t("skill_enable") : (s.enabled ? t("skill_disable") : t("skill_enable")) }),
+      h("button", { class: "bad", onclick: async () => { if (confirm(lang === "th" ? "ลบทักษะนี้?" : "Delete this skill?")) { await del("/skills/" + encodeURIComponent(s.name)); vCustom(); } }, text: t("delete") }), h("button", { onclick: vMind, text: t("back") }))));
 }
 async function mLearning(v) {
   const d = await api("/learning");
@@ -635,10 +685,10 @@ async function mKnow(v) {
 
 // ---------- work: activity, automations, system ----------
 async function vWork() {
-  const v = clear(), serial = viewSerial; const fixed = ({ computer: "system", automation: "auto", activity: "activity" })[tab];
+  const v = clear(), serial = viewSerial; const fixed = ({ automation: "auto", activity: "activity" })[tab];
   const cur = fixed || sub.work || "activity";
   v.append(viewHeading(t("sub_" + cur), lang === "th" ? "กิจกรรม ระบบอัตโนมัติ และสถานะ" : "Activity, automations, and system status", 5));
-  if (!fixed) v.append(chips([["activity", t("sub_activity")], ["auto", t("sub_auto")], ["system", t("sub_system")]], cur, k => { sub.work = k; vWork(); }));
+  if (!fixed) v.append(chips([["activity", t("sub_activity")], ["auto", t("sub_auto")]], cur, k => { sub.work = k; vWork(); }));
   if (cur === "activity") { const a = await api("/activity"); if (serial !== viewSerial) return; const row = x => h("div", { class: "row" }, h("span", { class: "tag " + (x.status === "done" ? "ok" : x.status === "failed" ? "bad" : "warn"), text: x.status }), h("span", { class: "grow" }, h("b", { text: x.title }), x.steps.length ? h("div", { class: "dim", text: x.steps.slice(-3).map(s => s.text).join(" · ") }) : null), h("span", { class: "dim", text: Math.round(x.secs) + "s" }));
     v.append(panel(t("running_title"), a.running.length ? a.running.map(row) : h("p", { class: "dim", text: t("work_idle") })), panel(t("recent_title"), a.done.map(row))); }
   if (cur === "auto") { const a = await api("/automations"); if (serial !== viewSerial) return; const nm = h("input", { placeholder: t("auto_name") }), pr = h("textarea", { placeholder: t("auto_prompt") });
@@ -665,69 +715,121 @@ async function vWork() {
       panel(t("auto_new"), template, nm, pr, h("div", { class: "auto-schedule" }, frequency, day, at),
         h("p", { class: "dim", text: lang === "th" ? "ระบบจะทำงานตามเวลาในเขตเวลาที่ตั้งไว้" : "Runs in your configured time zone." }),
         h("button", { class: "pri", onclick: async () => { const schedule = frequency.value === "weekly" ? { weekly: `${day.value} ${at.value}` } : { daily: at.value }; const r = await act("/automations", { name: nm.value, prompt: pr.value, schedule }); if (r.ok) vWork(); }, text: t("add") }))); }
-  if (cur === "system") { const [s, activityData] = await Promise.all([api("/system"), api("/activity")]); if (serial !== viewSerial) return;
-    const i = s.info; const bar = (l, p) => p == null ? null : h("div", { class: "row" }, h("span", { class: "grow", text: l }), h("div", { class: "bar", style: "width:50%" }, h("i", { style: "width:" + p + "%" })), h("span", { class: "dim", text: p + "%" }));
-    const resources = [["CPU", i.cpu_pct], ["RAM", i.ram_pct], ["Disk", i.disk_pct], [i.gpu ? i.gpu.name : "GPU", i.gpu?.util_pct]];
-    const work = [...activityData.running, ...activityData.done.slice(0, 5)];
-    v.append(h("div", { class: "page-summary" }, h("strong", { text: String(s.health.filter(x => x.ok).length) }), h("span", { text: lang === "th" ? "รายการปกติ" : "healthy checks" }),
-      h("strong", { text: String(s.health.length - s.health.filter(x => x.ok).length) }), h("span", { text: lang === "th" ? "ต้องดู" : "need attention" })),
-      panel(t("system_title"), h("p", { class: "dim", text: `${i.host} · ${i.os} · Python ${i.python} · nano Agent ${i.version}` }),
-      h("div", { class: "resource-grid" }, resources.map(([name, pct]) => h("div", { class: "resource-card" }, h("strong", { text: pct == null ? "—" : `${Math.round(pct)}%` }), h("span", { text: name }))))));
-    v.append(panel(lang === "th" ? "การใช้ทรัพยากร" : "Resource usage", bar("CPU", i.cpu_pct), bar("RAM", i.ram_pct), bar("Disk", i.disk_pct),
-      i.gpu ? bar("GPU " + i.gpu.name, i.gpu.util_pct) : null, i.cpu_pct == null ? h("p", { class: "dim", text: t("system_psutil") }) : null),
-      panel(lang === "th" ? "รายละเอียดเครื่อง" : "Machine details", ...[
-        ["CPU", [i.cpu_name, i.cores ? `${i.cores} cores` : ""].filter(Boolean).join(" · ")],
-        ["RAM", i.ram_total_gb ? `${i.ram_total_gb} GB` : "—"], ["Storage", i.disk_total_gb ? `${i.disk_total_gb} GB` : "—"],
-        ["OS", i.os], ["Kernel", [i.kernel, i.arch].filter(Boolean).join(" · ")], ["Uptime", i.uptime_hours == null ? "—" : `${i.uptime_hours} hours`],
-        ["GPU", i.gpu ? `${i.gpu.name} · ${i.gpu.mem_used_mb}/${i.gpu.mem_total_mb} MB · ${i.gpu.temp_c}°C` : "Not detected"]
-      ].map(([label, value]) => h("div", { class: "row" }, h("b", { class: "system-detail-label", text: label }), h("span", { class: "dim grow", text: value || "—" })))),
-      panel(t("health_title"), s.health.map(c => h("div", { class: "row" }, h("span", { class: "tag " + (c.ok ? "ok" : "bad"), text: c.ok ? "OK" : "!" }), h("span", { class: "grow", text: c.name }), h("span", { class: "dim", text: c.detail })))),
-      panel(t("providers_title"), Object.entries(s.providers).map(([n, p]) => h("div", { class: "row" }, h("b", { text: n }), h("span", { class: "dim grow", text: p.kind + " · " + p.base_url }))), h("p", null, h("button", { onclick: async () => { const r = await post("/models/test"); toast(r.ok ? "OK: " + r.model : r.message); }, text: t("test_model") }))),
-      panel(t("tools_title"), h("p", { class: "dim", text: s.tools.join(", ") })),
-      panel(lang === "th" ? "งานเบื้องหลัง" : "Background work", work.length ? work.map(x =>
-        h("details", { class: "system-activity" }, h("summary", null,
-          h("span", { class: "tag " + (x.status === "done" ? "ok" : x.status === "failed" ? "bad" : "warn"), text: x.status }),
-          h("b", { text: x.title })),
-          h("p", { class: "dim", text: x.detail || (x.steps || []).map(step => step.text).join(" · ") || "No details yet" })))
-        : h("p", { class: "dim", text: lang === "th" ? "ไม่มีงานเบื้องหลัง" : "No background work yet." }))); }
 }
 
-// ---------- settings ----------
+// ---------- customization hub, appearance, agents, system, settings ----------
 const ACCENT_HEX = { orange: "#ff6a00", blue: "#38bdf8", violet: "#a78bfa", green: "#34d399", cyan: "#38d6ff", rose: "#fb7185" };
-async function vSettings() {
-  const v = clear(); const name = h("input", { value: ME.owner_name || "" }), tz = h("input", { value: ME.timezone || "" });
-  const lg = h("select", null, ["en", "th"].map(l => h("option", { value: l, selected: l === lang ? "" : null, text: l === "en" ? "English" : "ไทย" })));
+const CUSTOM_TABS = () => [["memory", t("sub_memory")], ["skills", t("sub_skills")], ["appearance", lang === "th" ? "รูปลักษณ์" : "Appearance"], ["agents", lang === "th" ? "เอเจนต์" : "Agents"]];
+// Old #tab= deep links redirect into the hub that now owns the page.
+const REDIRECT = { projects: ["manage", "projects"], tasks: ["manage", "tasks"], calendar: ["manage", "calendar"], memory: ["customization", "memory"], skills: ["customization", "skills"], mind: ["customization", "memory"] };
+function routeFromHash(hp) {
+  const want = hp.get("tab"), sec = hp.get("sub");
+  if (!want) return;
+  if (REDIRECT[want]) {
+    const [hub, part] = REDIRECT[want];
+    tab = hub;
+    sub[hub === "manage" ? "manage" : "custom"] = sec || part;
+  } else if (TABS.includes(want)) { tab = want; if (sec) sub[want] = sec; }
+}
+async function vCustom() {
+  const v = clear(), serial = viewSerial;
+  const cur = tab === "skills" ? "skills" : tab === "memory" ? "memory" : (sub.custom || "memory");
+  sub.custom = cur;
+  v.append(viewHeading(lang === "th" ? "ปรับแต่ง" : "Customization", lang === "th" ? "ความจำ ทักษะ รูปลักษณ์ และเอเจนต์" : "Memory, skills, appearance, and agents", 6),
+    chips(CUSTOM_TABS(), cur, k => { sub.custom = k; go("customization"); }));
+  if (cur === "memory") await mMemory(v);
+  else if (cur === "skills") await mSkills(v);
+  else if (cur === "appearance") appearancePanel(v);
+  else agentsPanel(v);
+  if (serial !== viewSerial) return;
+}
+function appearancePanel(v) {
   const baseTheme = currentBaseTheme();
   const themes = [
     ["light", lang === "th" ? "สว่าง (Light)" : "Light", lang === "th" ? "พื้นหลังสว่าง สะอาดตา เหมาะกับกลางวัน" : "Clean luminous workspace for daytime focus"],
     ["dark", lang === "th" ? "มืด (Dark)" : "Dark", lang === "th" ? "พื้นหลังเข้ม สบายตาในที่แสงน้อย" : "Deep slate workspace for low-light comfort"]
   ];
   const curAccent = document.documentElement.dataset.accent || "orange";
-  v.append(viewHeading(t("tab_settings"), lang === "th" ? "ปรับหน้าตาและข้อมูลของคุณ" : "Make Nano Agent feel like yours", 6),
+  v.append(panel(lang === "th" ? "รูปแบบหน้าจอ" : "Appearance",
+    h("p", { class: "dim", text: lang === "th" ? "เลือกโหมดสว่างหรือมืด เปลี่ยนได้ตลอดเวลา" : "Choose Light or Dark appearance. Saved to your preferences." }),
+    h("div", { class: "theme-options" }, themes.map(([key, title, detail]) => h("button", {
+      class: "theme-option theme-option-" + key + (baseTheme === key ? " selected" : ""),
+      "aria-pressed": baseTheme === key ? "true" : "false",
+      onclick: () => setTheme(key)
+    }, h("span", { class: "theme-preview" }, h("i"), h("i"), h("i")), h("strong", { text: title }), h("small", { text: detail })))),
+    h("div", { class: "accent-row" },
+      h("span", { class: "dim", text: lang === "th" ? "สีเน้น:" : "Accent:" }),
+      ...Object.entries(ACCENT_HEX).map(([k, hex]) => h("button", {
+        class: "accent-dot" + (curAccent === k ? " on" : ""),
+        style: `background:${hex}`,
+        title: k,
+        "aria-label": k,
+        onclick: async () => {
+          applyUi({ "ui.accent": k });
+          vCustom();
+          try { const r = await post("/learning/pref", { setting: "ui.accent", value: k }); if (r.ok && ME.prefs) ME.prefs["ui.accent"] = k; } catch (e) {}
+        }
+      }))),
+    h("p", { class: "dim", text: lang === "th" ? "มาสคอต: n (ค่าเริ่มต้น) มาสคอตอื่นจะเพิ่มในภายหลัง" : "Mascot: n (default). More mascots will be added here later." })));
+}
+function agentsPanel(v) {
+  v.append(panel(lang === "th" ? "เอเจนต์" : "Agents",
+    h("div", { class: "row" }, h("span", { class: "grow", text: lang === "th" ? "เอเจนต์หลัก" : "Main agent" }), h("span", { class: "tag ok", text: lang === "th" ? "พร้อมใช้งาน" : "Ready" })),
+    h("h4", { text: lang === "th" ? "ซับเอเจนต์" : "Sub-agents" }),
+    h("div", { class: "agent-slots", "aria-hidden": "true" }, ...[0, 1, 2].map(() => h("span", { class: "agent-letter", text: "·" }))),
+    h("p", { class: "dim", text: lang === "th" ? "ยังไม่มีซับเอเจนต์ทำงานอยู่ จะแสดงที่นี่เมื่อระบบรายงานข้อมูลจริง" : "No sub-agents running. They appear here once the backend reports real data." })));
+}
+function newsPanel() {
+  return panel(lang === "th" ? "ข่าว" : "Newspaper",
+    h("div", { class: "jv-empty-box" }, ico("news", "ico ico-lg"),
+      h("p", { class: "jv-note", text: lang === "th" ? "ยังไม่ได้เชื่อมต่อ ยังไม่มีแหล่งข่าวที่ตั้งค่าไว้ใน nano Agent" : "Not connected yet. No news source is set up in nano Agent." })));
+}
+// ---------- system: device status + nano Agent status (real data only; missing values say so) ----------
+async function vSystem() {
+  const v = clear(), serial = viewSerial;
+  const [s, act, sb] = await Promise.all([api("/system"), api("/activity"), api("/sandbox/status").catch(() => null)]);
+  if (serial !== viewSerial) return;
+  const i = s.info, cfg = sb ? (sb.config || {}) : {}, sup = sb ? (sb.supervisor || {}) : {};
+  const na = lang === "th" ? "ไม่มีข้อมูล" : "Not available";
+  const pct = x => x == null ? na : `${Math.round(x)}%`;
+  const row = (k, val) => h("div", { class: "row" }, h("b", { class: "system-detail-label", text: k }), h("span", { class: "dim grow", text: val == null || val === "" ? na : String(val) }));
+  v.append(viewHeading(lang === "th" ? "ระบบ" : "System", lang === "th" ? "สถานะเครื่องและ nano Agent" : "Device and nano Agent status", 5));
+  v.append(panel(lang === "th" ? "สถานะเครื่อง" : "Device status",
+    h("div", { class: "resource-grid" }, [["CPU", pct(i.cpu_pct)], ["RAM", pct(i.ram_pct)], ["Disk", pct(i.disk_pct)], ["Uptime", i.uptime_hours == null ? na : `${i.uptime_hours} h`]]
+      .map(([n, val]) => h("div", { class: "resource-card" }, h("strong", { text: val }), h("span", { text: n })))),
+    i.cpu_pct == null ? h("p", { class: "dim", text: t("system_psutil") }) : null,
+    row(lang === "th" ? "เครื่อง" : "Machine", [i.host, i.os].filter(Boolean).join(" · ")),
+    row("CPU", [i.cpu_name, i.cores ? `${i.cores} cores` : ""].filter(Boolean).join(" · ")),
+    row("RAM", i.ram_total_gb ? `${i.ram_total_gb} GB` : null),
+    row(lang === "th" ? "พื้นที่จัดเก็บ" : "Storage", i.disk_total_gb ? `${i.disk_total_gb} GB` : null),
+    row("GPU", i.gpu ? i.gpu.name : (lang === "th" ? "ไม่พบ" : "Not detected"))));
+  const last = (act.done || [])[0];
+  v.append(panel(lang === "th" ? "สถานะ nano Agent" : "nano Agent status",
+    row(lang === "th" ? "เวอร์ชัน" : "Version", i.version),
+    row(lang === "th" ? "โมเดล" : "Model", ME.model),
+    row(lang === "th" ? "ผู้ให้บริการ" : "Providers", Object.entries(s.providers || {}).map(([n, p]) => `${n} (${p.kind})`).join(", ")),
+    row(lang === "th" ? "เกตเวย์" : "Gateway", lang === "th" ? "ตอบสนอง (คอนโซลเชื่อมต่ออยู่)" : "Responding (this console is connected)"),
+    row(lang === "th" ? "ระดับ sandbox" : "Sandbox tier", sb ? cfg.tier : null),
+    row(lang === "th" ? "สถานะสวิตช์หยุดฉุกเฉิน" : "Kill switch state", sb ? sup.state : null),
+    row(lang === "th" ? "การรันล่าสุด" : "Last run", last ? `${last.title} · ${when(last.ts)}` : (lang === "th" ? "ยังไม่มี" : "None yet"))));
+  const work = [...act.running, ...act.done.slice(0, 5)];
+  v.append(panel(lang === "th" ? "งานเบื้องหลัง" : "Background work", work.length ? work.map(x =>
+    h("details", { class: "system-activity" }, h("summary", null,
+      h("span", { class: "tag " + (x.status === "done" ? "ok" : x.status === "failed" ? "bad" : "warn"), text: x.status }),
+      h("b", { text: x.title })),
+      h("p", { class: "dim", text: x.detail || (x.steps || []).map(step => step.text).join(" · ") || (lang === "th" ? "ยังไม่มีรายละเอียด" : "No details yet") })))
+    : h("p", { class: "dim", text: lang === "th" ? "ตอนนี้ไม่มีงานเบื้องหลัง" : "No background work right now." })));
+  v.append(panel(t("health_title"), s.health.map(c => h("div", { class: "row" }, h("span", { class: "tag " + (c.ok ? "ok" : "bad"), text: c.ok ? "OK" : "!" }), h("span", { class: "grow", text: c.name }), h("span", { class: "dim", text: c.detail })))));
+}
+
+// ---------- settings: profile, language, about ----------
+async function vSettings() {
+  const v = clear(); const name = h("input", { value: ME.owner_name || "" }), tz = h("input", { value: ME.timezone || "" });
+  const lg = h("select", null, ["en", "th"].map(l => h("option", { value: l, selected: l === lang ? "" : null, text: l === "en" ? "English" : "ไทย" })));
+  v.append(viewHeading(t("tab_settings"), lang === "th" ? "โปรไฟล์และภาษา" : "Profile, language, and about", 7),
     h("div", { class: "settings-shortcuts" },
-      h("button", { onclick: () => go("memory"), text: t("sub_memory") }),
       h("button", { onclick: () => go("learning"), text: t("sub_learning") }),
-      h("button", { onclick: () => go("know"), text: t("sub_know") })),
-    panel(lang === "th" ? "รูปแบบหน้าจอ" : "Appearance",
-      h("p", { class: "dim", text: lang === "th" ? "เลือกโหมดสว่างหรือมืด เปลี่ยนได้ตลอดเวลา" : "Choose Light or Dark appearance. Saved to your preferences." }),
-      h("div", { class: "theme-options" }, themes.map(([key, title, detail]) => h("button", {
-        class: "theme-option theme-option-" + key + (baseTheme === key ? " selected" : ""),
-        "aria-pressed": baseTheme === key ? "true" : "false",
-        onclick: () => setTheme(key)
-      }, h("span", { class: "theme-preview" }, h("i"), h("i"), h("i")), h("strong", { text: title }), h("small", { text: detail })))),
-      h("div", { class: "accent-row" },
-        h("span", { class: "dim", text: lang === "th" ? "สีเน้น:" : "Accent:" }),
-        ...Object.entries(ACCENT_HEX).map(([k, hex]) => h("button", {
-          class: "accent-dot" + (curAccent === k ? " on" : ""),
-          style: `background:${hex}`,
-          title: k,
-          "aria-label": k,
-          onclick: async () => {
-            applyUi({ "ui.accent": k });
-            vSettings();
-            try { const r = await post("/learning/pref", { setting: "ui.accent", value: k }); if (r.ok && ME.prefs) ME.prefs["ui.accent"] = k; } catch (e) {}
-          }
-        })))));
+      h("button", { onclick: () => go("know"), text: t("sub_know") })));
   v.append(panel(t("settings_title"), field(t("set_name"), name), field(t("set_tz"), tz), field(t("set_lang"), lg),
     h("p", null, h("button", { class: "pri", onclick: async () => { const r = await act("/settings", { owner_name: name.value, timezone: tz.value, language: lg.value }); if (r.ok) { toast(t("saved")); boot(); } }, text: t("save") }))));
   v.append(panel(t("about_title"), h("p", { class: "dim", text: `nano Agent ${ME.version} · ${t("model_label")}: ${ME.model || "-"}` }), h("p", null, h("button", { onclick: async () => { await post("/logout"); showLogin(); }, text: t("logout") }))));
@@ -745,7 +847,7 @@ async function boot() {
   let r = await fetch("/api/me", { credentials: "same-origin" });
   if (r.status === 401 && await liffLogin()) r = await fetch("/api/me", { credentials: "same-origin" });
   if (r.status === 401) return showLogin();
-  ME = await r.json(); applyUi(ME.prefs || {}); if (HUBS.some(h => h[0] === hp.get("tab"))) { tab = hp.get("tab"); if (hp.get("sub")) sub[tab] = hp.get("sub"); } drawTabs(); render(); pollPill();
+  ME = await r.json(); applyUi(ME.prefs || {}); routeFromHash(hp); addEventListener("resize", () => drawTabs()); drawTabs(); render(); pollPill();
 }
 setInterval(pollPill, 5000);
 setInterval(() => { if (tab === "home") refreshHome(); }, 15000);

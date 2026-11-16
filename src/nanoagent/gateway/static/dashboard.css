@@ -1128,9 +1128,25 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   outline: 2px solid var(--accent); outline-offset: 2px;
 }
 .icon-btn { width: 44px; height: 44px; border-radius: var(--r-pill); background: var(--surface-solid); border: 1px solid var(--border); box-shadow: var(--shadow-card); }
-.logo-panel { display: inline-flex; background: #ffffff; border: 1px solid var(--border); border-radius: 18px; padding: 6px 12px; box-shadow: var(--shadow-card); }
-.logo-panel img.wordmark { display: block; width: auto; height: 44px; max-width: none; object-fit: contain; }
-.wordmark-light, .wordmark-dark { display: none !important; }
+/* Logo: plain transparent PNG on the rail, no panel or tile. Light UI uses the dark wordmark, dark UI the light one. */
+.logo-wrap { display: inline-flex; align-items: center; }
+.logo { display: block; width: auto; height: 44px; max-width: none; object-fit: contain; }
+.logo-dark-img { display: none; }
+html:not([data-theme=light]):not([data-theme=minimal]) .logo-light-img { display: none; }
+html:not([data-theme=light]):not([data-theme=minimal]) .logo-dark-img { display: block; }
+.mgmt-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 16px; }
+.tab-prefs { height: 40px; padding: 0 14px; border-radius: var(--r-pill); background: var(--surface-solid); border: 1px solid var(--border); font-size: 14px; }
+.pref-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); }
+.pref-row input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.more-sheet {
+  position: fixed; left: 12px; right: 12px; bottom: 88px; z-index: 40; display: grid; gap: 6px; padding: 10px;
+  border-radius: var(--r-card); background: var(--surface-solid); border: 1px solid var(--border); box-shadow: var(--shadow-float);
+}
+.more-item { display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 14px; border-radius: var(--r-ctl); background: transparent; border: 0; color: var(--txt); font-size: 15px; font-weight: 500; text-align: left; }
+.more-item .ico { width: 20px; height: 20px; }
+.more-item.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+@media (min-width: 821px) { .more-sheet { display: none; } }
+@media (max-width: 820px) { header .logo { height: 34px; } }
 
 /* 3.1 Rail (>=821px): 248px, logo panel top, 9 items, Open Source pill foot. Routes unchanged. */
 @media (min-width: 821px) {
@@ -1144,8 +1160,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
     background: var(--surface); backdrop-filter: blur(12px);
   }
   .nav-brand { display: block; padding: 0 0 24px; }
-  .nav-brand .logo-panel { display: block; width: 100%; padding: 12px 14px; }
-  .nav-brand .logo-panel img.wordmark { width: 100%; height: auto; }
+  .nav-brand .logo-wrap { display: block; padding: 4px 0 0; }
+  .nav-brand .logo { width: 100%; height: auto; max-width: 200px; }
   nav#tabs button { flex: 0 0 auto; flex-direction: row; justify-content: flex-start; gap: 12px; height: 44px; padding: 0 12px; border-radius: var(--r-ctl); font-size: 15px; font-weight: 500; color: var(--txt); }
   nav#tabs button:not(.on) { background: transparent; }
   nav#tabs button:hover:not(.on) { background: var(--surface-hover); }
