@@ -128,10 +128,11 @@ def create_app() -> FastAPI:
 
     @app.get("/static/{name}")
     async def static(name: str):
-        if name not in ("console.js", "dashboard.css", "favicon.png", "mascot-n.png", "wordmark-light.png", "wordmark-dark.png"):
+        if name not in ("console.js", "dashboard.css", "favicon.png", "mascot-n.png", "wordmark-light.png", "wordmark-dark.png", "logo-nano-agent-official.webp"):
             raise HTTPException(404)
         data = resources.files("nanoagent").joinpath("gateway", "static", name).read_bytes()
-        media_type = "text/css" if name.endswith(".css") else "application/javascript" if name.endswith(".js") else "image/png"
+        media_type = ("text/css" if name.endswith(".css") else "application/javascript" if name.endswith(".js")
+                      else "image/webp" if name.endswith(".webp") else "image/png")
         return Response(data, media_type=media_type, headers={"Cache-Control": "public, max-age=300"})
 
     @app.get("/api/strings")
@@ -499,3 +500,4 @@ def dump_routes(app: FastAPI) -> list[tuple[str, str]]:
 
 
 _ = json  # json is imported for route helpers added by plugins
+
