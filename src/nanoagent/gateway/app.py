@@ -7,9 +7,11 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import platform
 import shutil
 import subprocess
+import time
 import zoneinfo
 from contextlib import asynccontextmanager
 from importlib import resources
@@ -67,13 +69,17 @@ async def _json(request: Request) -> dict:
 
 def system_info() -> dict:
     info = {"os": f"{platform.system()} {platform.release()}", "python": platform.python_version(), "version": __version__, "host": platform.node(),
+            "cpu_name": platform.processor(), "cores": os.cpu_count(), "kernel": platform.version(), "arch": platform.machine(),
             "cpu_pct": None, "ram_pct": None, "disk_pct": None, "gpu": None}
     du = shutil.disk_usage(paths.home())
     info["disk_pct"] = round(100 * du.used / du.total, 1)
+    info["disk_total_gb"] = round(du.total / 1024**3, 1)
     try:
         import psutil  # type: ignore
         info["cpu_pct"] = psutil.cpu_percent(interval=0.1)
         info["ram_pct"] = psutil.virtual_memory().percent
+        info["ram_total_gb"] = round(psutil.virtual_memory().total / 1024**3, 1)
+        info["uptime_hours"] = round((time.time() - psutil.boot_time()) / 3600, 1)
     except Exception:
         pass
     if shutil.which("nvidia-smi"):   # optional: shown only when present
@@ -122,7 +128,7 @@ def create_app() -> FastAPI:
 
     @app.get("/static/{name}")
     async def static(name: str):
-        if name not in ("console.js", "dashboard.css", "favicon.png", "mascot-n.png"):
+        if name not in ("console.js", "dashboard.css", "favicon.png", "mascot-n.png", "wordmark-light.png", "wordmark-dark.png"):
             raise HTTPException(404)
         data = resources.files("nanoagent").joinpath("gateway", "static", name).read_bytes()
         media_type = "text/css" if name.endswith(".css") else "application/javascript" if name.endswith(".js") else "image/png"
@@ -223,6 +229,11 @@ def create_app() -> FastAPI:
     async def project_item_add(pid: int, request: Request):
         d = await _json(request)
         return projects.add_item(pid, d.get("kind", ""), d.get("text", ""), d.get("due", ""))
+
+    @api.put("/projects/{pid}")
+    async def project_update(pid: int, request: Request):
+        d = await _json(request)
+        return projects.update(pid, d.get("goal", ""), d.get("deadline", ""), d.get("next_step", ""))
 
     @api.post("/projects/{pid}/items/{item_id}/complete")
     async def project_item_complete(pid: int, item_id: int):

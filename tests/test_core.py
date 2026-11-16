@@ -167,6 +167,8 @@ def test_project_progress_blockers_and_close():
     p = projects.list_()[0]
     assert p["progress"] == {"done": 1, "total": 1} and len(p["blockers"]) == 1
     assert projects.complete_item(pid, blocker)["ok"] and not projects.list_()[0]["blockers"]
+    assert projects.update(pid, "Ship it", "2030-02-01", "Publish")["ok"]
+    assert projects.list_()[0]["next_step"] == "Publish"
     assert projects.close(pid)["ok"] and not projects.list_()
 
 

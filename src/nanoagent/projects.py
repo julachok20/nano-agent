@@ -64,6 +64,18 @@ def add_item(pid: int, kind: str, text: str, due: str = "") -> dict:
     return {"ok": True, "id": item_id}
 
 
+def update(pid: int, goal: str, deadline: str, next_step: str) -> dict:
+    if not db.one("SELECT 1 FROM projects WHERE id=? AND status='active'", (pid,)):
+        return {"ok": False, "error": "no active project"}
+    try:
+        deadline = _date(deadline)
+    except ValueError:
+        return {"ok": False, "error": "deadline must be YYYY-MM-DD"}
+    db.run("UPDATE projects SET goal=?, deadline=?, next_step=? WHERE id=?",
+           (_text(goal, 500), deadline, _text(next_step, 300), pid))
+    return {"ok": True}
+
+
 def complete_item(pid: int, item_id: int) -> dict:
     row = db.one("SELECT 1 FROM project_items WHERE id=? AND project_id=? AND kind IN ('milestone','blocker')", (item_id, pid))
     if not row:

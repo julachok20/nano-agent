@@ -49,6 +49,8 @@ def test_project_routes_round_trip(owner):
     assert owner.get("/api/projects").json()["items"][0]["progress"] == {"done": 0, "total": 1}
     assert owner.post(f"/api/projects/{pid}/items/{item['id']}/complete").json()["ok"]
     assert owner.get("/api/projects").json()["items"][0]["progress"]["done"] == 1
+    assert owner.put(f"/api/projects/{pid}", json={"goal": "Published", "next_step": "Announce"}).json()["ok"]
+    assert owner.get("/api/projects").json()["items"][0]["next_step"] == "Announce"
     assert owner.post(f"/api/projects/{pid}/close").json()["ok"]
     assert owner.get("/api/projects").json()["items"] == []
 
