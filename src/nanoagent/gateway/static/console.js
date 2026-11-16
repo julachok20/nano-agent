@@ -48,7 +48,9 @@ const ICONS = {
   arrow: [["path", { d: "M5 12h14M13 6l6 6-6 6" }]],
   ext: [["path", { d: "M7 17 17 7M9 7h8v8" }]],
   gh: [["path", { d: "M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.4 3.4 0 0 0-1-2.6c3.1-.4 6.4-1.5 6.4-7a5.5 5.5 0 0 0-1.5-3.8 5.1 5.1 0 0 0-.1-3.8s-1.2-.4-3.9 1.5a13.4 13.4 0 0 0-7 0C6.2 1.9 5 2.3 5 2.3a5.1 5.1 0 0 0-.1 3.8A5.5 5.5 0 0 0 3.4 10c0 5.4 3.3 6.6 6.4 7a3.4 3.4 0 0 0-1 2.6V22" }]],
-  plus: [["path", { d: "M12 5v14M5 12h14" }]]
+  plus: [["path", { d: "M12 5v14M5 12h14" }]],
+  sliders: [["path", { d: "M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" }], ["circle", { cx: 15, cy: 6, r: 2 }], ["circle", { cx: 9, cy: 12, r: 2 }], ["circle", { cx: 17, cy: 18, r: 2 }]],
+  dots: [["circle", { cx: 5, cy: 12, r: 1.6 }], ["circle", { cx: 12, cy: 12, r: 1.6 }], ["circle", { cx: 19, cy: 12, r: 1.6 }]]
 };
 function ico(name, cls = "ico") {
   const parts = ICONS[name] || ICONS.skills;
@@ -98,14 +100,14 @@ async function liffLogin() {
 const HUBS = [
   ["home", "home", "tab_home"],
   ["chat", "chat", "tab_chats"],
-  ["manage", "manage", "tab_manage"],
-  ["automation", "auto", "sub_auto"],
-  ["customization", "sparkle", "tab_custom"],
+  ["manage", "layers", "tab_manage"],
+  ["automation", "skills", "sub_auto"],
+  ["customization", "sliders", "tab_custom"],
   ["computer", "system", "sub_system"],
   ["settings", "settings", "tab_settings"]
 ];
 const MOBILE_HUBS = ["home", "chat", "manage", "automation"];
-const MORE_HUBS = [["customization", "sparkle", "tab_custom"], ["computer", "system", "sub_system"], ["settings", "settings", "tab_settings"]];
+const MORE_HUBS = [["customization", "sliders", "tab_custom"], ["computer", "system", "sub_system"], ["settings", "settings", "tab_settings"]];
 const TABS = ["home", "chat", "manage", "projects", "automation", "customization", "memory", "skills", "learning", "know", "mind", "computer", "activity", "work", "settings"];
 const HUB_OF = { activity: "home", learning: "settings", know: "settings", mind: "settings", work: "computer", projects: "manage", memory: "customization", skills: "customization" };
 let moreOpen = false;
@@ -123,7 +125,7 @@ function drawTabs() {
     ...HUBS.filter(([k]) => !mobile || MOBILE_HUBS.includes(k)).map(hubBtn),
     ...(mobile ? [h("button", { class: "more-btn" + (moreOn ? " on" : ""), "data-tab": "more", "aria-expanded": moreOpen ? "true" : "false",
       onclick: () => { moreOpen = !moreOpen; drawMore(); } },
-      h("span", { class: "nav-ico" }, ico("settings")), h("span", { class: "nav-lbl", text: t("tab_more") }))] : []),
+      h("span", { class: "nav-ico" }, ico("dots")), h("span", { class: "nav-lbl", text: t("tab_more") }))] : []),
     h("a", { class: "oss-link", href: "https://github.com/julachok20/nano-agent", target: "_blank", rel: "noopener noreferrer" },
       h("span", { class: "oss-label" }, ico("gh"), h("span", { text: "Open Source" })), ico("ext")));
   drawMore();
@@ -134,12 +136,12 @@ function drawMore() {
   if (!moreOpen || innerWidth > 820) { if (sheet) sheet.remove(); return; }
   if (!sheet) { sheet = h("div", { id: "more-sheet", class: "more-sheet" }); document.body.append(sheet); }
   sheet.replaceChildren(...MORE_HUBS.map(([k, ic, lb]) => h("button", { class: "more-item" + ((HUB_OF[tab] || tab) === k ? " on" : ""), "data-tab": k,
-    onclick: () => { moreOpen = false; go(k); } }, ico(ic), h("span", { text: t(lb) }))));
+    onclick: () => { moreOpen = false; go(k); } }, ico(ic), h("span", { text: t(lb) }))), h("a", { class: "more-item", href: "https://github.com/julachok20/nano-agent", target: "_blank", rel: "noopener noreferrer" }, ico("gh"), h("span", { text: "Open Source" })));
 }
 function go(k) { tab = k; drawTabs(); render(); }
 function render() { ({ home: vHome, chat: vChat, manage: vManage, projects: () => { sub.manage = "projects"; return vManage(); }, automation: vWork,
   customization: vCustom, memory: vCustom, skills: vCustom, computer: vSystem, settings: vSettings,
-  activity: vWork, work: vWork, mind: vMind, learning: vMind, know: vMind })[tab](); }
+  activity: vWork, work: vWork, mind: vMind, learning: vMind, know: vMind })[tab](); setMascot(mascotState); }
 
 function currentBaseTheme() {
   const th = document.documentElement.dataset.theme || "dark";
@@ -207,7 +209,7 @@ async function pollPill() {
 
 // ---------- home ----------
 let openerSpoken = false, orbState = "idle", rec = null;
-const setOrb = s => { orbState = s; const o = $("#orb"); if (o) o.dataset.state = s; };
+const setOrb = s => { orbState = s; const o = $("#orb"); if (o) o.dataset.state = s; setMascot(s); };
 function speak(text) {
   return new Promise(async res => {
     setOrb("speaking");
@@ -267,14 +269,7 @@ function waveBars(n = 5) {
 }
 // Mascot "n" (DESIGN-SPEC 3.8): the one swappable slot. Swap this SVG to change the mascot; CSS handles blink, gaze and states.
 function mascotSlot() {
-  return h("div", { class: "mascot", role: "img", "aria-label": "nano Agent" },
-    sv("svg", { viewBox: "0 0 200 150", "aria-hidden": "true" },
-      sv("path", { class: "ray", d: "M214 26l12-8M218 48l14-2M206 8l6-10" }),
-      sv("rect", { class: "body", x: 0, y: 0, width: 66, height: 44, rx: 22 }),
-      sv("path", { class: "body", d: "M12 148V84C12 30 46 2 106 2s94 28 94 82v64z" }),
-      sv("path", { class: "face", d: "M66 148V92c0-24 18-36 41-36s41 12 41 36v56z" }),
-      sv("g", { class: "idle" }, sv("g", { class: "blink" },
-        sv("ellipse", { class: "eye", cx: 97, cy: 90, rx: 4, ry: 7 }), sv("ellipse", { class: "eye", cx: 117, cy: 90, rx: 4, ry: 7 })))));
+  return h("div", { class: "mascot", "data-mascot": "main" });
 }
 // Sub-agent letter slots (DESIGN-SPEC 3.9). Visual only: no sub-agent data exists yet, so nothing is shown as running.
 function agentSlots() {
@@ -399,57 +394,142 @@ function modelChoices() {
   ].filter(([, name]) => Boolean(name));
   return entries.length ? entries : [["chat", ME.model || "AI assistant", "Chat"]];
 }
+// ---------- mascot: one automatic state (idle, listening, thinking, speaking, happy, sleeping) ----------
+let MASCOT_TPL = null, mascotState = "idle", lastActive = Date.now();
+function parseSvgText(str) { return new DOMParser().parseFromString(str, "image/svg+xml").documentElement; }
+async function loadMascots() {
+  if (!MASCOT_TPL) MASCOT_TPL = parseSvgText(await (await fetch("/static/mascot-n.svg")).text());
+}
+function mascotNode(state) {
+  const el = document.importNode(MASCOT_TPL, true);
+  el.setAttribute("class", "mascot-n is-" + state);
+  el.setAttribute("role", "img"); el.setAttribute("aria-label", "nano Agent, " + state);
+  return el;
+}
+// Sub-agent slot: derived look from subagents.js; empty slot shows a dashed outline and never animates.
+function subSlotNode() {
+  return window.Subagents ? document.importNode(parseSvgText(window.Subagents.svg("", "idle")), true) : h("span", { text: "·" });
+}
+function setMascot(s) {
+  mascotState = s;
+  if (!MASCOT_TPL) return;
+  document.querySelectorAll("[data-mascot]").forEach(el => el.replaceChildren(mascotNode(s)));
+}
+function startMascotClock() {
+  ["pointerdown", "keydown"].forEach(ev => addEventListener(ev, () => { lastActive = Date.now(); if (mascotState === "sleeping") setMascot("idle"); }));
+  setInterval(() => { if (mascotState === "idle" && Date.now() - lastActive > 10 * 60 * 1000) setMascot("sleeping"); }, 60 * 1000);
+}
+
+// ---------- chats: three panes (agents + conversations | thread | context). Real data only. ----------
+function approvalCard(d) {
+  return h("div", { class: "approval-card" },
+    h("b", { text: lang === "th" ? "รออนุมัติ" : "Approval needed" }),
+    h("span", { class: "tag", text: d.channel + " → " + d.target }),
+    h("p", { class: "approval-text", text: d.text }),
+    h("div", { class: "approval-actions" },
+      h("button", { class: "pri", onclick: async () => { const r = await post("/drafts/" + d.id + "/approve"); toast(r.ok ? t("drafts_sent") : r.error); vChat(); }, text: t("approve_send") }),
+      h("button", { class: "bad", onclick: async () => { await post("/drafts/" + d.id + "/cancel"); vChat(); }, text: t("cancel") })));
+}
+function messageBlocks(role, text) {
+  const wrap = h("div", { class: "msg-wrap " + role });
+  String(text || "").split("```").forEach((part, i) => {
+    if (i % 2) {
+      const nl = part.indexOf("\n"), code = (nl >= 0 ? part.slice(nl + 1) : part).replace(/\n$/, ""), label = nl >= 0 ? part.slice(0, nl).trim() : "";
+      wrap.append(h("div", { class: "code-block" },
+        h("div", { class: "code-head" }, h("small", { text: label || "code" }),
+          h("button", { type: "button", onclick: () => { if (navigator.clipboard) navigator.clipboard.writeText(code); }, text: lang === "th" ? "คัดลอก" : "Copy" })),
+        h("pre", { text: code })));
+    } else if (part.trim()) wrap.append(h("div", { class: "msg " + role, text: part.trim() }));
+  });
+  return wrap;
+}
 async function vChat() {
-  const v = clear(); const box = h("div", { id: "chatbox", class: "chat-messages", role: "log", "aria-live": "polite" });
-  const inp = h("textarea", { placeholder: t("chat_placeholder"), rows: 2, "aria-label": t("chat_placeholder") });
-  if (sub.chatDraft) { inp.value = sub.chatDraft; delete sub.chatDraft; }
-  const h1 = await api("/history?session=console");
-  const starters = lang === "th"
-    ? ["ช่วยวางแผนงานวันนี้", "สรุปสิ่งที่ต้องทำ", "ช่วยร่างข้อความสั้นๆ"]
-    : ["Plan my day", "Summarize my open tasks", "Help me draft a message"];
-  if (!h1.messages.length) {
-    box.append(h("div", { class: "chat-empty" }, h("img", { src: "/static/mascot-n.png", alt: "" }),
-      h("h2", { text: lang === "th" ? "สวัสดี ยินดีที่ได้คุยกัน" : `Hi${ME.owner_name ? ` ${ME.owner_name}` : ""}, what can I help you with?` }),
-      h("p", { text: lang === "th" ? "ฉันพร้อมช่วยวางแผน ค้นหาคำตอบ และจัดการงานของคุณ" : "I’m here to help you plan, find answers, and get things done." }),
-      h("div", { class: "jv-quick-prompts" },
-        ...starters.map(s => h("button", { onclick: () => { inp.value = s; inp.focus(); }, text: s })))));
-  }
-  h1.messages.forEach(m => box.append(h("div", { class: "msg " + m.role, text: m.text })));
+  const v = clear(), serial = viewSerial;
+  const [hist, st, dr] = await Promise.all([api("/history?session=console"), api("/state"), api("/drafts")]);
+  if (serial !== viewSerial) return;
+  const msgs = hist.messages || [], drafts = dr.drafts || [];
   const choices = modelChoices();
   if (!choices.some(([r]) => r === chatRole)) chatRole = choices[0][0];
   const activeModel = () => (choices.find(([r]) => r === chatRole) || choices[0])[1];
-  const subLabel = h("small", { text: activeModel() });
-  const modelSelect = h("select", {
-    class: "model-select",
-    "aria-label": t("model_label"),
-    onchange: e => { chatRole = e.target.value; subLabel.textContent = activeModel(); }
-  }, choices.map(([role, name, label]) => h("option", { value: role, selected: role === chatRole ? "" : null, text: `${label}: ${name}` })));
-  const agentSelect = h("select", { class: "agent-select", "aria-label": lang === "th" ? "เลือกเอเจนต์ที่จะคุย" : "Select agent to chat" },
-    h("option", { value: "nano-agent", text: lang === "th" ? "เอเจนต์หลัก" : "Main agent" }));
+  const showCtx = sub.chatContext !== false, onThread = sub.chatView === "thread";
+  const filter = (sub.chatFilter || "").trim().toLowerCase();
+  const first = msgs.find(m => m.role === "user"), last = msgs.length ? msgs[msgs.length - 1] : null;
+  const convTitle = first ? first.text.slice(0, 48) : (lang === "th" ? "การสนทนากับหลัก" : "Conversation with Main");
+  const matches = !filter || convTitle.toLowerCase().includes(filter) || (last && last.text.toLowerCase().includes(filter));
+  const openThread = () => { sub.chatView = "thread"; vChat(); };
+
+  const inp = h("textarea", { placeholder: t("chat_placeholder"), rows: 2, "aria-label": t("chat_placeholder") });
+  if (sub.chatDraft) { inp.value = sub.chatDraft; delete sub.chatDraft; }
+  const box = h("div", { id: "chatbox", class: "chat-messages", role: "log", "aria-live": "polite" });
+  if (!msgs.length) {
+    const starters = lang === "th" ? ["ช่วยวางแผนงานวันนี้", "สรุปงานที่ค้างอยู่"] : ["Plan my day", "Summarize my open tasks"];
+    box.append(h("div", { class: "chat-empty" }, h("span", { class: "chat-av-big", "data-mascot": "main" }),
+      h("h2", { text: lang === "th" ? "เริ่มการสนทนากับหลัก" : "Start a conversation with Main" }),
+      h("div", { class: "jv-quick-prompts" }, ...starters.map(s => h("button", { onclick: () => { inp.value = s; inp.focus(); }, text: s })))));
+  }
+  msgs.forEach(m => box.append(messageBlocks(m.role, m.text)));
+  drafts.forEach(d => box.append(approvalCard(d)));
+
   const send = async () => {
-    const text = inp.value.trim(); if (!text) return; inp.value = ""; box.querySelector(".chat-empty")?.remove(); box.append(h("div", { class: "msg user", text }));
+    const text = inp.value.trim(); if (!text) return; inp.value = "";
+    box.querySelector(".chat-empty")?.remove();
+    box.append(h("div", { class: "msg user", text }));
     const wait = h("div", { class: "msg note", text: t("chat_thinking") }); box.append(wait);
-    try { const r = await ask(text, "console", chatRole); wait.remove(); box.append(h("div", { class: "msg assistant", text: r.text }));
-      if (r.tools && r.tools.length) box.append(h("div", { class: "msg note", text: t("chat_used") + r.tools.map(x => x.name).join(", ") }));
-      if (r.new_drafts && r.new_drafts.length) box.append(draftsPanel(r.new_drafts, () => go("chat")));
-    } catch (e) { wait.remove(); }
+    setMascot("thinking");
+    try {
+      const r = await ask(text, "console", chatRole); wait.remove();
+      box.append(messageBlocks("assistant", r.text || ""));
+      (r.tools || []).forEach(x => box.append(h("details", { class: "tool-card" }, h("summary", { text: (lang === "th" ? "ใช้เครื่องมือ: " : "Used tool: ") + x.name }))));
+      (r.new_drafts || []).forEach(d => box.append(approvalCard(d)));
+      setMascot("happy"); setTimeout(() => { if (mascotState === "happy") setMascot("idle"); }, 2500);
+    } catch (e) { wait.remove(); setMascot("idle"); }
     box.scrollTop = box.scrollHeight;
   };
   inp.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
-  v.append(viewHeading(t("tab_chat"), lang === "th" ? "พื้นที่คุยกับผู้ช่วยของคุณ" : "Your direct space with Nano Agent", 2),
-    h("section", { class: "chat-stage" },
-      h("div", { class: "chat-stage-head", "data-agent-id": "nano-agent" },
-        h("div", { class: "chat-agent-identity", "data-agent-role": "primary" },
-          h("div", { class: "chat-avatar" }, h("img", { src: "/static/mascot-n.png", alt: "" })),
-          h("div", { class: "chat-head-info" }, h("strong", { text: "Nano Agent" }), subLabel)),
-        h("div", { class: "chat-head-controls" }, h("label", { class: "agent-picker" },
-          h("span", { text: lang === "th" ? "เลือกเอเจนต์ที่จะคุย" : "Select agent to chat" }), agentSelect), modelSelect,
-          h("span", { class: "chat-online", title: "Ready" }))),
+
+  const subRow = i => h("div", { class: "agent-row dim", "aria-disabled": "true" }, h("span", { class: "agent-av" }, subSlotNode()),
+    h("span", { class: "grow", text: (lang === "th" ? "ช่องซับเอเจนต์ " : "Sub-agent slot ") + (i + 1) }), h("small", { text: lang === "th" ? "ยังไม่ได้ตั้งค่า" : "Not set up" }));
+  const modelSelect = h("select", { class: "model-select", "aria-label": t("model_label"), onchange: e => { chatRole = e.target.value; } },
+    choices.map(([role, name, label]) => h("option", { value: role, selected: role === chatRole ? "" : null, text: `${label}: ${name}` })));
+  const crow = (k, val) => h("div", { class: "row" }, h("b", { text: k }), h("span", { class: "dim grow", text: val == null || val === "" ? (lang === "th" ? "ไม่มีข้อมูล" : "Not available") : String(val) }));
+  const memTotal = Object.values(st.memory || {}).reduce((a, b) => a + (typeof b === "number" ? b : 0), 0);
+
+  v.append(h("section", { class: "chats-layout" + (showCtx ? "" : " no-ctx") + (onThread ? " view-thread" : " view-list") },
+    h("aside", { class: "chat-list-pane" },
+      h("input", { class: "chat-search", type: "search", value: sub.chatFilter || "", placeholder: lang === "th" ? "ค้นหาแชท" : "Search chats",
+        "aria-label": lang === "th" ? "ค้นหาแชท" : "Search chats", oninput: e => { sub.chatFilter = e.target.value; } }),
+      h("button", { class: "new-chat", disabled: true, title: lang === "th" ? "ยังไม่พร้อมใช้งาน" : "Not available yet", text: lang === "th" ? "แชทใหม่ (ยังไม่พร้อม)" : "New chat (not available yet)" }),
+      h("h5", { text: lang === "th" ? "เอเจนต์" : "Agents" }),
+      h("button", { class: "agent-row on", onclick: openThread }, h("span", { class: "agent-av", "data-mascot": "main" }), h("span", { class: "grow", text: "Main" }), h("small", { text: lang === "th" ? "พร้อม" : "Ready" })),
+      subRow(0), subRow(1), subRow(2),
+      h("h5", { text: lang === "th" ? "การสนทนา" : "Conversations" }),
+      msgs.length && matches
+        ? h("button", { class: "conv-row on", onclick: openThread }, h("b", { text: convTitle }), h("small", { text: last ? last.text.slice(0, 70) : "" }))
+        : h("p", { class: "dim", text: msgs.length ? (lang === "th" ? "ไม่มีแชทที่ตรงกัน" : "No chats match") : (lang === "th" ? "ยังไม่มีแชท" : "No chats yet") })),
+    h("section", { class: "chat-thread-pane" },
+      h("header", { class: "chat-head" },
+        h("button", { class: "chat-back", "aria-label": lang === "th" ? "กลับ" : "Back", onclick: () => { sub.chatView = "list"; vChat(); } }, ico("chev")),
+        h("span", { class: "chat-av", "data-mascot": "main" }),
+        h("div", { class: "chat-head-info" }, h("strong", { text: "Main" }), h("small", { text: lang === "th" ? "พร้อม" : "Ready" })),
+        h("div", { class: "chat-head-controls" }, modelSelect,
+          h("button", { class: "ctx-toggle", "aria-pressed": showCtx ? "true" : "false", onclick: () => { sub.chatContext = !showCtx; vChat(); }, text: lang === "th" ? "รายละเอียด" : "Details" }))),
       box,
       h("div", { class: "chat-composer" }, inp, h("div", { class: "chat-composer-bottom" },
         h("small", { text: lang === "th" ? "Enter เพื่อส่ง · Shift+Enter ขึ้นบรรทัดใหม่" : "Enter to send · Shift+Enter for a new line" }),
-        h("button", { class: "pri", onclick: send, text: t("send") + " →" })))));
+        h("span", { class: "composer-tools" },
+          h("button", { type: "button", disabled: true, title: lang === "th" ? "ยังไม่พร้อมใช้งาน" : "Not available yet", "aria-label": lang === "th" ? "แนบไฟล์ (ยังไม่พร้อม)" : "Attach (not available yet)" }, ico("plus")),
+          h("button", { class: "pri", onclick: send, text: t("send") + " →" }))))),
+    showCtx ? h("aside", { class: "chat-context" },
+      h("h4", { text: lang === "th" ? "บริบทของแชท" : "Chat context" }),
+      crow(lang === "th" ? "เอเจนต์" : "Agent", "Main"),
+      crow(lang === "th" ? "โมเดล" : "Model", activeModel()),
+      crow(lang === "th" ? "ความจำที่มี" : "Memory items", memTotal),
+      crow(lang === "th" ? "รออนุมัติ" : "Approvals waiting", drafts.length),
+      crow(lang === "th" ? "งานค้าง" : "Open tasks", st.open_tasks),
+      crow(lang === "th" ? "ไฟล์" : "Files", null),
+      crow(lang === "th" ? "งานที่สร้างในแชทนี้" : "Tasks created here", null)) : null));
   box.scrollTop = box.scrollHeight;
+  setMascot(mascotState);
 }
 
 // ---------- manage ----------
@@ -537,10 +617,10 @@ async function vManage() {
   v.append(h("div", { class: "mgmt-bar" },
     chips(visible.map(([k, label]) => [k, label()]), cur, k => { sub.manage = k; vManage(); }),
     h("button", { class: "tab-prefs", "aria-expanded": sub.managePrefs ? "true" : "false", onclick: () => { sub.managePrefs = !sub.managePrefs; vManage(); } },
-      lang === "th" ? "แสดง/ซ่อนแท็บ" : "Show or hide tabs")));
+      lang === "th" ? "ปรับแต่งแท็บ" : "Customize tabs")));
   if (sub.managePrefs) v.append(panel(lang === "th" ? "แท็บที่แสดง" : "Visible tabs",
     ...MGMT_TABS.map(([k, label]) => h("label", { class: "pref-row" },
-      h("input", { type: "checkbox", ...(hidden.includes(k) ? {} : { checked: true }), onchange: e => {
+      h("input", { type: "checkbox", role: "switch", ...(hidden.includes(k) ? {} : { checked: true }), onchange: e => {
         const next = e.target.checked ? hidden.filter(x => x !== k) : [...hidden, k];
         if (next.length >= MGMT_TABS.length) { e.target.checked = true; toast(lang === "th" ? "ต้องแสดงอย่างน้อยหนึ่งแท็บ" : "Keep at least one tab visible"); return; }
         setMgmtHidden(next); vManage(); } }),
@@ -719,7 +799,7 @@ async function vWork() {
 
 // ---------- customization hub, appearance, agents, system, settings ----------
 const ACCENT_HEX = { orange: "#ff6a00", blue: "#38bdf8", violet: "#a78bfa", green: "#34d399", cyan: "#38d6ff", rose: "#fb7185" };
-const CUSTOM_TABS = () => [["memory", t("sub_memory")], ["skills", t("sub_skills")], ["appearance", lang === "th" ? "รูปลักษณ์" : "Appearance"], ["agents", lang === "th" ? "เอเจนต์" : "Agents"]];
+const CUSTOM_TABS = () => [["memory", t("sub_memory")], ["skills", t("sub_skills")], ["agents", lang === "th" ? "เอเจนต์" : "Agents"]];
 // Old #tab= deep links redirect into the hub that now owns the page.
 const REDIRECT = { projects: ["manage", "projects"], tasks: ["manage", "tasks"], calendar: ["manage", "calendar"], memory: ["customization", "memory"], skills: ["customization", "skills"], mind: ["customization", "memory"] };
 function routeFromHash(hp) {
@@ -739,7 +819,6 @@ async function vCustom() {
     chips(CUSTOM_TABS(), cur, k => { sub.custom = k; go("customization"); }));
   if (cur === "memory") await mMemory(v);
   else if (cur === "skills") await mSkills(v);
-  else if (cur === "appearance") appearancePanel(v);
   else agentsPanel(v);
   if (serial !== viewSerial) return;
 }
@@ -766,7 +845,7 @@ function appearancePanel(v) {
         "aria-label": k,
         onclick: async () => {
           applyUi({ "ui.accent": k });
-          vCustom();
+          vSettings();
           try { const r = await post("/learning/pref", { setting: "ui.accent", value: k }); if (r.ok && ME.prefs) ME.prefs["ui.accent"] = k; } catch (e) {}
         }
       }))),
@@ -774,10 +853,9 @@ function appearancePanel(v) {
 }
 function agentsPanel(v) {
   v.append(panel(lang === "th" ? "เอเจนต์" : "Agents",
-    h("div", { class: "row" }, h("span", { class: "grow", text: lang === "th" ? "เอเจนต์หลัก" : "Main agent" }), h("span", { class: "tag ok", text: lang === "th" ? "พร้อมใช้งาน" : "Ready" })),
-    h("h4", { text: lang === "th" ? "ซับเอเจนต์" : "Sub-agents" }),
-    h("div", { class: "agent-slots", "aria-hidden": "true" }, ...[0, 1, 2].map(() => h("span", { class: "agent-letter", text: "·" }))),
-    h("p", { class: "dim", text: lang === "th" ? "ยังไม่มีซับเอเจนต์ทำงานอยู่ จะแสดงที่นี่เมื่อระบบรายงานข้อมูลจริง" : "No sub-agents running. They appear here once the backend reports real data." })));
+    h("div", { class: "banner" }, lang === "th" ? "ยังไม่มีเอเจนต์ที่เชื่อมต่อ ไม่มีอะไรกำลังทำงาน" : "No agents are connected. Nothing is running."),
+    h("div", { class: "row" }, h("span", { class: "agent-av", "data-mascot": "main" }), h("span", { class: "grow", text: lang === "th" ? "เอเจนต์หลัก" : "Main agent" }), h("span", { class: "tag ok", text: lang === "th" ? "พร้อม" : "Ready" })),
+    h("div", { class: "agent-slots" }, [0, 1, 2].map(() => h("span", { class: "agent-letter slot", "aria-hidden": "true" }, subSlotNode())))));
 }
 function newsPanel() {
   return panel(lang === "th" ? "ข่าว" : "Newspaper",
@@ -830,6 +908,7 @@ async function vSettings() {
     h("div", { class: "settings-shortcuts" },
       h("button", { onclick: () => go("learning"), text: t("sub_learning") }),
       h("button", { onclick: () => go("know"), text: t("sub_know") })));
+  appearancePanel(v);
   v.append(panel(t("settings_title"), field(t("set_name"), name), field(t("set_tz"), tz), field(t("set_lang"), lg),
     h("p", null, h("button", { class: "pri", onclick: async () => { const r = await act("/settings", { owner_name: name.value, timezone: tz.value, language: lg.value }); if (r.ok) { toast(t("saved")); boot(); } }, text: t("save") }))));
   v.append(panel(t("about_title"), h("p", { class: "dim", text: `nano Agent ${ME.version} · ${t("model_label")}: ${ME.model || "-"}` }), h("p", null, h("button", { onclick: async () => { await post("/logout"); showLogin(); }, text: t("logout") }))));
@@ -847,7 +926,7 @@ async function boot() {
   let r = await fetch("/api/me", { credentials: "same-origin" });
   if (r.status === 401 && await liffLogin()) r = await fetch("/api/me", { credentials: "same-origin" });
   if (r.status === 401) return showLogin();
-  ME = await r.json(); applyUi(ME.prefs || {}); routeFromHash(hp); addEventListener("resize", () => drawTabs()); drawTabs(); render(); pollPill();
+  ME = await r.json(); applyUi(ME.prefs || {}); await loadMascots().catch(() => {}); startMascotClock(); routeFromHash(hp); addEventListener("resize", () => drawTabs()); drawTabs(); render(); pollPill();
 }
 setInterval(pollPill, 5000);
 setInterval(() => { if (tab === "home") refreshHome(); }, 15000);
