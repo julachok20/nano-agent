@@ -40,7 +40,7 @@ def page() -> str:
 <title>nano Agent</title><link rel="icon" href="/static/favicon.png">{PREPAINT}<style>{CSS}</style><link rel="stylesheet" href="/static/dashboard.css?v={__version__}"></head><body>
 <header>
   <div class="brand-left">
-    <b class="brand-name">nanoAgent</b>
+    <a class="brand-lockup" href="/console" aria-label="nano Agent home"><img src="/static/mascot-n.png" alt=""><b class="brand-name">nanoAgent</b></a>
     <span class="open-pill">Open Source</span>
     <span id="pill" class="pill"><i></i><span id="pilltxt"></span></span>
   </div>

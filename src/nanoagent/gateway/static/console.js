@@ -382,8 +382,10 @@ async function vChat() {
   inp.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
   v.append(viewHeading(t("tab_chat"), lang === "th" ? "พื้นที่คุยกับผู้ช่วยของคุณ" : "Your direct space with Nano Agent", 2),
     h("section", { class: "chat-stage" },
-      h("div", { class: "chat-stage-head" }, h("div", { class: "chat-avatar" }, h("img", { src: "/static/logo-icon.png", alt: "" })),
-        h("div", { class: "chat-head-info" }, h("strong", { text: "Nano Agent" }), subLabel),
+      h("div", { class: "chat-stage-head", "data-agent-id": "nano-agent" },
+        h("div", { class: "chat-agent-identity", "data-agent-role": "primary" },
+          h("div", { class: "chat-avatar" }, h("img", { src: "/static/mascot-n.png", alt: "" })),
+          h("div", { class: "chat-head-info" }, h("strong", { text: "Nano Agent" }), subLabel)),
         h("div", { class: "chat-head-controls" }, modelSelect, h("span", { class: "chat-online", title: "Ready" }))),
       box,
       h("div", { class: "chat-composer" }, inp, h("div", { class: "chat-composer-bottom" },
