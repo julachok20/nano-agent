@@ -2,7 +2,7 @@
 (() => {
 "use strict";
 const $ = (s, el = document) => el.querySelector(s);
-let S = {}, ME = {}, lang = "en", tab = "home", sub = {};
+let S = {}, ME = {}, lang = "en", tab = "home", sub = {}, chatRole = "chat";
 const t = (k, v) => { let s = S[k] || k; if (v) for (const x in v) s = s.replace("{" + x + "}", v[x]); return s; };
 
 function h(tag, props, ...kids) {
@@ -15,6 +15,35 @@ function h(tag, props, ...kids) {
   for (const c of kids.flat()) if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(String(c)));
   return e;
 }
+function sv(tag, props = {}, ...kids) {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(props)) e.setAttribute(k, String(v));
+  for (const c of kids.flat()) if (c) e.append(c);
+  return e;
+}
+
+// Clean geometric SVG icon set (no emojis).
+const ICONS = {
+  home: [["path", { d: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" }]],
+  chat: [["path", { d: "M4 5h16v11H9l-5 4V5z" }]],
+  manage: [["rect", { x: 4, y: 4, width: 16, height: 16, rx: 3 }], ["path", { d: "m8.5 12 2.5 2.5 4.5-5" }]],
+  system: [["rect", { x: 3, y: 4, width: 18, height: 6, rx: 1.5 }], ["rect", { x: 3, y: 14, width: 18, height: 6, rx: 1.5 }], ["path", { d: "M7 7h.01M7 17h.01" }]],
+  auto: [["circle", { cx: 12, cy: 12, r: 9 }], ["path", { d: "M12 7v5l3 2" }]],
+  skills: [["path", { d: "M13 2 4 14h7l-1 8 9-12h-7z" }]],
+  settings: [["circle", { cx: 12, cy: 12, r: 3 }], ["path", { d: "M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2.1 2.1M16.9 16.9 19 19M19 5l-2.1 2.1M7.1 16.9 5 19" }]],
+  memory: [["path", { d: "M12 3a6 6 0 0 0-6 6c0 2 1 3 2 4v3h8v-3c1-1 2-2 2-4a6 6 0 0 0-6-6z" }], ["path", { d: "M9 20h6" }]],
+  projects: [["path", { d: "M5 21V4M5 4h11l-2 4 2 4H5" }]],
+  news: [["path", { d: "M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2V4z" }], ["path", { d: "M18 9h2v9a2 2 0 0 1-2 2M8 8h7M8 12h7M8 16h4" }]],
+  approval: [["path", { d: "M12 3 4 7v5c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V7z" }], ["path", { d: "m9 12 2 2 4-4" }]],
+  activity: [["path", { d: "M3 12h4l3-7 4 14 3-7h4" }]],
+  sun: [["circle", { cx: 12, cy: 12, r: 4 }], ["path", { d: "M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" }]],
+  moon: [["path", { d: "M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z" }]]
+};
+function ico(name, cls = "ico") {
+  const parts = ICONS[name] || ICONS.skills;
+  return sv("svg", { class: cls, viewBox: "0 0 24 24", "aria-hidden": "true" }, parts.map(([tag, attrs]) => sv(tag, attrs)));
+}
+
 function toast(msg) { const e = h("div", { class: "toast", text: msg }); document.body.append(e); setTimeout(() => e.remove(), 3200); }
 async function api(path, opt = {}) {
   const o = { credentials: "same-origin", headers: { "Content-Type": "application/json" }, ...opt };
@@ -29,7 +58,7 @@ const del = p => api(p, { method: "DELETE" });
 function when(ts) { return new Date(ts * 1000).toLocaleString(lang === "th" ? "th-TH" : undefined, { dateStyle: "short", timeStyle: "short" }); }
 const view = () => $("#view");
 const clear = () => { view().replaceChildren(); return view(); };
-function panel(title, ...kids) { return h("div", { class: "panel" }, title ? h("h3", { text: title }) : null, ...kids); }
+function panel(title, ...kids) { return h("div", { class: "panel" }, title ? h("h3", null, h("span", { text: title })) : null, ...kids); }
 function chips(items, cur, on) { return h("div", { class: "chips" }, items.map(([k, label]) => h("button", { class: "chip" + (k === cur ? " on" : ""), onclick: () => on(k), text: label }))); }
 function field(label, el) { return h("div", null, h("label", { text: label }), el); }
 const act = async (p, body, msg) => { const r = await post(p, body); if (r.ok === false) toast(r.error || r.message || "error"); else if (msg) toast(t(msg)); return r; };
@@ -54,18 +83,65 @@ async function liffLogin() {
   } catch (e) { return false; }
 }
 
-// ---------- shell ----------
-const HUBS = [["home", "⌂", "tab_home"], ["chat", "✎", "tab_chat"], ["manage", "☑", "tab_manage"],
-  ["computer", "▣", "sub_system"], ["automation", "◷", "sub_auto"], ["skills", "✦", "sub_skills"], ["settings", "⚙", "tab_settings"]];
+// ---------- shell & theme ----------
+const HUBS = [
+  ["home", "home", "tab_home"],
+  ["chat", "chat", "tab_chat"],
+  ["manage", "manage", "tab_manage"],
+  ["computer", "system", "sub_system"],
+  ["automation", "auto", "sub_auto"],
+  ["skills", "skills", "sub_skills"],
+  ["settings", "settings", "tab_settings"]
+];
 const HUB_OF = { activity: "home", memory: "settings", learning: "settings", know: "settings", mind: "settings", work: "computer" };
-function drawTabs() { $("#tabs").replaceChildren(...HUBS.map(([k, ic, lb]) => h("button", { class: (HUB_OF[tab] || tab) === k ? "on" : "", onclick: () => go(k) },
-  h("span", { text: ic }), k === "automation" && innerWidth < 1001 ? (lang === "th" ? "ออโต้" : "Auto") : t(lb)))); }
+function drawTabs() {
+  $("#tabs").replaceChildren(...HUBS.map(([k, ic, lb]) =>
+    h("button", { class: (HUB_OF[tab] || tab) === k ? "on" : "", onclick: () => go(k) },
+      h("span", { class: "nav-ico" }, ico(ic)),
+      h("span", { class: "nav-lbl", text: k === "automation" && innerWidth < 960 ? (lang === "th" ? "ออโต้" : "Auto") : t(lb) }))));
+}
 function go(k) { tab = k; drawTabs(); render(); }
 function render() { ({ home: vHome, chat: vChat, manage: vManage, computer: vWork, automation: vWork, skills: vMind,
   settings: vSettings, activity: vWork, memory: vMind, learning: vMind, know: vMind, mind: vMind, work: vWork })[tab](); }
-function applyUi(p) { const r = document.documentElement; if (p["ui.accent"]) r.dataset.accent = p["ui.accent"];
-  if (p["ui.theme"]) r.dataset.theme = ({ spark: "dark", black: "modern" })[p["ui.theme"]] || p["ui.theme"];
-  if (p["ui.density"]) r.dataset.density = p["ui.density"]; if (p["ui.text_size"]) r.dataset.size = p["ui.text_size"]; }
+
+function currentBaseTheme() {
+  const th = document.documentElement.dataset.theme || "dark";
+  return (th === "light" || th === "minimal") ? "light" : "dark";
+}
+function syncThemeButton() {
+  const btn = $("#theme-quick");
+  if (!btn) return;
+  const isLight = currentBaseTheme() === "light";
+  btn.replaceChildren(ico(isLight ? "moon" : "sun"));
+  btn.title = isLight ? (lang === "th" ? "สลับเป็นโหมดมืด" : "Switch to Dark appearance") : (lang === "th" ? "สลับเป็นโหมดสว่าง" : "Switch to Light appearance");
+}
+function applyUi(p) {
+  const r = document.documentElement;
+  if (p["ui.accent"]) { r.dataset.accent = p["ui.accent"]; try { localStorage.setItem("nano.accent", p["ui.accent"]); } catch (e) {} }
+  if (p["ui.theme"]) {
+    const mapped = ({ spark: "dark", black: "modern" })[p["ui.theme"]] || p["ui.theme"];
+    r.dataset.theme = mapped;
+    try { localStorage.setItem("nano.theme", mapped); } catch (e) {}
+  }
+  if (p["ui.density"]) r.dataset.density = p["ui.density"];
+  if (p["ui.text_size"]) r.dataset.size = p["ui.text_size"];
+  syncThemeButton();
+}
+async function setTheme(next) {
+  applyUi({ "ui.theme": next });
+  if (tab === "settings") vSettings();
+  try {
+    const r = await post("/learning/pref", { setting: "ui.theme", value: next });
+    if (r.ok && ME.prefs) ME.prefs["ui.theme"] = next;
+  } catch (e) { /* localStorage still keeps the choice */ }
+}
+function wireThemeQuick() {
+  const btn = $("#theme-quick");
+  if (!btn || btn.dataset.wired) return;
+  btn.dataset.wired = "1";
+  btn.addEventListener("click", () => setTheme(currentBaseTheme() === "light" ? "dark" : "light"));
+  syncThemeButton();
+}
 function viewHeading(title, detail, number) {
   return h("div", { class: "view-heading" }, h("div", null, h("small", { text: `NANO AGENT / ${String(number).padStart(2, "0")}` }), h("h1", { text: title }), h("p", { text: detail })));
 }
@@ -87,8 +163,8 @@ function speak(text) {
     res();
   }).finally(() => setOrb("idle"));
 }
-async function ask(text, session) {
-  const r = await post("/chat", { text, session }); return r;
+async function ask(text, session, role = "chat") {
+  return post("/chat", { text, session, role });
 }
 function listen() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -96,7 +172,7 @@ function listen() {
   rec = new SR(); rec.lang = lang === "th" ? "th-TH" : "en-US"; rec.interimResults = false;
   setOrb("listening");
   rec.onresult = async e => { const said = e.results[0][0].transcript; setOrb("thinking"); $("#heard").textContent = said;
-    try { const r = await ask(said, "voice"); $("#said").textContent = r.text || ""; await speak(r.text || ""); refreshHome(); } catch (x) { setOrb("idle"); } };
+    try { const r = await ask(said, "voice", chatRole); $("#said").textContent = r.text || ""; await speak(r.text || ""); refreshHome(); } catch (x) { setOrb("idle"); } };
   rec.onerror = () => setOrb("idle"); rec.onend = () => { if (orbState === "listening") setOrb("idle"); };
   rec.start();
 }
@@ -106,30 +182,19 @@ async function orbTap() {
   if (!openerSpoken) { openerSpoken = true; const o = await api("/companion/opener"); $("#said").textContent = o.text; await speak(o.text); return; }
   listen();
 }
-function sv(tag, props = {}, ...kids) {
-  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
-  for (const [k, v] of Object.entries(props)) e.setAttribute(k, String(v));
-  for (const c of kids.flat()) if (c) e.append(c);
-  return e;
-}
 function dialPoint(r, deg) { const a = deg * Math.PI / 180; return [200 + r * Math.sin(a), 200 - r * Math.cos(a)]; }
 function nanoDial(tasks = []) {
-  const svg = sv("svg", { class: "jv-dial", viewBox: "-34 -34 468 468", "aria-hidden": "true" });
+  const svg = sv("svg", { class: "jv-dial", viewBox: "-24 -24 448 448", "aria-hidden": "true" });
   for (let i = 0; i < 60; i++) {
     const big = i % 5 === 0, [x1, y1] = dialPoint(big ? 174 : 179, i * 6), [x2, y2] = dialPoint(188, i * 6);
-    svg.append(sv("line", { x1, y1, x2, y2, stroke: "var(--accent)", "stroke-opacity": big ? .9 : .35, "stroke-width": big ? 2.2 : 1 }));
+    svg.append(sv("line", { x1, y1, x2, y2, stroke: "var(--accent)", "stroke-opacity": big ? 0.85 : 0.28, "stroke-width": big ? 2.4 : 1.1 }));
   }
-  svg.append(sv("circle", { cx: 200, cy: 200, r: 168, fill: "none", stroke: "var(--accent)", "stroke-opacity": .2, "stroke-width": 2 }),
-    sv("circle", { class: "jv-spin", cx: 200, cy: 200, r: 118, fill: "none", stroke: "var(--accent)", "stroke-opacity": .4, "stroke-dasharray": "2 7" }),
-    sv("circle", { cx: 200, cy: 200, r: 100, fill: "none", stroke: "var(--accent)", "stroke-opacity": .45 }));
-  for (const [label, deg] of [["06", 0], ["09", 90], ["12", 180], ["15", 270]]) {
-    const [x, y] = dialPoint(210, deg), txt = sv("text", { x, y: y + 5, fill: "#8bb0c4", "font-size": 15, "text-anchor": "middle" });
-    txt.textContent = label; svg.append(txt);
-  }
+  svg.append(sv("circle", { cx: 200, cy: 200, r: 164, fill: "none", stroke: "var(--accent)", "stroke-opacity": 0.22, "stroke-width": 2 }),
+    sv("circle", { class: "jv-spin", cx: 200, cy: 200, r: 122, fill: "none", stroke: "var(--accent)", "stroke-opacity": 0.42, "stroke-dasharray": "3 8" }));
   const now = new Date(), hour = now.getHours() + now.getMinutes() / 60;
   if (hour >= 6 && hour <= 18) {
-    const deg = (hour - 6) * 30, [x1, y1] = dialPoint(100, deg), [x2, y2] = dialPoint(160, deg);
-    svg.append(sv("line", { x1, y1, x2, y2, stroke: "#fff", "stroke-width": 2 }), sv("circle", { cx: x2, cy: y2, r: 6, fill: "#fff" }));
+    const deg = (hour - 6) * 30, [x1, y1] = dialPoint(104, deg), [x2, y2] = dialPoint(158, deg);
+    svg.append(sv("line", { x1, y1, x2, y2, stroke: "var(--txt)", "stroke-opacity": 0.8, "stroke-width": 2 }), sv("circle", { cx: x2, cy: y2, r: 5.5, fill: "var(--accent)" }));
   }
   const today = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
   for (const task of tasks.filter(x => !x.done && x.due && x.due.startsWith(today)).slice(0, 4)) {
@@ -138,52 +203,66 @@ function nanoDial(tasks = []) {
     const dueHour = Number(m[1]) + Number(m[2]) / 60;
     if (dueHour < 6 || dueHour > 18) continue;
     const [x, y] = dialPoint(150, (dueHour - 6) * 30);
-    svg.append(sv("circle", { cx: x, cy: y, r: 9, fill: "#fbbf24" }));
+    svg.append(sv("circle", { cx: x, cy: y, r: 8, fill: "var(--warn)" }));
   }
-  svg.append(sv("circle", { cx: 200, cy: 200, r: 92, fill: "none", stroke: "var(--ok)", "stroke-width": 3 }),
-    sv("circle", { cx: 200, cy: 200, r: 86, fill: "var(--panel)", stroke: "var(--ok)", "stroke-width": 2 }));
+  svg.append(sv("circle", { cx: 200, cy: 200, r: 90, fill: "#ffffff", stroke: "var(--accent)", "stroke-width": 3 }));
   const clip = sv("clipPath", { id: "nano-dial-clip" }, sv("circle", { cx: 200, cy: 200, r: 82 }));
-  svg.append(sv("defs", {}, clip), sv("image", { href: "/static/logo-icon.png", x: 118, y: 118, width: 164, height: 164, "clip-path": "url(#nano-dial-clip)", preserveAspectRatio: "xMidYMid meet" }));
+  svg.append(sv("defs", {}, clip), sv("image", { href: "/static/logo-icon.png", x: 124, y: 124, width: 152, height: 152, "clip-path": "url(#nano-dial-clip)", preserveAspectRatio: "xMidYMid meet" }));
   return svg;
 }
-function jvPanel(area, title, number, ...kids) {
+function jvPanel(area, iconName, title, number, ...kids) {
   return h("section", { class: "jv-panel", style: `grid-area:${area}` },
-    h("h3", null, h("span", { text: title }), h("i", { text: number })), ...kids);
+    h("h3", null, h("span", { class: "jv-h-left" }, ico(iconName), h("span", { text: title })), h("i", { text: number })), ...kids);
 }
-function jvEmpty(message) { return h("p", { class: "jv-note", text: message }); }
+function jvEmpty(iconName, message) {
+  return h("div", { class: "jv-empty-box" }, ico(iconName, "ico ico-lg"), h("p", { class: "jv-note", text: message }));
+}
 function jvGo(label, target, section) { return h("button", { class: "jv-link", onclick: () => { if (section) sub[target] = section; go(target); }, text: label }); }
 function jvMemoryGraph(count) {
-  const svg = sv("svg", { class: "jv-memory-graph", viewBox: "0 0 300 150", "aria-hidden": "true" });
-  const points = [[40, 30], [92, 12], [150, 28], [232, 40], [262, 98], [200, 128], [110, 132], [34, 96], [200, 74]];
+  const svg = sv("svg", { class: "jv-memory-graph", viewBox: "0 0 300 120", "aria-hidden": "true" });
+  const points = [[48, 26], [100, 14], [150, 22], [228, 32], [254, 84], [202, 102], [110, 104], [42, 82], [200, 62]];
   points.slice(0, Math.min(count, points.length)).forEach(([x, y], i) => {
-    svg.append(sv("line", { x1: 150, y1: 78, x2: x, y2: y, stroke: "var(--accent)", "stroke-opacity": .35 }),
-      sv("circle", { cx: x, cy: y, r: 6, fill: ["var(--accent)", "var(--accent)", "var(--warn)", "var(--ok)"][i % 4] }));
+    svg.append(sv("line", { x1: 150, y1: 62, x2: x, y2: y, stroke: "var(--accent)", "stroke-opacity": 0.4 }),
+      sv("circle", { cx: x, cy: y, r: 5.5, fill: ["var(--accent)", "var(--accent-2)", "var(--warn)", "var(--ok)"][i % 4] }));
   });
-  const center = sv("text", { x: 150, y: 84, "text-anchor": "middle", fill: "#e6f5fc", "font-size": 15 }); center.textContent = String(count);
-  svg.append(sv("circle", { cx: 150, cy: 78, r: 20, fill: "#0c1f2c", stroke: "#e6f5fc", "stroke-width": 2 }), center);
+  const center = sv("text", { x: 150, y: 67, "text-anchor": "middle", fill: "var(--txt)", "font-size": 14, "font-weight": 650 }); center.textContent = String(count);
+  svg.append(sv("circle", { cx: 150, cy: 62, r: 18, fill: "var(--bg-elev)", stroke: "var(--accent)", "stroke-width": 2 }), center);
   return svg;
+}
+function startChatWith(promptText) {
+  sub.chatDraft = promptText;
+  go("chat");
 }
 async function vHome() {
   const v = clear();
   const date = new Date(), hour = date.getHours();
   const greeting = lang === "th" ? (hour < 11 ? "สวัสดีตอนเช้า" : hour < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น")
     : (hour < 11 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening");
-  v.append(h("div", { class: "jv-head" },
-    h("div", null, h("small", { text: date.toLocaleDateString(lang === "th" ? "th-TH" : undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" }) }),
-      h("strong", { text: greeting })), h("div", { id: "home-clock", class: "jv-clock" })),
+  const quickPrompts = lang === "th"
+    ? ["วางแผนวันนี้", "สรุปงานที่ค้าง", "ดูความจำล่าสุด"]
+    : ["Plan my day", "Review open tasks", "What do you remember?"];
+  v.append(
+    h("div", { class: "jv-head" },
+      h("div", null, h("small", { text: date.toLocaleDateString(lang === "th" ? "th-TH" : undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" }) }),
+        h("strong", { text: greeting + (ME.owner_name ? ", " + ME.owner_name : "") })),
+      h("div", { id: "home-clock", class: "jv-clock" })),
     h("div", { class: "jv-grid" },
+      h("section", { class: "jv-hero", style: "grid-area:hero" },
+        h("button", { id: "orb", class: "jv-orb", "data-state": "idle", onclick: orbTap, "aria-label": t("orb_tap") }, nanoDial()),
+        h("div", { class: "jv-welcome" },
+          h("h2", { text: lang === "th" ? "พร้อมช่วยคุณแล้ว" : "Ready to help" }),
+          h("p", { id: "home-welcome-note", text: lang === "th" ? "แตะวงกลมเพื่อพูด หรือเลือกคำสั่งด่วนเพื่อเริ่มแชท" : "Tap the dial to speak, or jump straight into chat." }),
+          h("div", { class: "jv-quick-prompts" },
+            h("button", { class: "pri", onclick: () => go("chat"), text: t("home_chat") }),
+            ...quickPrompts.map(q => h("button", { onclick: () => startChatWith(q), text: q }))),
+          h("div", { id: "heard", class: "jv-heard" }), h("div", { id: "said", class: "jv-said" }))),
       h("div", { id: "home-chat-panel", class: "jv-slot", style: "grid-area:chat" }),
       h("div", { id: "home-task-panel", class: "jv-slot", style: "grid-area:task" }),
-      h("div", { id: "home-news-panel", class: "jv-slot", style: "grid-area:news" }),
-      h("div", { class: "jv-core", style: "grid-area:core" }, h("button", { id: "orb", class: "jv-orb", "data-state": "idle", onclick: orbTap, "aria-label": t("orb_tap") }, nanoDial())),
-      h("div", { class: "jv-welcome", style: "grid-area:wel" }, h("h2", { text: lang === "th" ? "ยินดีต้อนรับกลับมา" : "Welcome back" }),
-        h("p", { id: "home-welcome-note", text: lang === "th" ? "แตะวงกลมเพื่อคุยกับ Nano Agent" : "Tap the circle to talk to Nano Agent" }),
-        h("div", { class: "jv-wave", "aria-hidden": "true" }, ...Array.from({ length: 33 }, (_, i) => h("i", { style: `--i:${i};--h:${Math.round(10 + 40 * Math.abs(Math.sin(i * .55)) * (1 - Math.abs(i - 16) / 22))}px` }))),
-        h("div", { id: "heard", class: "jv-heard" }), h("div", { id: "said", class: "jv-said" }), jvGo(t("home_chat"), "chat")),
-      h("div", { id: "home-project-panel", class: "jv-slot", style: "grid-area:proj" }),
-      h("div", { id: "home-memory-panel", class: "jv-slot", style: "grid-area:mem" }),
       h("div", { id: "home-approval-panel", class: "jv-slot", style: "grid-area:appr" }),
-      h("div", { id: "home-activity-panel", class: "jv-slot", style: "grid-area:bg" })));
+      h("div", { id: "home-memory-panel", class: "jv-slot", style: "grid-area:mem" }),
+      h("div", { id: "home-activity-panel", class: "jv-slot", style: "grid-area:bg" }),
+      h("div", { id: "home-project-panel", class: "jv-slot", style: "grid-area:proj" }),
+      h("div", { id: "home-news-panel", class: "jv-slot", style: "grid-area:news" })));
   refreshHome();
 }
 async function refreshHome() {
@@ -200,29 +279,31 @@ async function refreshHome() {
   const recentChats = ht.messages.filter(m => m.role === "user"), chatBars = Array(24).fill(0), nowSeconds = Date.now() / 1000;
   recentChats.forEach(m => { const hoursAgo = Math.floor((nowSeconds - m.ts) / 3600); if (hoursAgo >= 0 && hoursAgo < 24) chatBars[23 - hoursAgo]++; });
   const maxChats = Math.max(1, ...chatBars);
-  $("#home-chat-panel").replaceChildren(jvPanel("chat", t("tab_chat"), "01",
+  $("#home-chat-panel").replaceChildren(jvPanel("chat", "chat", t("tab_chat"), "01",
     h("div", { class: "jv-split" }, h("span", { class: "jv-big", text: String(recentChats.length) }),
       h("div", { class: "jv-bars", title: lang === "th" ? "ข้อความล่าสุด 24 ชั่วโมง" : "Messages in the last 24 hours" },
-        ...chatBars.map(n => h("b", { style: `height:${Math.max(5, n / maxChats * 100)}%` })))),
+        ...chatBars.map(n => h("b", { style: `height:${Math.max(8, n / maxChats * 100)}%` })))),
     recentChats.length ? recentChats.slice(-3).reverse().map(m => h("div", { class: "jv-chat-row" }, h("span", { text: m.text.slice(0, 52) }), h("small", { text: when(m.ts) })))
-      : jvEmpty(lang === "th" ? "ยังไม่มีบทสนทนา" : "No conversations yet"), jvGo(t("home_chat"), "chat")));
+      : jvEmpty("chat", lang === "th" ? "ยังไม่มีบทสนทนา" : "No conversations yet"), jvGo(t("home_chat"), "chat")));
   const completed = totalTasks - openTasks.length, pct = totalTasks ? completed / totalTasks : 0;
-  $("#home-task-panel").replaceChildren(jvPanel("task", t("sub_tasks"), "02",
+  $("#home-task-panel").replaceChildren(jvPanel("task", "manage", t("sub_tasks"), "02",
     h("div", { class: "jv-ringrow" },
       h("div", { class: "jv-ring", style: `--done:${Math.round(pct * 100)}%` }, h("span", { text: `${completed}/${totalTasks}` })),
-      h("div", { class: "jv-task-rows" }, openTasks.length ? rows(openTasks.slice(0, 3).map(x => [x.title, x.due || "", x.priority === 1 ? 30 : x.priority === 2 ? 60 : 90])) : jvEmpty("No urgent tasks"))),
-    h("div", { class: "jv-segments" }, ...Array.from({ length: 10 }, (_, i) => h("i", { class: i < Math.round(pct * 10) ? "on" : "" })))));
-  $("#home-news-panel").replaceChildren(jvPanel("news", "News", "05", jvEmpty("No news feed connected")));
-  $("#home-project-panel").replaceChildren(jvPanel("proj", "Projects", "03", jvEmpty("No projects tracked yet")));
-  $("#home-memory-panel").replaceChildren(jvPanel("mem", t("memory_title"), "04", jvMemoryGraph(factCount),
+      h("div", { class: "jv-task-rows" }, openTasks.length ? rows(openTasks.slice(0, 3).map(x => [x.title, x.due || "", x.priority === 1 ? 30 : x.priority === 2 ? 60 : 90])) : jvEmpty("manage", lang === "th" ? "ไม่มีงานค้าง" : "All caught up"))),
+    jvGo(lang === "th" ? "จัดการงาน →" : "Manage tasks →", "manage")));
+  $("#home-project-panel").replaceChildren(jvPanel("proj", "projects", lang === "th" ? "โปรเจกต์" : "Projects", "03",
+    jvEmpty("projects", lang === "th" ? "ยังไม่มีโปรเจกต์ที่ติดตาม" : "No projects tracked yet")));
+  $("#home-news-panel").replaceChildren(jvPanel("news", "news", lang === "th" ? "ข่าวสาร" : "News", "05",
+    jvEmpty("news", lang === "th" ? "ยังไม่ได้เชื่อมต่อฟีดข่าว" : "No news feed connected")));
+  $("#home-memory-panel").replaceChildren(jvPanel("mem", "memory", t("memory_title"), "04", jvMemoryGraph(factCount),
     h("div", { class: "jv-pct" }, h("span", { class: "jv-big", text: String(factCount) }), h("small", { text: t("memory_counts", { f: st.memory.fact || 0, r: st.memory.rule || 0 }) })), jvGo(t("home_review"), "memory")));
-  $("#home-approval-panel").replaceChildren(jvPanel("appr", t("drafts_title", { n: dr.drafts.length }), "06",
-    dr.drafts.length ? rows(dr.drafts.slice(0, 3).map(d => [d.channel + " → " + d.target, "Review", 60])) : jvEmpty(t("drafts_none")),
+  $("#home-approval-panel").replaceChildren(jvPanel("appr", "approval", t("drafts_title", { n: dr.drafts.length }), "06",
+    dr.drafts.length ? rows(dr.drafts.slice(0, 3).map(d => [d.channel + " → " + d.target, "Review", 60])) : jvEmpty("approval", t("drafts_none")),
     jvGo(t("home_review"), "manage", "drafts")));
   const recent = [...ac.running, ...ac.done.slice(0, 3)];
-  $("#home-activity-panel").replaceChildren(jvPanel("bg", t("work_title"), "07",
+  $("#home-activity-panel").replaceChildren(jvPanel("bg", "activity", t("work_title"), "07",
     recent.length ? recent.map(a => h("div", { class: "jv-activity-row" }, h("span", { class: "jv-dot " + (a.status === "running" ? "running" : "") }),
-      h("span", { text: a.title }), h("small", { text: a.status === "running" ? Math.round(a.secs) + "s" : a.status }))) : jvEmpty(t("work_idle")),
+      h("span", { text: a.title }), h("small", { text: a.status === "running" ? Math.round(a.secs) + "s" : a.status }))) : jvEmpty("activity", t("work_idle")),
     jvGo(t("home_review"), "activity")));
 }
 function draftsPanel(list, after) {
@@ -233,18 +314,44 @@ function draftsPanel(list, after) {
 }
 
 // ---------- chat ----------
+function modelChoices() {
+  const m = ME.models || {};
+  const entries = [
+    ["chat", m.chat || ME.model || "default", lang === "th" ? "หลัก" : "Chat"],
+    ["fast", m.fast, lang === "th" ? "เร็ว" : "Fast"],
+    ["vision", m.vision, lang === "th" ? "ภาพ" : "Vision"]
+  ].filter(([, name]) => Boolean(name));
+  return entries.length ? entries : [["chat", ME.model || "AI assistant", "Chat"]];
+}
 async function vChat() {
   const v = clear(); const box = h("div", { id: "chatbox", class: "chat-messages", role: "log", "aria-live": "polite" });
   const inp = h("textarea", { placeholder: t("chat_placeholder"), rows: 2, "aria-label": t("chat_placeholder") });
+  if (sub.chatDraft) { inp.value = sub.chatDraft; delete sub.chatDraft; }
   const h1 = await api("/history?session=console");
-  if (!h1.messages.length) box.append(h("div", { class: "chat-empty" }, h("img", { src: "/static/logo-icon.png", alt: "" }),
-    h("h2", { text: lang === "th" ? "คุยกับ Nano Agent" : "Talk to Nano Agent" }),
-    h("p", { text: lang === "th" ? "ถาม วางแผน หรือให้ช่วยจัดการงานของคุณ" : "Ask a question, plan your day, or work through a task." })));
+  const starters = lang === "th"
+    ? ["ช่วยวางแผนงานวันนี้", "สรุปสิ่งที่ต้องทำ", "ช่วยร่างข้อความสั้นๆ"]
+    : ["Plan my day", "Summarize my open tasks", "Help me draft a message"];
+  if (!h1.messages.length) {
+    box.append(h("div", { class: "chat-empty" }, h("img", { src: "/static/logo-icon.png", alt: "" }),
+      h("h2", { text: lang === "th" ? "คุยกับ Nano Agent" : "Talk to Nano Agent" }),
+      h("p", { text: lang === "th" ? "ถาม วางแผน หรือให้ช่วยจัดการงานของคุณ" : "Ask a question, plan your day, or work through a task." }),
+      h("div", { class: "jv-quick-prompts", style: "justify-content:center" },
+        ...starters.map(s => h("button", { onclick: () => { inp.value = s; inp.focus(); }, text: s })))));
+  }
   h1.messages.forEach(m => box.append(h("div", { class: "msg " + m.role, text: m.text })));
+  const choices = modelChoices();
+  if (!choices.some(([r]) => r === chatRole)) chatRole = choices[0][0];
+  const activeModel = () => (choices.find(([r]) => r === chatRole) || choices[0])[1];
+  const subLabel = h("small", { text: activeModel() });
+  const modelSelect = h("select", {
+    class: "model-select",
+    "aria-label": t("model_label"),
+    onchange: e => { chatRole = e.target.value; subLabel.textContent = activeModel(); }
+  }, choices.map(([role, name, label]) => h("option", { value: role, selected: role === chatRole ? "" : null, text: `${label}: ${name}` })));
   const send = async () => {
     const text = inp.value.trim(); if (!text) return; inp.value = ""; box.querySelector(".chat-empty")?.remove(); box.append(h("div", { class: "msg user", text }));
     const wait = h("div", { class: "msg note", text: t("chat_thinking") }); box.append(wait);
-    try { const r = await ask(text, "console"); wait.remove(); box.append(h("div", { class: "msg assistant", text: r.text }));
+    try { const r = await ask(text, "console", chatRole); wait.remove(); box.append(h("div", { class: "msg assistant", text: r.text }));
       if (r.tools && r.tools.length) box.append(h("div", { class: "msg note", text: t("chat_used") + r.tools.map(x => x.name).join(", ") }));
       if (r.new_drafts && r.new_drafts.length) box.append(draftsPanel(r.new_drafts, () => go("chat")));
     } catch (e) { wait.remove(); }
@@ -254,7 +361,8 @@ async function vChat() {
   v.append(viewHeading(t("tab_chat"), lang === "th" ? "พื้นที่คุยกับผู้ช่วยของคุณ" : "Your direct space with Nano Agent", 2),
     h("section", { class: "chat-stage" },
       h("div", { class: "chat-stage-head" }, h("div", { class: "chat-avatar" }, h("img", { src: "/static/logo-icon.png", alt: "" })),
-        h("div", null, h("strong", { text: "Nano Agent" }), h("small", { text: ME.model || "AI assistant" })), h("span", { class: "chat-online", text: "●" })),
+        h("div", { class: "chat-head-info" }, h("strong", { text: "Nano Agent" }), subLabel),
+        h("div", { class: "chat-head-controls" }, modelSelect, h("span", { class: "chat-online", title: "Ready" }))),
       box,
       h("div", { class: "chat-composer" }, inp, h("div", { class: "chat-composer-bottom" },
         h("small", { text: lang === "th" ? "Enter เพื่อส่ง · Shift+Enter ขึ้นบรรทัดใหม่" : "Enter to send · Shift+Enter for a new line" }),
@@ -358,28 +466,41 @@ async function vWork() {
 }
 
 // ---------- settings ----------
+const ACCENT_HEX = { orange: "#ff7a2a", blue: "#60a5fa", violet: "#a78bfa", green: "#34d399", cyan: "#38d6ff", rose: "#fb7185" };
 async function vSettings() {
   const v = clear(); const name = h("input", { value: ME.owner_name || "" }), tz = h("input", { value: ME.timezone || "" });
   const lg = h("select", null, ["en", "th"].map(l => h("option", { value: l, selected: l === lang ? "" : null, text: l === "en" ? "English" : "ไทย" })));
+  const baseTheme = currentBaseTheme();
   const themes = [
-    ["dark", "Dark", lang === "th" ? "จอเข้มแบบ Personal Assistant" : "The Personal Assistant console look"],
-    ["modern", "Modern", lang === "th" ? "พื้นดำ ขอบคม สีส้ม Nano" : "Deep black surfaces and Nano orange accents"],
-    ["calm", "Calm", lang === "th" ? "โทนสีนุ่ม อ่านสบาย" : "Soft slate and sage for a quieter workspace"],
-    ["minimal", "Minimal", lang === "th" ? "เรียบ โปร่ง ใช้งานง่าย" : "Light, open, and simple to use"]
+    ["light", lang === "th" ? "สว่าง (Light)" : "Light", lang === "th" ? "พื้นหลังสว่าง สะอาดตา เหมาะกับกลางวัน" : "Clean luminous workspace for daytime focus"],
+    ["dark", lang === "th" ? "มืด (Dark)" : "Dark", lang === "th" ? "พื้นหลังเข้ม สบายตาในที่แสงน้อย" : "Deep slate workspace for low-light comfort"]
   ];
+  const curAccent = document.documentElement.dataset.accent || "orange";
   v.append(viewHeading(t("tab_settings"), lang === "th" ? "ปรับหน้าตาและข้อมูลของคุณ" : "Make Nano Agent feel like yours", 6),
     h("div", { class: "settings-shortcuts" },
       h("button", { onclick: () => go("memory"), text: t("sub_memory") }),
       h("button", { onclick: () => go("learning"), text: t("sub_learning") }),
       h("button", { onclick: () => go("know"), text: t("sub_know") })),
     panel(lang === "th" ? "รูปแบบหน้าจอ" : "Appearance",
-      h("p", { class: "dim", text: lang === "th" ? "เลือกหน้าตาที่ต้องการ เปลี่ยนได้ตลอด" : "Choose a look. You can change it any time." }),
+      h("p", { class: "dim", text: lang === "th" ? "เลือกโหมดสว่างหรือมืด เปลี่ยนได้ตลอดเวลา" : "Choose Light or Dark appearance. Saved to your preferences." }),
       h("div", { class: "theme-options" }, themes.map(([key, title, detail]) => h("button", {
-        class: "theme-option theme-option-" + key + (document.documentElement.dataset.theme === key ? " selected" : ""),
-        "aria-pressed": document.documentElement.dataset.theme === key ? "true" : "false",
-        onclick: async () => { const r = await post("/learning/pref", { setting: "ui.theme", value: key });
-          if (r.ok) { ME.prefs["ui.theme"] = key; applyUi(ME.prefs); vSettings(); } else toast(r.error || "Could not save appearance"); }
-      }, h("span", { class: "theme-preview" }, h("i"), h("i"), h("i")), h("strong", { text: title }), h("small", { text: detail }))))));
+        class: "theme-option theme-option-" + key + (baseTheme === key ? " selected" : ""),
+        "aria-pressed": baseTheme === key ? "true" : "false",
+        onclick: () => setTheme(key)
+      }, h("span", { class: "theme-preview" }, h("i"), h("i"), h("i")), h("strong", { text: title }), h("small", { text: detail })))),
+      h("div", { class: "accent-row" },
+        h("span", { class: "dim", text: lang === "th" ? "สีเน้น:" : "Accent:" }),
+        ...Object.entries(ACCENT_HEX).map(([k, hex]) => h("button", {
+          class: "accent-dot" + (curAccent === k ? " on" : ""),
+          style: `background:${hex}`,
+          title: k,
+          "aria-label": k,
+          onclick: async () => {
+            applyUi({ "ui.accent": k });
+            vSettings();
+            try { const r = await post("/learning/pref", { setting: "ui.accent", value: k }); if (r.ok && ME.prefs) ME.prefs["ui.accent"] = k; } catch (e) {}
+          }
+        })))));
   v.append(panel(t("settings_title"), field(t("set_name"), name), field(t("set_tz"), tz), field(t("set_lang"), lg),
     h("p", null, h("button", { class: "pri", onclick: async () => { const r = await act("/settings", { owner_name: name.value, timezone: tz.value, language: lg.value }); if (r.ok) { toast(t("saved")); boot(); } }, text: t("save") }))));
   v.append(panel(t("about_title"), h("p", { class: "dim", text: `nano Agent ${ME.version} · ${t("model_label")}: ${ME.model || "-"}` }), h("p", null, h("button", { onclick: async () => { await post("/logout"); showLogin(); }, text: t("logout") }))));
@@ -387,6 +508,7 @@ async function vSettings() {
 
 // ---------- boot ----------
 async function boot() {
+  wireThemeQuick();
   const s = await (await fetch("/api/strings")).json(); S = s.strings; lang = s.lang; S._liff = s.liff_id || ""; document.documentElement.lang = lang;
   const hp = new URLSearchParams(location.hash.slice(1));   // #token=...&tab=mind&sub=skills ; a fragment never reaches server logs
   if (hp.get("token")) {

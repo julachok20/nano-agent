@@ -179,6 +179,9 @@ def test_skills_learning_automation_and_settings_routes(owner):
     assert owner.post("/api/learning/pref", json={"setting": "ui.accent", "value": "violet"}).json()["ok"]
     assert owner.get("/api/me").json()["prefs"]["ui.accent"] == "violet"
     assert owner.post("/api/learning/pref", json={"setting": "ui.accent", "value": "evil"}).json()["ok"] is False
+    assert owner.post("/api/learning/pref", json={"setting": "ui.theme", "value": "light"}).json()["ok"]
+    assert owner.get("/api/me").json()["prefs"]["ui.theme"] == "light"
+    assert "chat" in owner.get("/api/me").json()["models"]
     assert owner.post("/api/learning/pref", json={"setting": "ui.theme", "value": "minimal"}).json()["ok"]
     assert owner.get("/api/me").json()["prefs"]["ui.theme"] == "minimal"
     assert owner.post("/api/learning/pref", json={"setting": "ui.theme", "value": "calm"}).json()["ok"]

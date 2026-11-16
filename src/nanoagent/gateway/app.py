@@ -170,7 +170,7 @@ def create_app() -> FastAPI:
         return {"owner_name": cfg["general"]["owner_name"], "language": cfg["general"]["language"], "timezone": cfg["general"]["timezone"],
                 "voice": {"server_stt": bool(cfg["voice"]["stt_url"]), "server_tts": bool(cfg["voice"]["tts_url"])}, "version": __version__,
                 "prefs": {k: v for k, v in learning.active_prefs().items() if k.startswith("ui.")}, "liff_id": cfg["line"]["liff_id"],
-                "model": cfg["models"]["chat"]}
+                "model": cfg["models"]["chat"], "models": dict(cfg["models"])}
 
     @api.get("/state")
     async def state():
@@ -184,8 +184,9 @@ def create_app() -> FastAPI:
         if not text:
             return _bad("empty message")
         session = "console" if d.get("session") not in ("voice", "console") else d["session"]
+        role = d.get("role") if d.get("role") in ("chat", "fast", "vision") else "chat"
         before = {x["id"] for x in drafts.pending()}
-        res = await Agent().run(text, session=session)
+        res = await Agent().run(text, session=session, role=role)
         return {"ok": not res.error, "text": res.text, "tools": res.tool_calls, "new_drafts": [drafts.public(x) for x in drafts.pending() if x["id"] not in before]}
 
     @api.get("/history")

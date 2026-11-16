@@ -34,7 +34,7 @@ SCHEMA: dict[str, tuple[str, object]] = {
     "brief.time": ("time", None),
     "brief.days": ("days", None),
     "ui.accent": ("enum", ACCENTS),
-    "ui.theme": ("enum", ("dark", "modern", "calm", "minimal", "spark", "black")),
+    "ui.theme": ("enum", ("dark", "light", "modern", "calm", "minimal", "spark", "black")),
     "ui.density": ("enum", ("compact", "normal", "roomy")),
     "ui.text_size": ("enum", ("s", "m", "l", "xl")),
     "ui.labels": ("enum", ("short", "friendly")),
