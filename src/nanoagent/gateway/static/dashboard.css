@@ -1,6 +1,12 @@
 /* nano Agent open-source console stylesheet.
    Design tokens and layout are structured for both web and future desktop shells. */
 
+:root {
+  --glass-fill: linear-gradient(145deg, rgba(255,255,255,.15), rgba(255,255,255,.035) 48%, rgba(255,255,255,.08));
+  --glass-stroke: rgba(255,255,255,.22);
+  --glass-shadow: inset 0 1px 0 rgba(255,255,255,.24), inset 0 -1px 0 rgba(255,255,255,.035), 0 10px 28px rgba(0,0,0,.15);
+}
+
 body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -85,8 +91,10 @@ header {
   min-height: 36px;
   padding: 0;
   border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--panel);
+  border: 1px solid var(--glass-stroke, var(--line));
+  background: var(--glass-fill, var(--panel));
+  backdrop-filter: blur(22px) saturate(155%);
+  box-shadow: var(--glass-shadow, none);
   color: var(--dim);
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
@@ -361,13 +369,15 @@ main#view {
   align-items: center;
   gap: 7px;
   border: 1px solid var(--line);
-  background: var(--panel);
+  background: var(--glass-fill, var(--panel));
   color: var(--txt);
   border-radius: 999px;
   padding: 7px 14px;
   font-size: 0.85rem;
   font-weight: 500;
   min-height: 38px;
+  backdrop-filter: blur(22px) saturate(155%);
+  box-shadow: var(--glass-shadow, none);
 }
 .chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 640; }
 
@@ -376,7 +386,7 @@ button, .btn {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  background: var(--panel-2);
+  background: var(--glass-fill, var(--panel-2));
   color: var(--txt);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -385,11 +395,15 @@ button, .btn {
   font-size: 0.88rem;
   font-weight: 550;
   transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  backdrop-filter: blur(22px) saturate(155%);
+  box-shadow: var(--glass-shadow, none);
 }
 button:hover:not(:disabled) { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 button.pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 640; }
 button.bad { border-color: color-mix(in srgb, var(--bad) 55%, var(--line)); color: var(--bad); }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
+nav#tabs button:not(.on) { background: transparent; border-color: transparent; box-shadow: none; backdrop-filter: none; }
+nav#tabs button.on { box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 68%, transparent); }
 
 input, textarea, select {
   background: var(--bg-elev);
@@ -666,10 +680,10 @@ pre {
   min-height: 34px;
   font-size: 0.82rem;
   font-weight: 600;
-  background: var(--panel);
-  backdrop-filter: blur(18px);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
+  background: var(--glass-fill, var(--panel));
+  backdrop-filter: blur(26px) saturate(175%);
+  border: 1px solid var(--glass-stroke, var(--line));
+  box-shadow: var(--glass-shadow, var(--shadow));
   color: var(--txt);
   z-index: 3;
 }
@@ -712,10 +726,10 @@ pre {
   gap: 8px;
   padding: 6px 6px 6px 14px;
   border-radius: 999px;
-  background: var(--panel);
-  backdrop-filter: blur(20px);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
+  background: var(--glass-fill, var(--panel));
+  backdrop-filter: blur(28px) saturate(165%);
+  border: 1px solid var(--glass-stroke, var(--line));
+  box-shadow: var(--glass-shadow, var(--shadow));
 }
 
 .quick-ask > .ico { color: var(--accent); }
@@ -915,6 +929,9 @@ main:has(.chat-stage) { max-width: 1060px; }
 /* Light Theme (and Minimal alias) */
 html[data-theme=light],
 html[data-theme=minimal] {
+  --glass-fill: linear-gradient(145deg, rgba(255,255,255,.88), rgba(255,255,255,.42) 55%, rgba(244,237,255,.52));
+  --glass-stroke: rgba(255,255,255,.92);
+  --glass-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 rgba(255,255,255,.58), 0 10px 28px rgba(81,94,148,.13), 0 1px 3px rgba(81,94,148,.08);
   --bg: #f8fafc;
   --bg-elev: rgba(255, 247, 237, 0.65);
   --panel: rgba(255, 255, 255, 0.82);
