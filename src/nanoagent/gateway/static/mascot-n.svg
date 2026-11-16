@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-12 -28 240 184" role="img" aria-label="nano Agent mascot" class="mascot-n is-idle">
+  <title>nano Agent mascot (states: idle, listening, thinking, speaking, happy, sleeping)</title>
+  <style>
+    .mascot-n{overflow:visible}
+    .mascot-n .n-body,.mascot-n .n-gaze,.mascot-n .n-blink,.mascot-n .n-eye,.mascot-n .n-ring,.mascot-n .n-waves path,.mascot-n .n-thoughts circle,.mascot-n .n-sleep text{transform-box:fill-box;transform-origin:50% 50%}
+    .mascot-n .n-body{transform-origin:50% 100%}
+    .mascot-n .n-ring,.mascot-n .n-waves,.mascot-n .n-thoughts,.mascot-n .n-sleep{opacity:0}
+    .mascot-n .n-eye{transition:transform .3s ease}
+    /* idle: bob, gaze drift, blink */
+    .mascot-n.is-idle .n-body{animation:n-bob 3.2s ease-in-out infinite}
+    .mascot-n.is-idle .n-gaze{animation:n-gaze 7s ease-in-out infinite}
+    .mascot-n.is-idle .n-blink,.mascot-n.is-listening .n-blink,.mascot-n.is-thinking .n-blink,.mascot-n.is-speaking .n-blink{animation:n-blink 5s infinite}
+    /* listening: breathe, ripple ring, eyes taller */
+    .mascot-n.is-listening .n-body{animation:n-breathe 2s ease-in-out infinite}
+    .mascot-n.is-listening .n-ring{opacity:.5}
+    .mascot-n.is-listening .n-eye{transform:scaleY(1.2)}
+    .mascot-n.is-listening .n-ring{animation:n-ripple 1.8s ease-out infinite}
+    /* thinking: tilt, eyes look up-right, thought dots */
+    .mascot-n.is-thinking .n-body{transform:rotate(-4deg)}
+    .mascot-n.is-thinking .n-gaze{animation:n-look 3s ease-in-out infinite}
+    .mascot-n.is-thinking .n-thoughts{opacity:1}
+    .mascot-n.is-thinking .n-thoughts circle{animation:n-dot 1.2s ease-in-out infinite}
+    .mascot-n.is-thinking .n-thoughts circle:nth-child(2){animation-delay:.2s}
+    .mascot-n.is-thinking .n-thoughts circle:nth-child(3){animation-delay:.4s}
+    /* speaking: quick squash-stretch, sound arcs */
+    .mascot-n.is-speaking .n-body{animation:n-talk .5s ease-in-out infinite}
+    .mascot-n.is-speaking .n-waves{opacity:1}
+    .mascot-n.is-speaking .n-waves path{animation:n-wave 1s ease-in-out infinite}
+    .mascot-n.is-speaking .n-waves path:nth-child(2){animation-delay:.25s}
+    /* happy: hop, squinting eyes */
+    .mascot-n.is-happy .n-body{animation:n-hop .7s ease-out infinite}
+    .mascot-n.is-happy .n-eye{transform:scaleY(.35)}
+    /* sleeping: slow breath, closed eyes, z z */
+    .mascot-n.is-sleeping .n-body{animation:n-breathe 4s ease-in-out infinite}
+    .mascot-n.is-sleeping .n-eye{transform:scaleY(.12)}
+    .mascot-n.is-sleeping .n-sleep{opacity:1}
+    .mascot-n.is-sleeping .n-sleep text{animation:n-zz 3s ease-in-out infinite}
+    .mascot-n.is-sleeping .n-sleep text:nth-child(2){animation-delay:1.5s}
+    @keyframes n-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+    @keyframes n-gaze{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
+    @keyframes n-look{0%,100%{transform:translate(0,0)}35%,70%{transform:translate(4px,-4px)}}
+    @keyframes n-blink{0%,94%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+    @keyframes n-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+    @keyframes n-talk{0%,100%{transform:scale(1,1)}50%{transform:scale(1.03,.97)}}
+    @keyframes n-hop{0%,100%{transform:translateY(0)}40%{transform:translateY(-9px)}}
+    @keyframes n-ripple{0%{transform:scale(.92);opacity:.6}100%{transform:scale(1.12);opacity:0}}
+    @keyframes n-wave{0%,100%{opacity:.25}50%{opacity:1}}
+    @keyframes n-dot{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+    @keyframes n-zz{0%{opacity:0;transform:translate(0,4px)}50%{opacity:1}100%{opacity:0;transform:translate(6px,-6px)}}
+    @media (prefers-reduced-motion: reduce){
+      .mascot-n *{animation:none!important;transition:none!important}
+    }
+  </style>
+
+  <!-- listening ripple (behind) -->
+  <circle class="n-ring" cx="96" cy="70" r="96" fill="none" stroke="#ff6a13" stroke-width="3"/>
+
+  <g class="n-body">
+    <!-- outer silhouette: knob top-left, arch, two stems -->
+    <path fill="#ff6a13" d="M12 144Q11 144 11 132V22A19 19 0 0 1 49 22Q51 26 55 30C66 12 92 2 118 3C165 6 195 30 195 72V132Q195 144 183 144Z"/>
+    <!-- pale face opening -->
+    <path fill="#fff8f1" d="M64 144V94A40 40 0 0 1 144 94V144Z"/>
+    <g class="n-gaze">
+      <g class="n-blink">
+        <rect class="n-eye" x="87.5" y="77" width="9" height="17" rx="4.5" fill="#1b1d2a"/>
+        <rect class="n-eye" x="116.5" y="77" width="9" height="17" rx="4.5" fill="#1b1d2a"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- speaking arcs -->
+  <g class="n-waves" fill="none" stroke="#ff6a13" stroke-width="4" stroke-linecap="round">
+    <path d="M206 50Q214 72 206 94"/>
+    <path d="M214 38Q228 72 214 106"/>
+  </g>
+  <!-- thinking dots -->
+  <g class="n-thoughts" fill="#ff6a13">
+    <circle cx="204" cy="24" r="3.5"/>
+    <circle cx="214" cy="12" r="4.5"/>
+    <circle cx="224" cy="-2" r="6"/>
+  </g>
+  <!-- sleeping z -->
+  <g class="n-sleep" fill="#ff6a13" font-family="system-ui,sans-serif" font-weight="700">
+    <text x="186" y="-4" font-size="22">z</text>
+    <text x="204" y="-20" font-size="16">z</text>
+  </g>
+</svg>

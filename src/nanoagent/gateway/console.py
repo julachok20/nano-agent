@@ -47,8 +47,8 @@ def page() -> str:
     <button id="hdr-search" class="icon-btn" type="button" aria-label="Quick chat"></button>
     <button id="hdr-notif" class="icon-btn" type="button" aria-label="Approvals"></button>
     <button id="theme-quick" class="icon-btn" type="button" aria-label="Toggle Light or Dark appearance"></button>
-    <span class="brand-mark" title="nano Agent"><img src="/static/mascot-n.png" alt="n"></span>
+    <span class="brand-mark" title="nano Agent"><img src="/static/mark-n.png" alt="n"></span>
   </div>
 </header>
-<main id="view"></main><nav id="tabs"></nav><script src="/static/console.js?v={__version__}"></script></body></html>"""
+<main id="view"></main><nav id="tabs"></nav><script src="/static/subagents.js?v={__version__}"></script><script src="/static/console.js?v={__version__}"></script></body></html>"""
 
