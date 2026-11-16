@@ -27,6 +27,21 @@ SCREEN_ACTIVE=0
 ERROR_REPORTED=0
 
 say() { printf '%s\n' "$*"; }
+show_help() {
+  cat <<'HELP'
+nano Agent installer for Linux, macOS and WSL
+Usage: bash install.sh [options]
+  --yes             Install without the confirmation prompt
+  --no-setup        Skip interactive setup and launch
+  --dry-run         Show the installation plan without changing files
+  --method METHOD   Choose auto, uv, pipx, or venv
+  --from SPEC       Install from a folder, wheel, package, or URL
+  --ref GIT_REF     Choose the Git branch or tag for remote installs
+  --help            Show this help
+
+A local checkout is used automatically when running its install.sh.
+HELP
+}
 leave_screen() {
   if [ "$SCREEN_ACTIVE" = "1" ]; then
     printf '\033[?1049l'
@@ -137,7 +152,7 @@ while [ $# -gt 0 ]; do
     --method) shift; [ $# -gt 0 ] || die "--method needs a value"; INSTALL_METHOD="$1" ;;
     --from) shift; [ $# -gt 0 ] || die "--from needs a value"; SPEC="$1" ;;
     --ref) shift; [ $# -gt 0 ] || die "--ref needs a value"; REF="$1" ;;
-    -h|--help) sed -n '2,16p' "$0" 2>/dev/null | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) show_help; exit 0 ;;
     *) die "unknown option: $1 (try --help)" ;;
   esac
   shift
@@ -170,7 +185,7 @@ if [ -z "$SPEC" ]; then
   if [ "${NANO_AGENT_FROM_PYPI:-0}" = "1" ]; then
     SPEC="nanoagent"
   else
-    if [ -f "${BASH_SOURCE[0]}" ]; then
+    if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
       SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
     fi
     if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/pyproject.toml" ] && [ -d "$SCRIPT_DIR/src/nanoagent" ]; then

@@ -20,6 +20,14 @@ Or **Linux, macOS, or WSL**:
 bash install.sh
 ```
 
+When the GitHub repository is public, the OpenClaw-style one-line install is:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/julachok20/nano-agent/main/install.sh | bash
+```
+
+The repository is currently private, so this hosted command returns 404 until its visibility changes. The local command above works now.
+
 Choose **Quick setup** for language, model, key, and connector choices; the dashboard stays local. Both setup modes ask whether to connect LINE now, later, or use only the dashboard and terminal chat, and whether to prepare Google for later. **Custom setup** also exposes network and storage choices. API keys are entered privately and stored separately from `config.toml`. To run a local model server, choose an OpenAI-compatible provider and enter its local base URL. The interactive installer and setup use temporary terminal screens so their steps leave no scrollback when you finish. nano Agent then opens the dashboard and starts terminal chat. Next time, run `nano-agent launch` (or just `nano-agent` in a terminal). Type `/dashboard` in chat to reopen the browser and `/quit` to leave chat; the dashboard keeps running. Inspect the service with:
 
 ```bash

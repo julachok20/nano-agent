@@ -40,6 +40,18 @@ def test_installer_uses_local_checkout_by_default_and_keeps_remote_fallback(tmp_
     assert remote.returncode == 0, remote.stderr
     assert "Source:    https://codeload.github.com/julachok20/nano-agent/tar.gz/main" in remote.stdout
 
+    streamed = subprocess.run([BASH, "-s", "--", "--dry-run", "--method", "venv"],
+                              input=(ROOT / "install.sh").read_text(encoding="utf-8"),
+                              cwd=tmp_path, capture_output=True, text=True, env=env)
+    assert streamed.returncode == 0, streamed.stderr
+    assert "Source:    https://codeload.github.com/julachok20/nano-agent/tar.gz/main" in streamed.stdout
+
+    help_result = subprocess.run([BASH, "-s", "--", "--help"],
+                                 input=(ROOT / "install.sh").read_text(encoding="utf-8"),
+                                 cwd=tmp_path, capture_output=True, text=True, env=env)
+    assert help_result.returncode == 0, help_result.stderr
+    assert "Usage: bash install.sh [options]" in help_result.stdout
+
 
 @pytest.mark.skipif(os.name == "nt" or not BASH, reason="POSIX installer runs on Unix or WSL")
 def test_install_script_rejects_unknown_options_and_never_uses_sudo():

@@ -16,7 +16,13 @@ From a local checkout on native Windows, use PowerShell:
 .\install.ps1
 ```
 
-The local installer automatically uses the checkout containing the script. One command installs the package, opens the setup wizard, then starts the assistant, dashboard, and terminal chat. After the repository is public, a remote install can download the script and run it in one shell line: `curl -fsSLo nano-agent-install.sh https://raw.githubusercontent.com/julachok20/nano-agent/main/install.sh && bash nano-agent-install.sh`. The `&&` stops the install if downloading fails. A private or absent repository gives HTTP 404 to unauthenticated users. The Windows installer can offer to install Python 3.12 with `winget --scope user` if Python is missing; it asks first.
+The local installer automatically uses the checkout containing the script. One command installs the package, opens the setup wizard, then starts the assistant, dashboard, and terminal chat. Once the repository is public, Linux, macOS, and WSL can use the short hosted command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/julachok20/nano-agent/main/install.sh | bash
+```
+
+On native Windows, the equivalent PowerShell command is `irm https://raw.githubusercontent.com/julachok20/nano-agent/main/install.ps1 | iex`. A private repository gives HTTP 404 to unauthenticated users. If you want the shell to stop on a download failure, use `curl -fsSLo nano-agent-install.sh https://raw.githubusercontent.com/julachok20/nano-agent/main/install.sh && bash nano-agent-install.sh`; the `&&` prevents an old local script from running after a failed download. The Windows installer can offer to install Python 3.12 with `winget --scope user` if Python is missing; it asks first.
 
 Both scripts prefer `uv`, then `pipx`, then a private virtual environment under `~/.nano-agent` (Windows: `%USERPROFILE%\.nano-agent`). Setup starts after installation. On Linux and macOS use `--no-setup`, `--dry-run`, `--from SPEC`; on Windows use `-NoSetup`, `-DryRun`, `-From SPEC`. For example, `bash install.sh --dry-run` or `.\install.ps1 -DryRun`. On Linux, macOS, or WSL, `--method venv` explicitly selects the private virtual environment, even when `uv` or `pipx` is installed. A local checkout, wheel, or pip URL can be used as `SPEC`.
 
