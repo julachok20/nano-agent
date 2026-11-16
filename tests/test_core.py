@@ -242,7 +242,7 @@ def test_weekly_review_applies_only_confident_allowed_changes(fake):
         {"scope": "chat", "key": "tone", "value": "bogus", "confidence": 0.9, "reason": "bad"}]}))]
     r = run(learning.weekly_review())
     assert r["applied"] == ["chat.length=short"] and r["proposed"] == ["chat.tone=playful"] and "ui.accent" in r["skipped"][0]
-    assert learning.get_pref("ui", "accent") == "cyan" and learning.proposals()[0]["key"] == "tone"
+    assert learning.get_pref("ui", "accent") == "orange" and learning.proposals()[0]["key"] == "tone"
 
 
 def test_weekly_review_skips_without_evidence(fake):

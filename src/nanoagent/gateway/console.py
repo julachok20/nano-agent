@@ -7,19 +7,19 @@ from .. import __version__
 
 CSS = """
 :root{
-  --bg:#0b0f19;--bg-elev:#101726;--panel:#131b2e;--panel-2:#182238;--line:#23304a;
-  --txt:#eef2fb;--dim:#8fa0be;--accent:#ff7a2a;--accent-2:#38bdf8;--accent-ink:#ffffff;
-  --ok:#34d399;--warn:#fbbf24;--bad:#fb7185;--gap:16px;--radius:18px;--radius-sm:12px;
-  --shadow:0 12px 32px rgba(4,8,18,.34);--font-sans:system-ui,-apple-system,"Segoe UI","Noto Sans Thai",Tahoma,sans-serif;
+  --bg:#090d17;--bg-elev:#101726;--panel:rgba(19,27,46,.80);--panel-2:rgba(28,39,64,.85);--line:rgba(255,255,255,.09);
+  --txt:#eef2fb;--dim:#8fa0be;--accent:#ff6a00;--accent-2:#38bdf8;--accent-ink:#ffffff;
+  --ok:#34d399;--warn:#fbbf24;--bad:#fb7185;--gap:18px;--radius:22px;--radius-sm:14px;
+  --shadow:0 16px 40px rgba(3,7,18,.38);--font-sans:system-ui,-apple-system,"Segoe UI","Noto Sans Thai",Tahoma,sans-serif;
   --font-mono:ui-monospace,SFMono-Regular,Consolas,monospace;
 }
 html[data-accent=cyan]{--accent:#38d6ff;--accent-ink:#04131c}
 html[data-accent=violet]{--accent:#a78bfa;--accent-ink:#110a24}
 html[data-accent=green]{--accent:#34d399;--accent-ink:#041c13}
-html[data-accent=orange]{--accent:#ff7a2a;--accent-ink:#ffffff}
+html[data-accent=orange]{--accent:#ff6a00;--accent-ink:#ffffff}
 html[data-accent=rose]{--accent:#fb7185;--accent-ink:#ffffff}
 html[data-accent=blue]{--accent:#60a5fa;--accent-ink:#071426}
-html[data-density=compact]{--gap:10px}html[data-density=roomy]{--gap:22px}
+html[data-density=compact]{--gap:12px}html[data-density=roomy]{--gap:24px}
 html[data-size=s]{font-size:14px}html[data-size=m]{font-size:16px}html[data-size=l]{font-size:18px}html[data-size=xl]{font-size:20px}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.5 var(--font-sans);min-height:100vh}
@@ -45,6 +45,8 @@ def page() -> str:
     <span id="pill" class="pill"><i></i><span id="pilltxt"></span></span>
   </div>
   <div class="brand-right">
+    <button id="hdr-search" class="icon-btn" type="button" aria-label="Quick chat"></button>
+    <button id="hdr-notif" class="icon-btn" type="button" aria-label="Approvals"></button>
     <button id="theme-quick" class="icon-btn" type="button" aria-label="Toggle Light or Dark appearance"></button>
     <span class="brand-mark" title="nano Agent"><img src="/static/logo-icon.png" alt="n"></span>
   </div>

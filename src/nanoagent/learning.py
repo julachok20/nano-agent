@@ -42,7 +42,7 @@ SCHEMA: dict[str, tuple[str, object]] = {
 }
 DEFAULTS = {"chat.length": "normal", "chat.tone": "friendly", "chat.language": "auto", "chat.emoji": "none",
             "brief.sections": ["tasks", "reminders", "drafts"], "brief.length": "short", "brief.time": "07:30",
-            "brief.days": list(WEEKDAYS), "ui.accent": "cyan", "ui.theme": "dark", "ui.density": "normal", "ui.text_size": "m",
+            "brief.days": list(WEEKDAYS), "ui.accent": "orange", "ui.theme": "dark", "ui.density": "normal", "ui.text_size": "m",
             "ui.labels": "friendly", "ui.panels": list(PANELS)}
 AI_FORBIDDEN_SCOPES = ("ui",)   # the weekly review never restyles the console
 

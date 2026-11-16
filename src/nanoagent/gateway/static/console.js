@@ -37,7 +37,15 @@ const ICONS = {
   approval: [["path", { d: "M12 3 4 7v5c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V7z" }], ["path", { d: "m9 12 2 2 4-4" }]],
   activity: [["path", { d: "M3 12h4l3-7 4 14 3-7h4" }]],
   sun: [["circle", { cx: 12, cy: 12, r: 4 }], ["path", { d: "M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" }]],
-  moon: [["path", { d: "M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z" }]]
+  moon: [["path", { d: "M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z" }]],
+  search: [["circle", { cx: 11, cy: 11, r: 6 }], ["path", { d: "m20 20-4.2-4.2" }]],
+  bell: [["path", { d: "M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" }], ["path", { d: "M10 19a2 2 0 0 0 4 0" }]],
+  mic: [["rect", { x: 9, y: 3, width: 6, height: 11, rx: 3 }], ["path", { d: "M5 11a7 7 0 0 0 14 0M12 18v3" }]],
+  calendar: [["rect", { x: 3, y: 5, width: 18, height: 16, rx: 2 }], ["path", { d: "M3 10h18M8 3v4M16 3v4" }]],
+  layers: [["path", { d: "m12 3 9 4.5-9 4.5-9-4.5z" }], ["path", { d: "m3 12 9 4.5 9-4.5M3 16.5 12 21l9-4.5" }]],
+  sparkle: [["path", { d: "M12 3l1.8 4.8L18.5 9.5l-4.7 1.7L12 16l-1.8-4.8L5.5 9.5l4.7-1.7z" }]],
+  chev: [["path", { d: "m9 6 6 6-6 6" }]],
+  arrow: [["path", { d: "M5 12h14M13 6l6 6-6 6" }]]
 };
 function ico(name, cls = "ico") {
   const parts = ICONS[name] || ICONS.skills;
@@ -95,10 +103,12 @@ const HUBS = [
 ];
 const HUB_OF = { activity: "home", memory: "settings", learning: "settings", know: "settings", mind: "settings", work: "computer" };
 function drawTabs() {
-  $("#tabs").replaceChildren(...HUBS.map(([k, ic, lb]) =>
-    h("button", { class: (HUB_OF[tab] || tab) === k ? "on" : "", onclick: () => go(k) },
-      h("span", { class: "nav-ico" }, ico(ic)),
-      h("span", { class: "nav-lbl", text: k === "automation" && innerWidth < 960 ? (lang === "th" ? "ออโต้" : "Auto") : t(lb) }))));
+  $("#tabs").replaceChildren(
+    h("div", { class: "nav-brand" }, h("img", { src: "/static/logo-icon.png", alt: "" }), h("span", { text: "nanoAgent" })),
+    ...HUBS.map(([k, ic, lb]) =>
+      h("button", { class: (HUB_OF[tab] || tab) === k ? "on" : "", onclick: () => go(k) },
+        h("span", { class: "nav-ico" }, ico(ic)),
+        h("span", { class: "nav-lbl", text: k === "automation" && innerWidth < 960 ? (lang === "th" ? "ออโต้" : "Auto") : t(lb) }))));
 }
 function go(k) { tab = k; drawTabs(); render(); }
 function render() { ({ home: vHome, chat: vChat, manage: vManage, computer: vWork, automation: vWork, skills: vMind,
@@ -135,12 +145,27 @@ async function setTheme(next) {
     if (r.ok && ME.prefs) ME.prefs["ui.theme"] = next;
   } catch (e) { /* localStorage still keeps the choice */ }
 }
-function wireThemeQuick() {
-  const btn = $("#theme-quick");
-  if (!btn || btn.dataset.wired) return;
-  btn.dataset.wired = "1";
-  btn.addEventListener("click", () => setTheme(currentBaseTheme() === "light" ? "dark" : "light"));
-  syncThemeButton();
+function wireHeaderActions() {
+  const tBtn = $("#theme-quick");
+  if (tBtn && !tBtn.dataset.wired) {
+    tBtn.dataset.wired = "1";
+    tBtn.addEventListener("click", () => setTheme(currentBaseTheme() === "light" ? "dark" : "light"));
+    syncThemeButton();
+  }
+  const sBtn = $("#hdr-search");
+  if (sBtn && !sBtn.dataset.wired) {
+    sBtn.dataset.wired = "1";
+    sBtn.replaceChildren(ico("search"));
+    sBtn.title = t("tab_chat");
+    sBtn.addEventListener("click", () => go("chat"));
+  }
+  const nBtn = $("#hdr-notif");
+  if (nBtn && !nBtn.dataset.wired) {
+    nBtn.dataset.wired = "1";
+    nBtn.replaceChildren(ico("bell"));
+    nBtn.title = t("sub_drafts");
+    nBtn.addEventListener("click", () => { sub.manage = "drafts"; go("manage"); });
+  }
 }
 function viewHeading(title, detail, number) {
   return h("div", { class: "view-heading" }, h("div", null, h("small", { text: `NANO AGENT / ${String(number).padStart(2, "0")}` }), h("h1", { text: title }), h("p", { text: detail })));
@@ -182,129 +207,119 @@ async function orbTap() {
   if (!openerSpoken) { openerSpoken = true; const o = await api("/companion/opener"); $("#said").textContent = o.text; await speak(o.text); return; }
   listen();
 }
-function dialPoint(r, deg) { const a = deg * Math.PI / 180; return [200 + r * Math.sin(a), 200 - r * Math.cos(a)]; }
-function nanoDial(tasks = []) {
-  const svg = sv("svg", { class: "jv-dial", viewBox: "-24 -24 448 448", "aria-hidden": "true" });
-  for (let i = 0; i < 60; i++) {
-    const big = i % 5 === 0, [x1, y1] = dialPoint(big ? 174 : 179, i * 6), [x2, y2] = dialPoint(188, i * 6);
-    svg.append(sv("line", { x1, y1, x2, y2, stroke: "var(--accent)", "stroke-opacity": big ? 0.85 : 0.28, "stroke-width": big ? 2.4 : 1.1 }));
-  }
-  svg.append(sv("circle", { cx: 200, cy: 200, r: 164, fill: "none", stroke: "var(--accent)", "stroke-opacity": 0.22, "stroke-width": 2 }),
-    sv("circle", { class: "jv-spin", cx: 200, cy: 200, r: 122, fill: "none", stroke: "var(--accent)", "stroke-opacity": 0.42, "stroke-dasharray": "3 8" }));
-  const now = new Date(), hour = now.getHours() + now.getMinutes() / 60;
-  if (hour >= 6 && hour <= 18) {
-    const deg = (hour - 6) * 30, [x1, y1] = dialPoint(104, deg), [x2, y2] = dialPoint(158, deg);
-    svg.append(sv("line", { x1, y1, x2, y2, stroke: "var(--txt)", "stroke-opacity": 0.8, "stroke-width": 2 }), sv("circle", { cx: x2, cy: y2, r: 5.5, fill: "var(--accent)" }));
-  }
-  const today = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
-  for (const task of tasks.filter(x => !x.done && x.due && x.due.startsWith(today)).slice(0, 4)) {
-    const m = /\b(\d{1,2}):(\d{2})\b/.exec(task.due);
-    if (!m) continue;
-    const dueHour = Number(m[1]) + Number(m[2]) / 60;
-    if (dueHour < 6 || dueHour > 18) continue;
-    const [x, y] = dialPoint(150, (dueHour - 6) * 30);
-    svg.append(sv("circle", { cx: x, cy: y, r: 8, fill: "var(--warn)" }));
-  }
-  svg.append(sv("circle", { cx: 200, cy: 200, r: 90, fill: "#ffffff", stroke: "var(--accent)", "stroke-width": 3 }));
-  const clip = sv("clipPath", { id: "nano-dial-clip" }, sv("circle", { cx: 200, cy: 200, r: 82 }));
-  svg.append(sv("defs", {}, clip), sv("image", { href: "/static/logo-icon.png", x: 124, y: 124, width: 152, height: 152, "clip-path": "url(#nano-dial-clip)", preserveAspectRatio: "xMidYMid meet" }));
-  return svg;
-}
-function jvPanel(area, iconName, title, number, ...kids) {
-  return h("section", { class: "jv-panel", style: `grid-area:${area}` },
-    h("h3", null, h("span", { class: "jv-h-left" }, ico(iconName), h("span", { text: title })), h("i", { text: number })), ...kids);
+function jvPanel(area, iconName, title, target, section, ...kids) {
+  const head = h("div", { class: "jv-panel-head" },
+    h("span", { class: "jv-h-left" }, ico(iconName), h("span", { text: title })),
+    target ? h("button", { class: "jv-chev", "aria-label": title, onclick: () => { if (section) sub[target] = section; go(target); } }, ico("chev")) : null);
+  return h("section", { class: "jv-panel", style: area ? `grid-area:${area}` : "" }, head, ...kids);
 }
 function jvEmpty(iconName, message) {
-  return h("div", { class: "jv-empty-box" }, ico(iconName, "ico ico-lg"), h("p", { class: "jv-note", text: message }));
+  return h("div", { class: "jv-empty-box" }, ico(iconName), h("p", { class: "jv-note", text: message }));
 }
-function jvGo(label, target, section) { return h("button", { class: "jv-link", onclick: () => { if (section) sub[target] = section; go(target); }, text: label }); }
 function jvMemoryGraph(count) {
-  const svg = sv("svg", { class: "jv-memory-graph", viewBox: "0 0 300 120", "aria-hidden": "true" });
-  const points = [[48, 26], [100, 14], [150, 22], [228, 32], [254, 84], [202, 102], [110, 104], [42, 82], [200, 62]];
+  const svg = sv("svg", { class: "jv-memory-graph", viewBox: "0 0 300 100", "aria-hidden": "true" });
+  const points = [[54, 24], [108, 16], [156, 22], [228, 30], [250, 74], [198, 86], [112, 86], [48, 70]];
   points.slice(0, Math.min(count, points.length)).forEach(([x, y], i) => {
-    svg.append(sv("line", { x1: 150, y1: 62, x2: x, y2: y, stroke: "var(--accent)", "stroke-opacity": 0.4 }),
-      sv("circle", { cx: x, cy: y, r: 5.5, fill: ["var(--accent)", "var(--accent-2)", "var(--warn)", "var(--ok)"][i % 4] }));
+    svg.append(sv("line", { x1: 150, y1: 52, x2: x, y2: y, stroke: "var(--accent-2)", "stroke-opacity": 0.45, "stroke-width": 1.6 }),
+      sv("circle", { cx: x, cy: y, r: 5, fill: ["var(--accent-2)", "var(--accent)", "var(--warn)", "var(--ok)"][i % 4] }));
   });
-  const center = sv("text", { x: 150, y: 67, "text-anchor": "middle", fill: "var(--txt)", "font-size": 14, "font-weight": 650 }); center.textContent = String(count);
-  svg.append(sv("circle", { cx: 150, cy: 62, r: 18, fill: "var(--bg-elev)", stroke: "var(--accent)", "stroke-width": 2 }), center);
+  const center = sv("text", { x: 150, y: 57, "text-anchor": "middle", fill: "var(--txt)", "font-size": 13, "font-weight": 700 }); center.textContent = String(count);
+  svg.append(sv("circle", { cx: 150, cy: 52, r: 16, fill: "var(--bg-elev)", stroke: "var(--accent-2)", "stroke-width": 2 }), center);
   return svg;
 }
 function startChatWith(promptText) {
   sub.chatDraft = promptText;
   go("chat");
 }
+function waveBars(n = 5) {
+  return h("div", { class: "orb-wave", "aria-hidden": "true" },
+    ...Array.from({ length: n }, (_, i) => h("i", { style: `--i:${i};--h:${[14, 24, 34, 22, 12][i % 5]}px` })));
+}
 async function vHome() {
   const v = clear();
   const date = new Date(), hour = date.getHours();
   const greeting = lang === "th" ? (hour < 11 ? "สวัสดีตอนเช้า" : hour < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น")
     : (hour < 11 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening");
-  const quickPrompts = lang === "th"
-    ? ["วางแผนวันนี้", "สรุปงานที่ค้าง", "ดูความจำล่าสุด"]
-    : ["Plan my day", "Review open tasks", "What do you remember?"];
+  const askInp = h("input", { placeholder: lang === "th" ? "ถามอะไรก็ได้..." : "Ask anything...", "aria-label": t("chat_placeholder") });
+  const submitQuick = () => {
+    const q = askInp.value.trim();
+    if (q) startChatWith(q);
+    else go("chat");
+  };
+  askInp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); submitQuick(); } });
+
+  const subline = lang === "th"
+    ? h("p", { class: "jv-subline" }, "ผู้ช่วย AI ส่วนตัวแบบโอเพ่นซอร์ส พร้อม ", h("b", { text: "พูด ฟัง และลงมือทำ" }), " เพื่อคุณ")
+    : h("p", { class: "jv-subline" }, "Your open-source personal AI assistant. I can ", h("b", { text: "speak, listen, and act" }), " for you.");
+
   v.append(
     h("div", { class: "jv-head" },
-      h("div", null, h("small", { text: date.toLocaleDateString(lang === "th" ? "th-TH" : undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" }) }),
-        h("strong", { text: greeting + (ME.owner_name ? ", " + ME.owner_name : "") })),
+      h("div", null,
+        h("small", { text: date.toLocaleDateString(lang === "th" ? "th-TH" : undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" }) }),
+        h("strong", { text: greeting + (ME.owner_name ? ", " + ME.owner_name : "") }),
+        subline),
       h("div", { id: "home-clock", class: "jv-clock" })),
     h("div", { class: "jv-grid" },
-      h("section", { class: "jv-hero", style: "grid-area:hero" },
-        h("button", { id: "orb", class: "jv-orb", "data-state": "idle", onclick: orbTap, "aria-label": t("orb_tap") }, nanoDial()),
-        h("div", { class: "jv-welcome" },
-          h("h2", { text: lang === "th" ? "พร้อมช่วยคุณแล้ว" : "Ready to help" }),
-          h("p", { id: "home-welcome-note", text: lang === "th" ? "แตะวงกลมเพื่อพูด หรือเลือกคำสั่งด่วนเพื่อเริ่มแชท" : "Tap the dial to speak, or jump straight into chat." }),
-          h("div", { class: "jv-quick-prompts" },
-            h("button", { class: "pri", onclick: () => go("chat"), text: t("home_chat") }),
-            ...quickPrompts.map(q => h("button", { onclick: () => startChatWith(q), text: q }))),
-          h("div", { id: "heard", class: "jv-heard" }), h("div", { id: "said", class: "jv-said" }))),
-      h("div", { id: "home-chat-panel", class: "jv-slot", style: "grid-area:chat" }),
       h("div", { id: "home-task-panel", class: "jv-slot", style: "grid-area:task" }),
-      h("div", { id: "home-approval-panel", class: "jv-slot", style: "grid-area:appr" }),
       h("div", { id: "home-memory-panel", class: "jv-slot", style: "grid-area:mem" }),
+      h("section", { class: "jv-center", style: "grid-area:center" },
+        h("div", { class: "orb-stage" },
+          h("div", { class: "orb-chips" },
+            h("button", { class: "orb-chip orb-chip-top", onclick: orbTap }, ico("mic"), h("span", { text: lang === "th" ? "คุย" : "Talk" })),
+            h("button", { class: "orb-chip orb-chip-lt", onclick: () => go("chat") }, ico("chat"), h("span", { text: lang === "th" ? "ถาม" : "Ask" })),
+            h("button", { class: "orb-chip orb-chip-rt", onclick: () => startChatWith(lang === "th" ? "ช่วยวางแผนวันนี้" : "Plan my day") }, ico("calendar"), h("span", { text: lang === "th" ? "วางแผน" : "Plan" })),
+            h("button", { class: "orb-chip orb-chip-lb", onclick: () => go("memory") }, ico("layers"), h("span", { text: lang === "th" ? "ความจำ" : "Remember" })),
+            h("button", { class: "orb-chip orb-chip-rb", onclick: () => go("automation") }, ico("skills"), h("span", { text: lang === "th" ? "อัตโนมัติ" : "Automate" }))),
+          h("div", { class: "orb-aura" },
+            waveBars(5),
+            h("button", { id: "orb", class: "jv-orb", "data-state": "idle", onclick: orbTap, "aria-label": t("orb_tap") },
+              h("img", { src: "/static/logo-icon.png", alt: "n" }),
+              h("strong", { text: lang === "th" ? "แตะเพื่อพูด" : "Tap to speak" }),
+              h("small", null, h("i"), h("span", { text: lang === "th" ? "พร้อมรับฟัง" : "Listening ready" }))),
+            waveBars(5))),
+        h("div", { id: "heard", class: "jv-heard" }),
+        h("div", { id: "said", class: "jv-said" }),
+        h("div", { class: "quick-ask" },
+          ico("sparkle"),
+          askInp,
+          h("button", { class: "pri", onclick: submitQuick, "aria-label": t("send") }, ico("arrow")))),
+      h("div", { id: "home-approval-panel", class: "jv-slot", style: "grid-area:appr" }),
       h("div", { id: "home-activity-panel", class: "jv-slot", style: "grid-area:bg" }),
-      h("div", { id: "home-project-panel", class: "jv-slot", style: "grid-area:proj" }),
-      h("div", { id: "home-news-panel", class: "jv-slot", style: "grid-area:news" })));
+      h("div", { class: "jv-bottom" },
+        h("div", { id: "home-project-panel", class: "jv-slot" }),
+        h("div", { id: "home-news-panel", class: "jv-slot" }))));
   refreshHome();
 }
 async function refreshHome() {
   if (tab !== "home") return;
-  const [st, dr, tk, ac, ht] = await Promise.all([api("/state"), api("/drafts"), api("/tasks"), api("/activity"), api("/history?session=console")]);
-  if (!$("#home-chat-panel")) return;
-  $("#orb").replaceChildren(nanoDial(tk.tasks));
+  const [st, dr, tk, ac] = await Promise.all([api("/state"), api("/drafts"), api("/tasks"), api("/activity")]);
+  if (!$("#home-task-panel")) return;
   const factCount = (st.memory.fact || 0) + (st.memory.rule || 0);
   $("#home-clock").textContent = new Date().toLocaleTimeString(lang === "th" ? "th-TH" : undefined, { hour: "2-digit", minute: "2-digit", hour12: false });
   const openTasks = tk.tasks.filter(x => !x.done);
   const totalTasks = tk.tasks.length;
-  const rows = items => items.map(([title, detail, pct]) => h("div", { class: "jv-row" }, h("span", { class: "jv-dot" }), h("span", { class: "jv-name", text: title }),
-    h("span", { class: "jv-rowbar" }, h("i", { style: `width:${pct}%` })), h("em", { text: detail })));
-  const recentChats = ht.messages.filter(m => m.role === "user"), chatBars = Array(24).fill(0), nowSeconds = Date.now() / 1000;
-  recentChats.forEach(m => { const hoursAgo = Math.floor((nowSeconds - m.ts) / 3600); if (hoursAgo >= 0 && hoursAgo < 24) chatBars[23 - hoursAgo]++; });
-  const maxChats = Math.max(1, ...chatBars);
-  $("#home-chat-panel").replaceChildren(jvPanel("chat", "chat", t("tab_chat"), "01",
-    h("div", { class: "jv-split" }, h("span", { class: "jv-big", text: String(recentChats.length) }),
-      h("div", { class: "jv-bars", title: lang === "th" ? "ข้อความล่าสุด 24 ชั่วโมง" : "Messages in the last 24 hours" },
-        ...chatBars.map(n => h("b", { style: `height:${Math.max(8, n / maxChats * 100)}%` })))),
-    recentChats.length ? recentChats.slice(-3).reverse().map(m => h("div", { class: "jv-chat-row" }, h("span", { text: m.text.slice(0, 52) }), h("small", { text: when(m.ts) })))
-      : jvEmpty("chat", lang === "th" ? "ยังไม่มีบทสนทนา" : "No conversations yet"), jvGo(t("home_chat"), "chat")));
   const completed = totalTasks - openTasks.length, pct = totalTasks ? completed / totalTasks : 0;
-  $("#home-task-panel").replaceChildren(jvPanel("task", "manage", t("sub_tasks"), "02",
+  $("#home-task-panel").replaceChildren(jvPanel("task", "manage", t("sub_tasks"), "manage", null,
     h("div", { class: "jv-ringrow" },
       h("div", { class: "jv-ring", style: `--done:${Math.round(pct * 100)}%` }, h("span", { text: `${completed}/${totalTasks}` })),
-      h("div", { class: "jv-task-rows" }, openTasks.length ? rows(openTasks.slice(0, 3).map(x => [x.title, x.due || "", x.priority === 1 ? 30 : x.priority === 2 ? 60 : 90])) : jvEmpty("manage", lang === "th" ? "ไม่มีงานค้าง" : "All caught up"))),
-    jvGo(lang === "th" ? "จัดการงาน →" : "Manage tasks →", "manage")));
-  $("#home-project-panel").replaceChildren(jvPanel("proj", "projects", lang === "th" ? "โปรเจกต์" : "Projects", "03",
-    jvEmpty("projects", lang === "th" ? "ยังไม่มีโปรเจกต์ที่ติดตาม" : "No projects tracked yet")));
-  $("#home-news-panel").replaceChildren(jvPanel("news", "news", lang === "th" ? "ข่าวสาร" : "News", "05",
-    jvEmpty("news", lang === "th" ? "ยังไม่ได้เชื่อมต่อฟีดข่าว" : "No news feed connected")));
-  $("#home-memory-panel").replaceChildren(jvPanel("mem", "memory", t("memory_title"), "04", jvMemoryGraph(factCount),
-    h("div", { class: "jv-pct" }, h("span", { class: "jv-big", text: String(factCount) }), h("small", { text: t("memory_counts", { f: st.memory.fact || 0, r: st.memory.rule || 0 }) })), jvGo(t("home_review"), "memory")));
-  $("#home-approval-panel").replaceChildren(jvPanel("appr", "approval", t("drafts_title", { n: dr.drafts.length }), "06",
-    dr.drafts.length ? rows(dr.drafts.slice(0, 3).map(d => [d.channel + " → " + d.target, "Review", 60])) : jvEmpty("approval", t("drafts_none")),
-    jvGo(t("home_review"), "manage", "drafts")));
+      h("div", { class: "jv-task-rows" }, openTasks.length
+        ? openTasks.slice(0, 3).map(x => h("div", { class: "jv-row" }, h("span", { class: "jv-dot" }), h("span", { class: "jv-name", text: x.title })))
+        : jvEmpty("manage", lang === "th" ? "ไม่มีงานค้าง" : "All caught up")))));
+  $("#home-memory-panel").replaceChildren(jvPanel("mem", "memory", t("memory_title"), "memory", null,
+    jvMemoryGraph(factCount),
+    h("div", { class: "jv-pct" }, h("strong", { text: `${factCount} memories` }), h("small", { text: t("memory_counts", { f: st.memory.fact || 0, r: st.memory.rule || 0 }) }))));
+  $("#home-approval-panel").replaceChildren(jvPanel("appr", "approval", t("drafts_title", { n: dr.drafts.length }), "manage", "drafts",
+    dr.drafts.length
+      ? dr.drafts.slice(0, 3).map(d => h("div", { class: "jv-row" }, h("span", { class: "jv-dot" }), h("span", { class: "jv-name", text: d.channel + " → " + d.target }), h("em", { text: "Review" })))
+      : jvEmpty("approval", t("drafts_none"))));
   const recent = [...ac.running, ...ac.done.slice(0, 3)];
-  $("#home-activity-panel").replaceChildren(jvPanel("bg", "activity", t("work_title"), "07",
+  $("#home-activity-panel").replaceChildren(jvPanel("bg", "activity", t("work_title"), "activity", null,
     recent.length ? recent.map(a => h("div", { class: "jv-activity-row" }, h("span", { class: "jv-dot " + (a.status === "running" ? "running" : "") }),
-      h("span", { text: a.title }), h("small", { text: a.status === "running" ? Math.round(a.secs) + "s" : a.status }))) : jvEmpty("activity", t("work_idle")),
-    jvGo(t("home_review"), "activity")));
+      h("span", { text: a.title }), h("small", { text: a.status === "running" ? Math.round(a.secs) + "s" : a.status }))) : jvEmpty("activity", t("work_idle"))));
+  $("#home-project-panel").replaceChildren(jvPanel("", "projects", lang === "th" ? "โปรเจกต์" : "Projects", "computer", null,
+    jvEmpty("projects", lang === "th" ? "ยังไม่มีโปรเจกต์ที่ติดตาม" : "No projects tracked yet")));
+  $("#home-news-panel").replaceChildren(jvPanel("", "news", lang === "th" ? "ข่าวสาร" : "News", "automation", null,
+    jvEmpty("news", lang === "th" ? "ยังไม่ได้เชื่อมต่อฟีดข่าว" : "No news feed connected")));
 }
 function draftsPanel(list, after) {
   return panel(t("drafts_title", { n: list.length }), h("p", { class: "dim", text: t("drafts_note") }), ...list.map(d => h("div", { class: "row" },
@@ -335,7 +350,7 @@ async function vChat() {
     box.append(h("div", { class: "chat-empty" }, h("img", { src: "/static/logo-icon.png", alt: "" }),
       h("h2", { text: lang === "th" ? "คุยกับ Nano Agent" : "Talk to Nano Agent" }),
       h("p", { text: lang === "th" ? "ถาม วางแผน หรือให้ช่วยจัดการงานของคุณ" : "Ask a question, plan your day, or work through a task." }),
-      h("div", { class: "jv-quick-prompts", style: "justify-content:center" },
+      h("div", { class: "jv-quick-prompts" },
         ...starters.map(s => h("button", { onclick: () => { inp.value = s; inp.focus(); }, text: s })))));
   }
   h1.messages.forEach(m => box.append(h("div", { class: "msg " + m.role, text: m.text })));
@@ -466,7 +481,7 @@ async function vWork() {
 }
 
 // ---------- settings ----------
-const ACCENT_HEX = { orange: "#ff7a2a", blue: "#60a5fa", violet: "#a78bfa", green: "#34d399", cyan: "#38d6ff", rose: "#fb7185" };
+const ACCENT_HEX = { orange: "#ff6a00", blue: "#38bdf8", violet: "#a78bfa", green: "#34d399", cyan: "#38d6ff", rose: "#fb7185" };
 async function vSettings() {
   const v = clear(); const name = h("input", { value: ME.owner_name || "" }), tz = h("input", { value: ME.timezone || "" });
   const lg = h("select", null, ["en", "th"].map(l => h("option", { value: l, selected: l === lang ? "" : null, text: l === "en" ? "English" : "ไทย" })));
@@ -508,7 +523,7 @@ async function vSettings() {
 
 // ---------- boot ----------
 async function boot() {
-  wireThemeQuick();
+  wireHeaderActions();
   const s = await (await fetch("/api/strings")).json(); S = s.strings; lang = s.lang; S._liff = s.liff_id || ""; document.documentElement.lang = lang;
   const hp = new URLSearchParams(location.hash.slice(1));   // #token=...&tab=mind&sub=skills ; a fragment never reaches server logs
   if (hp.get("token")) {
