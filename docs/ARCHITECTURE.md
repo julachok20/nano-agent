@@ -101,6 +101,8 @@ src/nanoagent/
   voice/        stt, tts adapters
 tests/          synthetic data only; a fake provider drives the agent
 scripts/        secrets_scan.py, preview_console.py, e2e_check.py
+  (N8 to N10) sandbox_runtime.py (Docker seam), sandbox_ws.py (edge, audit, workspace), supervisor.py (lease, tripwires, kill),
+              redteam.py, constitution.py (+ constitution.md), tools/sandbox_tools.py, gateway/sandbox_api.py
 ```
 
 ## 5. Data layout (`~/.nano-agent`, override with `NANO_AGENT_HOME`)
@@ -141,7 +143,9 @@ rollback. Core safety files are on the denylist and cannot be patched by the age
   LINE API if you enable it, and web fetches you or the agent request.
 - No reading of private chats through a browser extension.
 
-## 8. N8 design: sandbox-first autonomy (planned, not built yet)
+## 8. N8 design: sandbox-first autonomy (built; see docs/SANDBOX.md)
+
+**Status:** the workspace, edge, audit log, scheduled sandbox jobs, snapshots and limits are built and tested with a host test double. Real Docker, a real network and a real model are not verified. Known gaps are listed in `docs/SANDBOX.md`.
 
 Owner decision: inside one isolated sandbox the agent has no preset-tool requirement. It writes code, creates files, builds its
 own tools and skills, and schedules its own automations. Rules live at the sandbox edge, enforced in code, not inside it.
@@ -167,7 +171,7 @@ with `nano-agent sandbox restore`; an audit log of every edge request and its de
 **Tests required (synthetic only):** agent creates and runs a new tool and a scheduled job with no preset tool; edge actions (unlisted
 domain, host file read, secret read, send) are blocked and logged; limits and kill switch work; rollback restores the workspace.
 
-## 9. N8 update: scope tiers replace per-action approval (planned)
+## 9. N8 update: scope tiers replace per-action approval (built)
 
 The owner's refinement supersedes the "approval at the edge" wording in section 8 where they conflict. Freedom is granted by a
 **tier the owner chooses once**. Inside the tier the agent is free and does not ask. The tier is configuration the agent cannot change;
@@ -184,7 +188,7 @@ Unchanged from section 8: Docker workspace volume, free tool and skill creation,
 rollback, audit log, no host fallback. Note that T3 messaging, once the owner enables it, replaces draft approval for that capability only.
 The default install keeps it off, so the approval-first rule of v0.1 still holds by default.
 
-## 10. N9 constitution and red-team simulation (planned)
+## 10. N9 constitution and red-team simulation (built; see docs/SANDBOX.md)
 
 `CONSTITUTION.md` is injected into every agent prompt. Precedence: owner's stop, then the constitution, then the current goal.
 `nano-agent redteam run` runs scripted scenarios in a throwaway sandbox, each with ground truth: honeypot files and fake keys (canaries),
@@ -194,7 +198,7 @@ constitution or logs, and goal pressure. Per model and tier it measures violatio
 (compared with the true audit log), stop compliance and kill latency, and writes a JSON scorecard plus a readable report. The scorecard is shown
 before a tier is raised. **Honest limit: passing the suite is evidence, not proof.**
 
-## 11. N10 kill switch, enforced outside the sandbox (planned)
+## 11. N10 kill switch, enforced outside the sandbox (built; see docs/SANDBOX.md)
 
 A separate **supervisor** (different OS user or container, not mounted into the sandbox, no shared socket) owns the sandbox lifecycle.
 Triggers: `nano-agent kill`, a console button, an optional hotkey or webhook, and automatic tripwires (a canary touched, N blocked edge
