@@ -1,5 +1,5 @@
 {
-  "ui.tab_home": "หน้าหลัก", "ui.tab_chat": "แชท", "ui.tab_manage": "จัดการ", "ui.tab_mind": "ความจำ", "ui.tab_work": "งาน", "ui.tab_settings": "ตั้งค่า",
+  "ui.tab_home": "หน้าหลัก", "ui.tab_chat": "แชท", "ui.tab_manage": "จัดการ", "ui.tab_chats": "แชท", "ui.tab_custom": "ปรับแต่ง", "ui.tab_more": "เพิ่มเติม","ui.tab_mind": "ความจำ", "ui.tab_work": "งาน", "ui.tab_settings": "ตั้งค่า",
   "ui.login_title": "เข้าสู่ระบบ", "ui.login_help": "วางโทเค็นของคุณ รัน `nano-agent token` ในเทอร์มินัลเพื่อดูโทเค็น", "ui.login_token": "โทเค็นเข้าใช้งาน",
   "ui.login_button": "เข้าสู่ระบบ", "ui.login_wrong": "โทเค็นไม่ถูกต้อง", "ui.logout": "ออกจากระบบ",
   "ui.pill_busy": "AI กำลังทำงาน {n} งาน", "ui.pill_idle": "AI ว่าง",

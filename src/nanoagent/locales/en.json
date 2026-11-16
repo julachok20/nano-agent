@@ -1,5 +1,5 @@
 {
-  "ui.tab_home": "Home", "ui.tab_chat": "Chat", "ui.tab_manage": "Manage", "ui.tab_mind": "Mind", "ui.tab_work": "Work", "ui.tab_settings": "Settings",
+  "ui.tab_home": "Home", "ui.tab_chat": "Chat", "ui.tab_manage": "Management", "ui.tab_chats": "Chats", "ui.tab_custom": "Customization", "ui.tab_more": "More","ui.tab_mind": "Mind", "ui.tab_work": "Work", "ui.tab_settings": "Settings",
   "ui.login_title": "Sign in", "ui.login_help": "Paste your access token. Run `nano-agent token` in a terminal to see it.", "ui.login_token": "Access token",
   "ui.login_button": "Sign in", "ui.login_wrong": "That token is not right.", "ui.logout": "Sign out",
   "ui.pill_busy": "AI working: {n}", "ui.pill_idle": "AI idle",
