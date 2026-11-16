@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Create a local sample-data console preview and optional screenshots.
 
-Screenshots require Playwright and its Chromium browser. No server is started,
-no account is contacted, and no real token or user data is used.
+Screenshots require Playwright and its Chromium browser. A temporary loopback
+server uses sample data; no real account, token, or user data is used.
 """
 from __future__ import annotations
 
@@ -18,6 +18,8 @@ import webbrowser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+SOURCE = str(ROOT / "src")
+sys.path.insert(0, SOURCE)
 
 
 def main() -> int:
@@ -29,7 +31,7 @@ def main() -> int:
     args.out.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory(prefix="nano-agent-preview-") as home:
-        env = {**os.environ, "NANO_AGENT_HOME": home}
+        env = {**os.environ, "NANO_AGENT_HOME": home, "PYTHONPATH": SOURCE}
         old_home = os.environ.get("NANO_AGENT_HOME")
         os.environ["NANO_AGENT_HOME"] = home
         subprocess.run([sys.executable, "-m", "nanoagent", "setup", "--non-interactive", "--provider", "fake",
@@ -82,6 +84,7 @@ def main() -> int:
                 with sync_playwright() as p:
                     browser = p.chromium.launch(headless=True)
                     page = browser.new_page(viewport={"width": 1440, "height": 1000}, device_scale_factor=1)
+                    page.add_init_script("localStorage.setItem('nano.theme', 'dark')")
                     page.goto(url, wait_until="domcontentloaded")
                     page.locator("nav button").first.wait_for(timeout=10000)
                     page.screenshot(path=str(args.out / "console-skills.png"), full_page=True)
@@ -89,7 +92,6 @@ def main() -> int:
                     page.locator(".jv-panel").first.wait_for(timeout=10000)
                     page.screenshot(path=str(args.out / "console-home.png"), full_page=True)
                     page.set_viewport_size({"width": 390, "height": 844})
-                    page.locator("#home-system-panel .jv-panel").wait_for(timeout=10000)
                     page.wait_for_timeout(250)
                     page.screenshot(path=str(args.out / "console-mobile.png"), full_page=True)
                     page.set_viewport_size({"width": 1440, "height": 1000})
@@ -100,20 +102,19 @@ def main() -> int:
                     page.locator(".chat-composer button").click()
                     page.locator(".chat-messages .msg.assistant").last.wait_for(timeout=15000)
                     page.screenshot(path=str(args.out / "console-chat-active.png"), full_page=True)
-                    page.locator("nav button").nth(6).click()
+                    page.locator('nav button[data-tab="settings"]').click()
                     page.locator(".theme-options").wait_for(timeout=10000)
                     page.screenshot(path=str(args.out / "console-settings.png"), full_page=True)
-                    for index, name in ((2, "manage"), (3, "system"), (4, "automations"), (5, "skills")):
-                        page.locator("nav button").nth(index).click()
+                    for target, name in (("manage", "manage"), ("projects", "projects"), ("automation", "automations"), ("skills", "skills")):
+                        page.locator(f'nav button[data-tab="{target}"]').click()
                         page.locator(".view-heading").wait_for(timeout=10000)
                         page.locator(".panel").first.wait_for(timeout=10000)
-                        if name != "system":  # live host and hardware details are not sample data
-                            page.screenshot(path=str(args.out / f"console-{name}.png"), full_page=True)
-                    page.locator("nav button").nth(6).click()
+                        page.screenshot(path=str(args.out / f"console-{name}.png"), full_page=True)
+                    page.locator('nav button[data-tab="settings"]').click()
                     page.locator(".settings-shortcuts button").first.click()
                     page.locator(".view-heading").wait_for(timeout=10000)
                     page.screenshot(path=str(args.out / "console-memory.png"), full_page=True)
-                    page.locator("nav button").nth(6).click()
+                    page.locator('nav button[data-tab="settings"]').click()
                     page.locator(".theme-option-light").click()
                     page.locator("html[data-theme='light']").wait_for(timeout=10000)
                     page.reload(wait_until="domcontentloaded")
@@ -121,12 +122,12 @@ def main() -> int:
                     page.locator(".jv-panel").first.wait_for(timeout=10000)
                     page.screenshot(path=str(args.out / "console-light.png"), full_page=True)
                     for theme in ("dark", "light"):
-                        page.locator("nav button").nth(6).click()
+                        page.locator('nav button[data-tab="settings"]').click()
                         page.locator(f".theme-option-{theme}").click()
                         page.locator(f"html[data-theme='{theme}']").wait_for(timeout=10000)
                         for width in (390, 1440):
                             page.set_viewport_size({"width": width, "height": 900})
-                            for index in range(7):
+                            for index in range(9):
                                 page.locator("nav button").nth(index).click()
                                 page.locator(".view-heading, .jv-head").first.wait_for(timeout=10000)
                                 if index not in (0, 1):

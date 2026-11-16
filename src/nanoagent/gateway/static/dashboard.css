@@ -270,10 +270,18 @@ main#view {
     padding: 10px 13px;
     font-size: 0.88rem;
   }
+  nav#tabs button.nav-secondary:first-of-type { margin-top: 18px; border-top: 1px solid var(--line); border-radius: 0; padding-top: 21px; }
+  nav#tabs button[data-tab="computer"] { margin-top: 20px; }
+  nav#tabs button[data-tab="computer"]::before { content: ""; position: absolute; width: calc(100% - 28px); height: 1px; background: var(--line); transform: translateY(-29px); }
 
   main#view {
     padding: 24px 30px 48px;
   }
+}
+@media (max-width: 959px) {
+  nav#tabs { overflow-x: auto; justify-content: flex-start; scrollbar-width: none; }
+  nav#tabs::-webkit-scrollbar { display: none; }
+  nav#tabs button { flex: 0 0 55px; }
 }
 
 /* Icons */

@@ -35,7 +35,7 @@ PREPAINT = (
 
 
 def page() -> str:
-    return f"""<!doctype html><html lang="en" data-theme="dark" data-accent="orange" data-density="normal" data-size="m"><head><meta charset="utf-8">
+    return f"""<!doctype html><html lang="en" data-theme="light" data-accent="orange" data-density="normal" data-size="m"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex">
 <title>nano Agent</title><link rel="icon" href="/static/favicon.png">{PREPAINT}<style>{CSS}</style><link rel="stylesheet" href="/static/dashboard.css?v={__version__}"></head><body>
 <header>
@@ -48,7 +48,7 @@ def page() -> str:
     <button id="hdr-search" class="icon-btn" type="button" aria-label="Quick chat"></button>
     <button id="hdr-notif" class="icon-btn" type="button" aria-label="Approvals"></button>
     <button id="theme-quick" class="icon-btn" type="button" aria-label="Toggle Light or Dark appearance"></button>
-    <span class="brand-mark" title="nano Agent"><img src="/static/logo-icon.png" alt="n"></span>
+    <span class="brand-mark" title="nano Agent"><img src="/static/mascot-n.png" alt="n"></span>
   </div>
 </header>
 <main id="view"></main><nav id="tabs"></nav><script src="/static/console.js?v={__version__}"></script></body></html>"""

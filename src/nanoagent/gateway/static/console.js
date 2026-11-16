@@ -95,23 +95,25 @@ async function liffLogin() {
 const HUBS = [
   ["home", "home", "tab_home"],
   ["chat", "chat", "tab_chat"],
-  ["manage", "manage", "tab_manage"],
-  ["computer", "system", "sub_system"],
-  ["automation", "auto", "sub_auto"],
+  ["manage", "manage", "sub_tasks"],
+  ["projects", "projects", "Projects"],
+  ["memory", "memory", "memory_title"],
   ["skills", "skills", "sub_skills"],
+  ["automation", "auto", "sub_auto"],
+  ["computer", "system", "sub_system"],
   ["settings", "settings", "tab_settings"]
 ];
-const HUB_OF = { activity: "home", memory: "settings", learning: "settings", know: "settings", mind: "settings", work: "computer" };
+const HUB_OF = { activity: "home", learning: "settings", know: "settings", mind: "settings", work: "computer" };
 function drawTabs() {
   $("#tabs").replaceChildren(
     h("a", { class: "nav-brand brand-lockup", href: "/console", "aria-label": "nano Agent home" }, h("img", { src: "/static/mascot-n.png", alt: "" }), h("span", { text: "nanoAgent" })),
     ...HUBS.map(([k, ic, lb]) =>
-      h("button", { class: (HUB_OF[tab] || tab) === k ? "on" : "", onclick: () => go(k) },
+      h("button", { class: ((HUB_OF[tab] || tab) === k ? "on " : "") + (["computer", "settings"].includes(k) ? "nav-secondary" : ""), "data-tab": k, onclick: () => go(k) },
         h("span", { class: "nav-ico" }, ico(ic)),
-        h("span", { class: "nav-lbl", text: k === "automation" && innerWidth < 960 ? (lang === "th" ? "ออโต้" : "Auto") : t(lb) }))));
+        h("span", { class: "nav-lbl", text: k === "projects" ? (lang === "th" ? "โปรเจกต์" : "Projects") : k === "automation" && innerWidth < 960 ? (lang === "th" ? "ออโต้" : "Auto") : t(lb) }))));
 }
 function go(k) { tab = k; drawTabs(); render(); }
-function render() { ({ home: vHome, chat: vChat, manage: vManage, computer: vWork, automation: vWork, skills: vMind,
+function render() { ({ home: vHome, chat: vChat, manage: vManage, projects: vProjects, computer: vWork, automation: vWork, skills: vMind,
   settings: vSettings, activity: vWork, memory: vMind, learning: vMind, know: vMind, mind: vMind, work: vWork })[tab](); }
 
 function currentBaseTheme() {
@@ -397,9 +399,17 @@ async function vChat() {
 }
 
 // ---------- manage ----------
+async function vProjects() {
+  const v = clear();
+  v.append(viewHeading(lang === "th" ? "โปรเจกต์" : "Projects",
+    lang === "th" ? "พื้นที่สำหรับงานหลายขั้นตอนและตัวแทนในอนาคต" : "A home for longer work and future agent teams.", 4),
+    panel(lang === "th" ? "โปรเจกต์ของคุณ" : "Your projects",
+      h("div", { class: "jv-empty-box" }, ico("projects", "ico ico-lg"),
+        h("p", { class: "jv-note", text: lang === "th" ? "ยังไม่มีโปรเจกต์ที่ติดตาม" : "No projects tracked yet." }))));
+}
 async function vManage() {
   const v = clear(); const cur = sub.manage || "tasks";
-  v.append(viewHeading(t("tab_manage"), lang === "th" ? "งานและรายการรออนุมัติ" : "Tasks and approvals in one place", 3),
+  v.append(viewHeading(t("sub_tasks"), lang === "th" ? "งานและรายการรออนุมัติ" : "Tasks and approvals in one place", 3),
     chips([["tasks", t("sub_tasks")], ["drafts", t("sub_drafts")]], cur, k => { sub.manage = k; vManage(); }));
   if (cur === "drafts") { const d = await api("/drafts"); v.append(d.drafts.length ? draftsPanel(d.drafts, vManage) : panel(t("drafts_none"))); return; }
   const d = await api("/tasks"); const title = h("input", { placeholder: t("task_title") }), due = h("input", { placeholder: t("task_due") });
