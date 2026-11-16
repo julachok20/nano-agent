@@ -239,8 +239,7 @@ function waveBars(n = 5) {
 }
 function assistantMascot() {
   return h("span", { class: "assistant-mascot", "aria-hidden": "true" },
-    h("span", { class: "assistant-letter", text: "n" }),
-    h("span", { class: "assistant-eyes" }, h("i"), h("i")),
+    h("img", { class: "assistant-logo", src: "/static/mascot-n.png", alt: "" }),
     h("span", { class: "assistant-working" }, h("i"), h("i"), h("i")));
 }
 async function vHome() {
