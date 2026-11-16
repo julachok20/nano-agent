@@ -14,6 +14,10 @@ CREATE TABLE IF NOT EXISTS messages(id INTEGER PRIMARY KEY, ts REAL, session TEX
 CREATE TABLE IF NOT EXISTS memory(id INTEGER PRIMARY KEY, ts REAL, kind TEXT, text TEXT, source TEXT DEFAULT '');
 CREATE TABLE IF NOT EXISTS tasks(id INTEGER PRIMARY KEY, ts REAL, title TEXT, due REAL, priority INTEGER DEFAULT 2,
   done INTEGER DEFAULT 0, done_ts REAL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS projects(id INTEGER PRIMARY KEY, ts REAL, name TEXT NOT NULL, goal TEXT DEFAULT '',
+  deadline TEXT DEFAULT '', next_step TEXT DEFAULT '', status TEXT DEFAULT 'active', closed_ts REAL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS project_items(id INTEGER PRIMARY KEY, project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  ts REAL, kind TEXT NOT NULL, text TEXT NOT NULL, due TEXT DEFAULT '', done INTEGER DEFAULT 0, done_ts REAL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS reminders(id INTEGER PRIMARY KEY, ts REAL, text TEXT, due REAL, fired INTEGER DEFAULT 0);
 CREATE TABLE IF NOT EXISTS drafts(id INTEGER PRIMARY KEY, ts REAL, channel TEXT, target TEXT, text TEXT, code TEXT,
   status TEXT DEFAULT 'pending', decided_ts REAL DEFAULT 0, note TEXT DEFAULT '');
@@ -38,6 +42,7 @@ CREATE TABLE IF NOT EXISTS sandbox_audit(id INTEGER PRIMARY KEY, ts REAL, kind T
   reason TEXT DEFAULT '', run_id TEXT DEFAULT '', prev TEXT DEFAULT '', hash TEXT DEFAULT '');
 CREATE INDEX IF NOT EXISTS ix_messages_session ON messages(session, id);
 CREATE INDEX IF NOT EXISTS ix_activity_ts ON activity(ts);
+CREATE INDEX IF NOT EXISTS ix_project_items_project ON project_items(project_id, id);
 """
 
 _initialised: set[str] = set()

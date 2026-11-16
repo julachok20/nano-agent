@@ -16,6 +16,7 @@ from nanoagent import (
     learning,
     memory,
     outbox,
+    projects,
     scheduler,
     skills,
     tasks,
@@ -154,6 +155,19 @@ def test_tasks_and_reminders_parse_times():
     assert 3500 < t - time.time() < 3700
     tid = tasks.add("x")["id"]
     assert tasks.complete(tid)["ok"] and all(t["id"] != tid for t in tasks.list_(False))
+
+
+def test_project_progress_blockers_and_close():
+    pid = projects.create("Launch", "Ship the release", "2030-01-02", "Review code")["id"]
+    milestone = projects.add_item(pid, "milestone", "Review code", "2030-01-01")["id"]
+    blocker = projects.add_item(pid, "blocker", "Waiting for approval")["id"]
+    assert projects.create("Bad", deadline="tomorrow")["ok"] is False
+    assert projects.add_item(pid, "unknown", "x")["ok"] is False
+    assert projects.complete_item(pid, milestone)["ok"]
+    p = projects.list_()[0]
+    assert p["progress"] == {"done": 1, "total": 1} and len(p["blockers"]) == 1
+    assert projects.complete_item(pid, blocker)["ok"] and not projects.list_()[0]["blockers"]
+    assert projects.close(pid)["ok"] and not projects.list_()
 
 
 # ---------------------------------------------------------------- skills

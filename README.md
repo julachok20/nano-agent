@@ -47,6 +47,7 @@ The hosted install URLs in [the install guide](docs/INSTALL.md) work only after 
 - Prepare LINE replies and other outbound actions as drafts for owner approval.
 - Propose bounded code changes, run checks, and wait for owner approval before applying them.
 - Run locally with optional Google, MCP, system metrics, keyring and Docker sandbox integrations.
+- Track projects in the console with goals, deadlines, milestones, blockers, notes, and decisions.
 
 ## Screenshots
 
@@ -58,7 +59,7 @@ The project includes the console logo and icon in `assets/`. These screenshots u
 
 ![nano Agent skills console](docs/img/console-skills.png)
 
-Choose **Dark**, **Modern**, **Calm**, or **Minimal** in Settings → Appearance. The choice is saved locally. The Chat tab supports direct conversation; Home, Manage, System, Automations, Skills, Memory, and Settings use the same navigation and panel design. See [Modern](docs/img/console-modern.png), [Calm](docs/img/console-calm.png), [Minimal](docs/img/console-minimal.png), and [Chat](docs/img/console-chat.png) previews.
+Choose **Light** or **Dark** in Settings → Appearance. The choice is saved locally. The console includes Chat, Tasks, Projects, Memory, Skills, Automations, System, and Settings. See [Projects](docs/img/console-projects.png), [Automations](docs/img/console-automations.png), and [Chat](docs/img/console-chat.png) previews.
 
 Recreate them with `python scripts/preview_console.py --screenshots --out docs/img` after installing Playwright Chromium.
 

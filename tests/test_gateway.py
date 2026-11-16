@@ -40,6 +40,19 @@ def _fill(path: str) -> str:
     return re.sub(r"\{[^}]+\}", "1", path)
 
 
+def test_project_routes_round_trip(owner):
+    created = owner.post("/api/projects", json={"name": "Launch", "goal": "Ship it"}).json()
+    assert created["ok"]
+    pid = created["id"]
+    item = owner.post(f"/api/projects/{pid}/items", json={"kind": "milestone", "text": "Review"}).json()
+    assert item["ok"]
+    assert owner.get("/api/projects").json()["items"][0]["progress"] == {"done": 0, "total": 1}
+    assert owner.post(f"/api/projects/{pid}/items/{item['id']}/complete").json()["ok"]
+    assert owner.get("/api/projects").json()["items"][0]["progress"]["done"] == 1
+    assert owner.post(f"/api/projects/{pid}/close").json()["ok"]
+    assert owner.get("/api/projects").json()["items"] == []
+
+
 # ---------------------------------------------------------------- auth coverage (the rule: owner-only on every route)
 
 def test_every_route_is_owner_only_or_explicitly_public(app):

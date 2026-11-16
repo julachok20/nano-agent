@@ -52,6 +52,13 @@ def main() -> int:
                (now, "fact", "Prefers concise daily updates", "sample preview"))
         db.run("INSERT INTO memory(ts,kind,text,source) VALUES(?,?,?,?)",
                (now, "rule", "Ask before sending messages", "sample preview"))
+        from nanoagent import projects
+
+        project = projects.create("Plan a weekend trip", "Choose a destination and book the essentials", "2026-12-05", "Compare destinations")
+        projects.add_item(project["id"], "milestone", "Choose a destination", "2026-11-20")
+        projects.add_item(project["id"], "milestone", "Book travel", "2026-11-25")
+        projects.add_item(project["id"], "blocker", "Agree on the travel budget")
+        projects.add_item(project["id"], "decision", "Travel by train")
         app = create_app()
         cfg = {"host": "127.0.0.1", "port": 0, "log_level": "error", "access_log": False}
         server = uvicorn.Server(uvicorn.Config(app, **cfg))

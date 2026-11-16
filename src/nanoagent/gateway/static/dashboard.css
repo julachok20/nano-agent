@@ -444,6 +444,21 @@ button:focus-visible, .btn:focus-visible, input:focus-visible, textarea:focus-vi
 
 .bar { height: 8px; border-radius: 999px; background: var(--bg-elev); border: 1px solid var(--line); overflow: hidden; }
 .bar > i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.page-summary { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 12px; padding: 16px 20px; margin: 0 0 18px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); color: var(--dim); }
+.page-summary strong { color: var(--accent); font-size: 1.35rem; line-height: 1; margin-left: 12px; }
+.page-summary strong:first-child { margin-left: 0; }
+.project-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 10px 0 14px; }
+.project-meta, .project-add, .auto-schedule { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.project-progress { height: 10px; margin: 14px 0; }
+.project-add input { flex: 1 1 230px; }
+.project-add select, .auto-schedule select, .auto-schedule input { width: auto; min-width: 120px; }
+.project-close { margin-top: 16px; }
+.panel h4 { margin: 20px 0 5px; font-size: .88rem; }
+.resource-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 14px 0 4px; }
+.resource-card { display: flex; flex-direction: column; gap: 3px; align-items: center; padding: 18px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg-elev); }
+.resource-card strong { font-size: 1.5rem; color: var(--accent); }
+.resource-card span { color: var(--dim); font-size: .82rem; text-align: center; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .project-form, .resource-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 pre {
   background: var(--bg-elev);

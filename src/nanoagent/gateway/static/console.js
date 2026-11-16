@@ -401,11 +401,45 @@ async function vChat() {
 // ---------- manage ----------
 async function vProjects() {
   const v = clear();
+  const data = await api("/projects"), items = data.items || [];
+  const name = h("input", { placeholder: lang === "th" ? "ชื่อโปรเจกต์" : "Project name", maxlength: 100 });
+  const goal = h("input", { placeholder: lang === "th" ? "เป้าหมาย" : "Goal", maxlength: 500 });
+  const deadline = h("input", { type: "date", "aria-label": lang === "th" ? "กำหนดส่ง" : "Deadline" });
+  const next = h("input", { placeholder: lang === "th" ? "ขั้นต่อไป" : "Next step", maxlength: 300 });
   v.append(viewHeading(lang === "th" ? "โปรเจกต์" : "Projects",
-    lang === "th" ? "พื้นที่สำหรับงานหลายขั้นตอนและตัวแทนในอนาคต" : "A home for longer work and future agent teams.", 4),
-    panel(lang === "th" ? "โปรเจกต์ของคุณ" : "Your projects",
-      h("div", { class: "jv-empty-box" }, ico("projects", "ico ico-lg"),
-        h("p", { class: "jv-note", text: lang === "th" ? "ยังไม่มีโปรเจกต์ที่ติดตาม" : "No projects tracked yet." }))));
+    lang === "th" ? "ความคืบหน้า หมุดหมาย และสิ่งที่ติดขัด" : "Goals, milestones, and blockers in one place.", 4),
+    h("div", { class: "page-summary" },
+      h("strong", { text: String(items.length) }), h("span", { text: lang === "th" ? "โปรเจกต์ที่กำลังทำ" : "active projects" })),
+    panel(lang === "th" ? "เริ่มโปรเจกต์" : "Start a project",
+      h("div", { class: "project-form" }, name, goal, deadline, next),
+      h("button", { class: "pri", onclick: async () => { const r = await act("/projects", { name: name.value, goal: goal.value, deadline: deadline.value, next_step: next.value }); if (r.ok) vProjects(); }, text: lang === "th" ? "สร้างโปรเจกต์" : "Create project" })));
+  if (!items.length) v.append(panel(lang === "th" ? "โปรเจกต์ของคุณ" : "Your projects",
+    h("div", { class: "jv-empty-box" }, ico("projects", "ico ico-lg"),
+      h("p", { class: "jv-note", text: lang === "th" ? "ยังไม่มีโปรเจกต์ เริ่มจากชื่อและเป้าหมายด้านบน" : "No projects yet. Add a name and goal above." }))));
+  for (const p of items) {
+    const pct = p.progress.total ? Math.round(p.progress.done / p.progress.total * 100) : 0;
+    const kind = h("select", { "aria-label": lang === "th" ? "ประเภทรายการ" : "Item type" },
+      [["milestone", "Milestone"], ["blocker", "Blocker"], ["note", "Note"], ["decision", "Decision"]].map(([value, label]) => h("option", { value, text: label })));
+    const detail = h("input", { placeholder: lang === "th" ? "อธิบายรายการ" : "Describe a milestone, blocker, note, or decision", maxlength: 500 });
+    const itemDue = h("input", { type: "date", "aria-label": lang === "th" ? "กำหนดหมุดหมาย" : "Milestone due date" });
+    const itemRow = (x) => h("div", { class: "row" },
+      h("span", { class: "tag " + (x.done ? "ok" : x.kind === "blocker" ? "bad" : ""), text: x.kind }),
+      h("span", { class: "grow", text: x.text }), x.due ? h("span", { class: "dim", text: x.due }) : null,
+      ["milestone", "blocker"].includes(x.kind) && !x.done ? h("button", { onclick: async () => { const r = await post(`/projects/${p.id}/items/${x.id}/complete`); if (r.ok) vProjects(); else toast(r.error); }, text: x.kind === "blocker" ? "Resolved" : t("done") }) : null);
+    v.append(panel(p.name,
+      h("div", { class: "project-meta" },
+        p.deadline ? h("span", { class: "tag", text: (lang === "th" ? "กำหนด " : "Due ") + p.deadline }) : null,
+        h("span", { class: "dim", text: `${p.progress.done}/${p.progress.total} ${lang === "th" ? "หมุดหมาย" : "milestones"}` })),
+      h("div", { class: "bar project-progress" }, h("i", { style: `width:${pct}%` })),
+      p.goal ? h("p", null, h("b", { text: lang === "th" ? "เป้าหมาย: " : "Goal: " }), h("span", { text: p.goal })) : null,
+      p.next_step ? h("p", null, h("b", { text: lang === "th" ? "ขั้นต่อไป: " : "Next step: " }), h("span", { text: p.next_step })) : null,
+      h("h4", { text: lang === "th" ? "สิ่งที่ติดขัด" : "Blockers" }), ...(p.blockers.length ? p.blockers.map(itemRow) : [h("p", { class: "dim", text: lang === "th" ? "ไม่มีสิ่งที่ติดขัด" : "No blockers" })]),
+      h("h4", { text: lang === "th" ? "หมุดหมาย" : "Milestones" }), ...(p.milestones.length ? p.milestones.map(itemRow) : [h("p", { class: "dim", text: lang === "th" ? "ยังไม่มีหมุดหมาย" : "No milestones yet" })]),
+      p.recent.length ? h("details", null, h("summary", { text: lang === "th" ? "บันทึกและการตัดสินใจ" : "Notes and decisions" }), ...p.recent.map(itemRow)) : null,
+      h("div", { class: "project-add" }, kind, detail, itemDue,
+        h("button", { onclick: async () => { const r = await act(`/projects/${p.id}/items`, { kind: kind.value, text: detail.value, due: itemDue.value }); if (r.ok) vProjects(); }, text: t("add") })),
+      h("button", { class: "bad project-close", onclick: async () => { if (confirm(lang === "th" ? "ปิดโปรเจกต์นี้?" : "Close this project?")) { const r = await post(`/projects/${p.id}/close`); if (r.ok) vProjects(); else toast(r.error); } }, text: lang === "th" ? "ปิดโปรเจกต์" : "Close project" })));
+  }
 }
 async function vManage() {
   const v = clear(); const cur = sub.manage || "tasks";
@@ -413,8 +447,13 @@ async function vManage() {
     chips([["tasks", t("sub_tasks")], ["drafts", t("sub_drafts")]], cur, k => { sub.manage = k; vManage(); }));
   if (cur === "drafts") { const d = await api("/drafts"); v.append(d.drafts.length ? draftsPanel(d.drafts, vManage) : panel(t("drafts_none"))); return; }
   const d = await api("/tasks"); const title = h("input", { placeholder: t("task_title") }), due = h("input", { placeholder: t("task_due") });
+  const open = d.tasks.filter(x => !x.done), overdue = open.filter(x => x.due && new Date(x.due.replace(" ", "T")) < new Date());
+  v.append(h("div", { class: "page-summary" }, h("strong", { text: String(open.length) }), h("span", { text: lang === "th" ? "งานค้าง" : "open tasks" }),
+    h("strong", { text: String(overdue.length) }), h("span", { text: lang === "th" ? "เลยกำหนด" : "overdue" }),
+    h("strong", { text: String(d.reminders.length) }), h("span", { text: lang === "th" ? "การเตือน" : "reminders" })));
   v.append(panel(t("task_add"), title, h("div", { style: "height:6px" }), due, h("p", null, h("button", { class: "pri", onclick: async () => { const r = await act("/tasks", { title: title.value, due: due.value }); if (r.ok) vManage(); }, text: t("add") }))));
-  v.append(panel(t("tasks_title"), ...d.tasks.map(x => h("div", { class: "row" }, h("span", { class: "grow", style: x.done ? "text-decoration:line-through;opacity:.5" : "", text: x.title }), h("span", { class: "dim", text: x.due }),
+  v.append(panel(t("tasks_title"), ...d.tasks.map(x => h("div", { class: "row" }, h("span", { class: "grow", style: x.done ? "text-decoration:line-through;opacity:.5" : "", text: x.title }),
+    h("span", { class: "tag " + (x.done ? "ok" : overdue.some(y => y.id === x.id) ? "bad" : ""), text: x.done ? t("done") : x.due || (lang === "th" ? "ไม่มีกำหนด" : "No due date") }),
     x.done ? null : h("button", { onclick: async () => { await post("/tasks/" + x.id + "/complete"); vManage(); }, text: t("done") })))));
   const rt = h("input", { placeholder: t("rem_text") }), rw = h("input", { placeholder: t("rem_when") });
   v.append(panel(t("reminders_title"), ...d.reminders.map(r => h("div", { class: "row" }, h("span", { class: "grow", text: r.text }), h("span", { class: "dim", text: r.due }))), rt, h("div", { style: "height:6px" }), rw,
@@ -431,12 +470,18 @@ async function vMind() {
 }
 async function mMemory(v) {
   const d = await api("/memory"); const inp = h("input", { placeholder: t("memory_add_ph") });
+  const overview = d.overview || {}, kinds = ["fact", "rule", "lesson"];
+  v.append(h("div", { class: "page-summary" }, h("strong", { text: String(d.items.length) }), h("span", { text: lang === "th" ? "ความจำทั้งหมด" : "memories" }),
+    ...kinds.flatMap(k => [h("strong", { text: String(overview[k] || 0) }), h("span", { text: k })])));
   v.append(panel(t("memory_add"), inp, h("p", null, h("button", { class: "pri", onclick: async () => { const r = await act("/memory", { text: inp.value }); if (r.ok) vMind(); }, text: t("add") }))));
   v.append(panel(t("memory_title"), d.items.length ? d.items.map(m => h("div", { class: "row" }, h("span", { class: "tag", text: m.kind }), h("span", { class: "grow", text: m.text }), h("span", { class: "dim", text: m.source }),
     h("button", { class: "bad", onclick: async () => { await del("/memory/" + m.id); vMind(); }, text: t("delete") }))) : h("p", { class: "dim", text: t("memory_none") })));
 }
 async function mSkills(v) {
   const d = await api("/skills"); const txt = h("textarea", { placeholder: t("skill_import_ph") }), url = h("input", { placeholder: "https://github.com/owner/repo" });
+  const enabled = d.skills.filter(s => s.enabled && !s.pending).length, pending = d.skills.filter(s => s.pending).length;
+  v.append(h("div", { class: "page-summary" }, h("strong", { text: String(enabled) }), h("span", { text: lang === "th" ? "ทักษะที่เปิด" : "enabled skills" }),
+    h("strong", { text: String(pending) }), h("span", { text: lang === "th" ? "รอตรวจ" : "awaiting review" })));
   v.append(panel(t("skills_title"), d.skills.length ? d.skills.map(s => h("div", { class: "row" }, h("span", { class: "grow" }, h("b", { text: s.name }), h("div", { class: "dim", text: s.description })),
     h("span", { class: "tag " + (s.pending ? "warn" : s.enabled ? "ok" : ""), text: s.pending ? t("skill_pending") : s.enabled ? t("on") : t("off") }), h("button", { onclick: () => skillSheet(s), text: t("open") }))) : h("p", { class: "dim", text: t("skills_none") })));
   v.append(panel(t("skill_import"), h("p", { class: "dim", text: t("skill_import_note") }), url, h("p", null, h("button", { onclick: async () => { const r = await post("/skills/import", { kind: "url", url: url.value }); toast(JSON.stringify((r.results || []).map(x => x.ok ? x.name : x.error))); vMind(); }, text: t("import_github") })),
@@ -488,13 +533,30 @@ async function vWork() {
   if (!fixed) v.append(chips([["activity", t("sub_activity")], ["auto", t("sub_auto")], ["system", t("sub_system")]], cur, k => { sub.work = k; vWork(); }));
   if (cur === "activity") { const a = await api("/activity"); const row = x => h("div", { class: "row" }, h("span", { class: "tag " + (x.status === "done" ? "ok" : x.status === "failed" ? "bad" : "warn"), text: x.status }), h("span", { class: "grow" }, h("b", { text: x.title }), x.steps.length ? h("div", { class: "dim", text: x.steps.slice(-3).map(s => s.text).join(" · ") }) : null), h("span", { class: "dim", text: Math.round(x.secs) + "s" }));
     v.append(panel(t("running_title"), a.running.length ? a.running.map(row) : h("p", { class: "dim", text: t("work_idle") })), panel(t("recent_title"), a.done.map(row))); }
-  if (cur === "auto") { const a = await api("/automations"); const nm = h("input", { placeholder: t("auto_name") }), pr = h("textarea", { placeholder: t("auto_prompt") }), sc = h("input", { placeholder: '{"daily": "08:00"}' });
-    v.append(panel(t("auto_title"), a.items.map(x => h("div", { class: "row" }, h("span", { class: "grow" }, h("b", { text: x.name }), h("div", { class: "dim", text: JSON.stringify(x.schedule) + (x.last_status ? " · " + x.last_status : "") })),
+  if (cur === "auto") { const a = await api("/automations"); const nm = h("input", { placeholder: t("auto_name") }), pr = h("textarea", { placeholder: t("auto_prompt") });
+    const frequency = h("select", { "aria-label": lang === "th" ? "ความถี่" : "Frequency" },
+      h("option", { value: "daily", text: lang === "th" ? "ทุกวัน" : "Daily" }), h("option", { value: "weekly", text: lang === "th" ? "ทุกสัปดาห์" : "Weekly" }));
+    const day = h("select", { "aria-label": lang === "th" ? "วัน" : "Day of week" },
+      ...["mon", "tue", "wed", "thu", "fri", "sat", "sun"].map(d => h("option", { value: d, text: d.toUpperCase() })));
+    const at = h("input", { type: "time", value: "08:00", "aria-label": lang === "th" ? "เวลา" : "Time" });
+    frequency.addEventListener("change", () => { day.hidden = frequency.value !== "weekly"; }); day.hidden = true;
+    const scheduleText = x => x.schedule.daily ? (lang === "th" ? "ทุกวัน " : "Daily ") + x.schedule.daily : x.schedule.weekly ? x.schedule.weekly : JSON.stringify(x.schedule);
+    v.append(h("div", { class: "page-summary" }, h("strong", { text: String(a.items.filter(x => x.enabled).length) }), h("span", { text: lang === "th" ? "ระบบที่เปิดอยู่" : "active automations" }),
+      h("strong", { text: String(a.items.length) }), h("span", { text: lang === "th" ? "ทั้งหมด" : "total" })),
+      panel(t("auto_title"), a.items.length ? a.items.map(x => h("div", { class: "row" }, h("span", { class: "tag " + (x.enabled ? "ok" : ""), text: x.enabled ? t("on") : t("off") }),
+      h("span", { class: "grow" }, h("b", { text: x.name }), h("div", { class: "dim", text: scheduleText(x) + (x.next_run && x.enabled ? " · Next " + when(x.next_run) : "") + (x.last_status ? " · " + x.last_status : "") })),
       h("button", { onclick: async () => { await post("/automations/" + x.id + "/toggle", { enabled: !x.enabled }); vWork(); }, text: x.enabled ? t("pause") : t("resume") }), h("button", { onclick: async () => { const r = await post("/automations/" + x.id + "/run"); toast(r.status || r.error); }, text: t("run_now") }),
-      x.builtin ? null : h("button", { class: "bad", onclick: async () => { await del("/automations/" + x.id); vWork(); }, text: t("delete") })))),
-      panel(t("auto_new"), nm, pr, sc, h("p", null, h("button", { class: "pri", onclick: async () => { let s; try { s = JSON.parse(sc.value); } catch (e) { return toast("JSON"); } const r = await act("/automations", { name: nm.value, prompt: pr.value, schedule: s }); if (r.ok) vWork(); }, text: t("add") })))); }
+      x.builtin ? null : h("button", { class: "bad", onclick: async () => { if (confirm(lang === "th" ? "ลบระบบนี้?" : "Delete this automation?")) { await del("/automations/" + x.id); vWork(); } }, text: t("delete") }))) : h("p", { class: "dim", text: lang === "th" ? "ยังไม่มีระบบอัตโนมัติ" : "No automations yet." })),
+      panel(t("auto_new"), nm, pr, h("div", { class: "auto-schedule" }, frequency, day, at),
+        h("p", { class: "dim", text: lang === "th" ? "ระบบจะทำงานตามเวลาในเขตเวลาที่ตั้งไว้" : "Runs in your configured time zone." }),
+        h("button", { class: "pri", onclick: async () => { const schedule = frequency.value === "weekly" ? { weekly: `${day.value} ${at.value}` } : { daily: at.value }; const r = await act("/automations", { name: nm.value, prompt: pr.value, schedule }); if (r.ok) vWork(); }, text: t("add") }))); }
   if (cur === "system") { const s = await api("/system"), i = s.info; const bar = (l, p) => p == null ? null : h("div", { class: "row" }, h("span", { class: "grow", text: l }), h("div", { class: "bar", style: "width:50%" }, h("i", { style: "width:" + p + "%" })), h("span", { class: "dim", text: p + "%" }));
-    v.append(panel(t("system_title"), h("p", { class: "dim", text: `${i.host} · ${i.os} · Python ${i.python} · nano Agent ${i.version}` }), bar("CPU", i.cpu_pct), bar("RAM", i.ram_pct), bar("Disk", i.disk_pct),
+    const resources = [["CPU", i.cpu_pct], ["RAM", i.ram_pct], ["Disk", i.disk_pct], [i.gpu ? i.gpu.name : "GPU", i.gpu?.util_pct]];
+    v.append(h("div", { class: "page-summary" }, h("strong", { text: String(s.health.filter(x => x.ok).length) }), h("span", { text: lang === "th" ? "รายการปกติ" : "healthy checks" }),
+      h("strong", { text: String(s.health.length - s.health.filter(x => x.ok).length) }), h("span", { text: lang === "th" ? "ต้องดู" : "need attention" })),
+      panel(t("system_title"), h("p", { class: "dim", text: `${i.host} · ${i.os} · Python ${i.python} · nano Agent ${i.version}` }),
+      h("div", { class: "resource-grid" }, resources.map(([name, pct]) => h("div", { class: "resource-card" }, h("strong", { text: pct == null ? "—" : `${Math.round(pct)}%` }), h("span", { text: name }))))));
+    v.append(panel(lang === "th" ? "การใช้ทรัพยากร" : "Resource usage", bar("CPU", i.cpu_pct), bar("RAM", i.ram_pct), bar("Disk", i.disk_pct),
       i.gpu ? bar("GPU " + i.gpu.name, i.gpu.util_pct) : null, i.cpu_pct == null ? h("p", { class: "dim", text: t("system_psutil") }) : null),
       panel(t("health_title"), s.health.map(c => h("div", { class: "row" }, h("span", { class: "tag " + (c.ok ? "ok" : "bad"), text: c.ok ? "OK" : "!" }), h("span", { class: "grow", text: c.name }), h("span", { class: "dim", text: c.detail })))),
       panel(t("providers_title"), Object.entries(s.providers).map(([n, p]) => h("div", { class: "row" }, h("b", { text: n }), h("span", { class: "dim grow", text: p.kind + " · " + p.base_url }))), h("p", null, h("button", { onclick: async () => { const r = await post("/models/test"); toast(r.ok ? "OK: " + r.model : r.message); }, text: t("test_model") }))),

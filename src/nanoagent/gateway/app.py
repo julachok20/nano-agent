@@ -31,6 +31,7 @@ from .. import (
     patching,
     paths,
     providers,
+    projects,
     scheduler,
     skills,
     tasks,
@@ -207,6 +208,29 @@ def create_app() -> FastAPI:
     @api.post("/tasks/{tid}/complete")
     async def tasks_done(tid: int):
         return tasks.complete(tid)
+
+    # projects
+    @api.get("/projects")
+    async def projects_list():
+        return {"items": projects.list_()}
+
+    @api.post("/projects")
+    async def projects_create(request: Request):
+        d = await _json(request)
+        return projects.create(d.get("name", ""), d.get("goal", ""), d.get("deadline", ""), d.get("next_step", ""))
+
+    @api.post("/projects/{pid}/items")
+    async def project_item_add(pid: int, request: Request):
+        d = await _json(request)
+        return projects.add_item(pid, d.get("kind", ""), d.get("text", ""), d.get("due", ""))
+
+    @api.post("/projects/{pid}/items/{item_id}/complete")
+    async def project_item_complete(pid: int, item_id: int):
+        return projects.complete_item(pid, item_id)
+
+    @api.post("/projects/{pid}/close")
+    async def project_close(pid: int):
+        return projects.close(pid)
 
     @api.post("/reminders")
     async def reminders_add(request: Request):
