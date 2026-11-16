@@ -104,7 +104,7 @@ const HUBS = [
 const HUB_OF = { activity: "home", memory: "settings", learning: "settings", know: "settings", mind: "settings", work: "computer" };
 function drawTabs() {
   $("#tabs").replaceChildren(
-    h("div", { class: "nav-brand" }, h("img", { src: "/static/logo-icon.png", alt: "" }), h("span", { text: "nanoAgent" })),
+    h("a", { class: "nav-brand brand-lockup", href: "/console", "aria-label": "nano Agent home" }, h("img", { src: "/static/mascot-n.png", alt: "" }), h("span", { text: "nanoAgent" })),
     ...HUBS.map(([k, ic, lb]) =>
       h("button", { class: (HUB_OF[tab] || tab) === k ? "on" : "", onclick: () => go(k) },
         h("span", { class: "nav-ico" }, ico(ic)),
@@ -354,9 +354,9 @@ async function vChat() {
     ? ["ช่วยวางแผนงานวันนี้", "สรุปสิ่งที่ต้องทำ", "ช่วยร่างข้อความสั้นๆ"]
     : ["Plan my day", "Summarize my open tasks", "Help me draft a message"];
   if (!h1.messages.length) {
-    box.append(h("div", { class: "chat-empty" }, h("img", { src: "/static/logo-icon.png", alt: "" }),
-      h("h2", { text: lang === "th" ? "คุยกับ Nano Agent" : "Talk to Nano Agent" }),
-      h("p", { text: lang === "th" ? "ถาม วางแผน หรือให้ช่วยจัดการงานของคุณ" : "Ask a question, plan your day, or work through a task." }),
+    box.append(h("div", { class: "chat-empty" }, h("img", { src: "/static/mascot-n.png", alt: "" }),
+      h("h2", { text: lang === "th" ? "สวัสดี ยินดีที่ได้คุยกัน" : `Hi${ME.owner_name ? ` ${ME.owner_name}` : ""}, what can I help you with?` }),
+      h("p", { text: lang === "th" ? "ฉันพร้อมช่วยวางแผน ค้นหาคำตอบ และจัดการงานของคุณ" : "I’m here to help you plan, find answers, and get things done." }),
       h("div", { class: "jv-quick-prompts" },
         ...starters.map(s => h("button", { onclick: () => { inp.value = s; inp.focus(); }, text: s })))));
   }

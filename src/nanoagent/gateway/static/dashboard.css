@@ -259,10 +259,7 @@ main#view {
   .nav-brand img {
     width: 28px;
     height: 28px;
-    border-radius: 9px;
-    background: #ffffff;
-    padding: 2px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
+    object-fit: contain;
   }
 
   nav#tabs button {
