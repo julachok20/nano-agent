@@ -140,3 +140,29 @@ rollback. Core safety files are on the denylist and cannot be patched by the age
 - No telemetry of any kind. Nothing leaves the machine except calls to the AI provider you configured, the
   LINE API if you enable it, and web fetches you or the agent request.
 - No reading of private chats through a browser extension.
+
+## 8. N8 design: sandbox-first autonomy (planned, not built yet)
+
+Owner decision: inside one isolated sandbox the agent has no preset-tool requirement. It writes code, creates files, builds its
+own tools and skills, and schedules its own automations. Rules live at the sandbox edge, enforced in code, not inside it.
+
+**Workspace.** One Docker container with a persistent workspace volume. The system prompt tells the agent to build what it needs
+from the owner's request, and to save useful things as `SKILL.md` folders plus scripts in the workspace so it improves over time.
+Packages come only from an owner-approved mirror.
+
+**No host fallback.** Where Docker is missing the sandbox stays OFF with a clear message. A restricted subprocess on the host is not
+isolation (Python cannot be sandboxed from inside Python), so v0.2 does not offer it. Windows users can use Docker Desktop or WSL.
+
+**Automations in the sandbox.** The existing scheduler runs sandbox jobs. The agent can create, edit, pause and delete its own jobs.
+Each run is logged to the activity view with steps and output; failures retry with backoff, then notify the owner once.
+
+**The edge (host side, approval-gated, logged).** Everything the agent builds inside is free; everything that leaves passes a gate:
+network beyond a default-off allowlist (the owner adds a domain in one tap), any read or write outside the volume, any secret or API key
+(keyed calls go through a host-side broker; the sandbox never sees keys), sending a message to any person or chat (existing drafts flow),
+paid API calls beyond a budget, deleting the owner's data, and changing core code (the patch flow and its denylist stay).
+
+**Safety nets.** CPU, RAM, disk and time limits per run; kill switch (`nano-agent sandbox stop` and a console button); workspace snapshots
+with `nano-agent sandbox restore`; an audit log of every edge request and its decision; a first-run notice explaining what the agent may do alone.
+
+**Tests required (synthetic only):** agent creates and runs a new tool and a scheduled job with no preset tool; edge actions (unlisted
+domain, host file read, secret read, send) are blocked and logged; limits and kill switch work; rollback restores the workspace.

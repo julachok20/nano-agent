@@ -67,3 +67,12 @@ nano Agent is built for **one owner on a machine they control**.
 - Run `nano-agent doctor` after changes; it checks file permissions and configuration.
 - Use a provider key with a spending limit.
 - Rotate the owner token and your provider keys if you ever paste them somewhere by mistake.
+
+## Planned: sandbox-first autonomy (N8, not implemented yet)
+
+The owner wants the agent to be creative and unrestricted **inside** an isolated workspace. The security model moves the rules to the
+**edge** of that workspace. They stay in code and tested: default-off network allowlist, no host files outside the workspace volume,
+no secrets in the sandbox (a host-side broker makes keyed calls), no message to any person without approval, a spending budget,
+no deletion of the owner's data, and no change to core code outside the patch flow. Every edge request and decision goes to an audit log.
+There is a kill switch and workspace snapshots with rollback. If Docker is missing the sandbox stays off; there is no host fallback.
+Until N8 ships, the existing optional Docker sandbox (no network, read-only, no secrets) is the only code execution available.
