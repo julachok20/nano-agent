@@ -26,6 +26,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", type=Path, default=ROOT / "preview")
     ap.add_argument("--open", action="store_true", help="open the local preview in a browser")
+    ap.add_argument("--serve", action="store_true", help="keep the local sample preview running until interrupted")
     ap.add_argument("--screenshots", action="store_true", help="save screenshots (requires Playwright Chromium)")
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
@@ -136,9 +137,17 @@ def main() -> int:
                                 if actual > width + 1:
                                     raise AssertionError(f"horizontal overflow: {theme}, tab {index}, width {width}: {actual}")
                     browser.close()
+            if args.open or args.serve:
+                print(f"Sample preview: {url}", flush=True)
             if args.open:
                 webbrowser.open(url)
                 input("Preview is open. Press Enter to stop the temporary server. ")
+            elif args.serve:
+                try:
+                    while True:
+                        time.sleep(1)
+                except KeyboardInterrupt:
+                    pass
             print(f"Sample preview finished. Screenshots: {args.out if args.screenshots else 'not requested'}")
             if not args.screenshots:
                 print("Add --screenshots to capture pages (install Playwright Chromium first).")

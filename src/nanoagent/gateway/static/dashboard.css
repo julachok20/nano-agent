@@ -848,14 +848,14 @@ main:has(.chat-stage) { max-width: 1060px; }
 }
 
 .chat-avatar {
-  width: 42px;
-  height: 42px;
+  width: 56px;
+  height: 48px;
   display: grid;
   place-items: center;
   flex: none;
 }
 
-.chat-avatar img { width: 100%; height: 100%; object-fit: contain; }
+.chat-avatar img { width: 56px; height: 48px; max-width: none; object-fit: cover; }
 .chat-agent-identity { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .chat-head-info strong { display: block; font-size: 0.95rem; }
 .chat-head-info small { display: block; color: var(--dim); font-size: 0.76rem; }
@@ -881,7 +881,7 @@ main:has(.chat-stage) { max-width: 1060px; }
 .msg.note { align-self: center; text-align: center; background: transparent; color: var(--dim); font-size: 0.84rem; }
 
 .chat-empty { margin: auto; text-align: center; max-width: 440px; padding: 18px 8px; }
-.chat-empty img { width: 64px; height: 64px; border-radius: 18px; background: #ffffff; padding: 6px; border: 1px solid var(--line); box-shadow: var(--shadow); }
+.chat-empty img { display: block; width: 132px; height: 110px; margin: 0 auto; object-fit: cover; object-position: center; background: transparent; border: 0; padding: 0; filter: drop-shadow(0 14px 18px color-mix(in srgb, var(--accent) 14%, transparent)); }
 .chat-empty h2 { font-size: 1.45rem; margin: 16px 0 6px; letter-spacing: -0.02em; }
 .chat-empty p { color: var(--dim); margin: 0 0 14px; font-size: 0.92rem; }
 .jv-quick-prompts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; }
