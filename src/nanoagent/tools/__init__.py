@@ -138,4 +138,9 @@ def load_plugins() -> list[str]:
     return loaded
 
 
-from . import core, self_tools, web  # noqa: E402,F401  (registers the built-in tools)
+from . import (  # noqa: E402,F401  (registers the built-in tools)
+    core,
+    sandbox_tools,  # noqa: E402,F401  (N8 workspace tools; hidden from the model while the workspace is off)
+    self_tools,
+    web,
+)

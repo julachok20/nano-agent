@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from . import activity, companion, config, db, learning, memory, providers, skills, tools
+from . import activity, companion, config, constitution, db, learning, memory, providers, sandbox_ws, skills, tools
 from . import keystore as secrets
 from .providers import ProviderError
 
@@ -49,9 +49,10 @@ class Agent:
     def system_prompt(self, user_text: str = "") -> str:
         cfg = self.cfg
         now = datetime.now(config.tz(cfg))
-        parts = [RULES, f"Owner: {cfg['general']['owner_name'] or 'the owner'}. Now: {now.strftime('%A %Y-%m-%d %H:%M')} ({cfg['general']['timezone']}).",
+        parts = [RULES, constitution.prompt_block(),
+                 f"Owner: {cfg['general']['owner_name'] or 'the owner'}. Now: {now.strftime('%A %Y-%m-%d %H:%M')} ({cfg['general']['timezone']}).",
                  "Reply in the owner's language." if cfg["general"]["language"] == "en" else "Reply in Thai unless the owner writes in another language.",
-                 learning.prompt_hint(), companion.style_hint()]
+                 learning.prompt_hint(), companion.style_hint(), sandbox_ws.prompt_hint()]
         if cfg["learning"]["enabled"]:
             al = usermodel_hint()
             if al:
@@ -81,6 +82,8 @@ class Agent:
             provider, model = (self._provider, self._model) if self._provider else providers.for_role(cfg, role)
         except ProviderError as e:
             return AgentResult(text=str(e), error="no_model")
+        if not constitution.verify():   # fail closed: a changed constitution is never obeyed silently
+            return AgentResult(text="The constitution file no longer matches its pinned digest, so I did not run. The owner must check the installation.", error="constitution_mismatch")
         history = self._history(session)
         content = text if not images else [{"type": "text", "text": text}, *images]
         msgs = [*history, {"role": "user", "content": content}]
@@ -90,7 +93,7 @@ class Agent:
         final, usage_in, usage_out = "", 0, 0
         max_steps = int(cfg["agent"]["max_steps"])
         system = self.system_prompt(text)
-        schemas = tools.schemas(self.exclude)
+        schemas = tools.schemas(self.exclude | sandbox_ws.hidden_tools())
         try:
             for _ in range(max_steps):
                 resp = await provider.chat(model, msgs, tools=schemas, system=system, temperature=cfg["agent"]["temperature"])

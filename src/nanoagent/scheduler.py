@@ -231,6 +231,13 @@ async def _brief(_row: dict) -> None:
     outbox.notify_owner(build_brief(), "brief")
 
 
+@job("sandbox")
+async def _sandbox(row: dict) -> None:
+    """N8: a script the agent wrote runs inside the sandbox workspace (retry and owner notice live in sandbox_ws)."""
+    from . import sandbox_ws
+    await asyncio.to_thread(sandbox_ws.run_scheduled, row)
+
+
 @job("agent")
 async def _agent(row: dict) -> None:
     from .agent import Agent
