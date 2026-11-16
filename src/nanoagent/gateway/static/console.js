@@ -45,7 +45,10 @@ const ICONS = {
   layers: [["path", { d: "m12 3 9 4.5-9 4.5-9-4.5z" }], ["path", { d: "m3 12 9 4.5 9-4.5M3 16.5 12 21l9-4.5" }]],
   sparkle: [["path", { d: "M12 3l1.8 4.8L18.5 9.5l-4.7 1.7L12 16l-1.8-4.8L5.5 9.5l4.7-1.7z" }]],
   chev: [["path", { d: "m9 6 6 6-6 6" }]],
-  arrow: [["path", { d: "M5 12h14M13 6l6 6-6 6" }]]
+  arrow: [["path", { d: "M5 12h14M13 6l6 6-6 6" }]],
+  ext: [["path", { d: "M7 17 17 7M9 7h8v8" }]],
+  gh: [["path", { d: "M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.4 3.4 0 0 0-1-2.6c3.1-.4 6.4-1.5 6.4-7a5.5 5.5 0 0 0-1.5-3.8 5.1 5.1 0 0 0-.1-3.8s-1.2-.4-3.9 1.5a13.4 13.4 0 0 0-7 0C6.2 1.9 5 2.3 5 2.3a5.1 5.1 0 0 0-.1 3.8A5.5 5.5 0 0 0 3.4 10c0 5.4 3.3 6.6 6.4 7a3.4 3.4 0 0 0-1 2.6V22" }]],
+  plus: [["path", { d: "M12 5v14M5 12h14" }]]
 };
 function ico(name, cls = "ico") {
   const parts = ICONS[name] || ICONS.skills;
@@ -107,12 +110,13 @@ const HUB_OF = { activity: "home", learning: "settings", know: "settings", mind:
 function drawTabs() {
   $("#tabs").replaceChildren(
     h("a", { class: "nav-brand brand-lockup", href: "/console", "aria-label": "nano Agent home" },
-      h("img", { class: "wordmark wordmark-light", src: "/static/wordmark-light.png", alt: "nanoAgent" }),
-      h("img", { class: "wordmark wordmark-dark", src: "/static/wordmark-dark.png", alt: "" })),
+      h("span", { class: "logo-panel" }, h("img", { class: "wordmark", src: "/static/logo-nano-agent-official.webp", alt: "nano Agent" }))),
     ...HUBS.map(([k, ic, lb]) =>
       h("button", { class: ((HUB_OF[tab] || tab) === k ? "on " : "") + (["computer", "settings"].includes(k) ? "nav-secondary" : ""), "data-tab": k, onclick: () => go(k) },
         h("span", { class: "nav-ico" }, ico(ic)),
-        h("span", { class: "nav-lbl", text: k === "projects" ? (lang === "th" ? "โปรเจกต์" : "Projects") : k === "automation" && innerWidth < 960 ? (lang === "th" ? "ออโต้" : "Auto") : t(lb) }))));
+        h("span", { class: "nav-lbl", text: k === "projects" ? (lang === "th" ? "โปรเจกต์" : "Projects") : k === "automation" && innerWidth < 820 ? (lang === "th" ? "ออโต้" : "Auto") : t(lb) }))),
+    h("a", { class: "oss-link", href: "https://github.com/julachok20/nano-agent", target: "_blank", rel: "noopener noreferrer" },
+      h("span", { class: "oss-label" }, ico("gh"), h("span", { text: "Open Source" })), ico("ext")));
 }
 function go(k) { tab = k; drawTabs(); render(); }
 function render() { ({ home: vHome, chat: vChat, manage: vManage, projects: vProjects, computer: vWork, automation: vWork, skills: vMind,
@@ -241,22 +245,38 @@ function waveBars(n = 5) {
   return h("div", { class: "orb-wave", "aria-hidden": "true" },
     ...Array.from({ length: n }, (_, i) => h("i", { style: `--i:${i};--h:${[14, 24, 34, 22, 12][i % 5]}px` })));
 }
-function assistantMascot() {
-  return h("span", { class: "assistant-mascot", "aria-hidden": "true" },
-    h("img", { class: "assistant-logo", src: "/static/mascot-n.png", alt: "" }),
-    h("span", { class: "assistant-working" }, h("i"), h("i"), h("i")));
+// Mascot "n" (DESIGN-SPEC 3.8): the one swappable slot. Swap this SVG to change the mascot; CSS handles blink, gaze and states.
+function mascotSlot() {
+  return h("div", { class: "mascot", role: "img", "aria-label": "nano Agent" },
+    sv("svg", { viewBox: "0 0 200 150", "aria-hidden": "true" },
+      sv("path", { class: "ray", d: "M214 26l12-8M218 48l14-2M206 8l6-10" }),
+      sv("rect", { class: "body", x: 0, y: 0, width: 66, height: 44, rx: 22 }),
+      sv("path", { class: "body", d: "M12 148V84C12 30 46 2 106 2s94 28 94 82v64z" }),
+      sv("path", { class: "face", d: "M66 148V92c0-24 18-36 41-36s41 12 41 36v56z" }),
+      sv("g", { class: "idle" }, sv("g", { class: "blink" },
+        sv("ellipse", { class: "eye", cx: 97, cy: 90, rx: 4, ry: 7 }), sv("ellipse", { class: "eye", cx: 117, cy: 90, rx: 4, ry: 7 })))));
+}
+// Sub-agent letter slots (DESIGN-SPEC 3.9). Visual only: no sub-agent data exists yet, so nothing is shown as running.
+function agentSlots() {
+  return h("div", { class: "agent-block" },
+    h("div", { class: "agent-slots", "aria-hidden": "true" }, ...[0, 1, 2].map(() => h("span", { class: "agent-letter", text: "·" }))),
+    h("p", { class: "agent-caption", text: lang === "th" ? "ซับเอเจนต์จะแสดงที่นี่เมื่อทำงาน" : "Sub-agents appear here when running" }));
 }
 async function vHome() {
   const v = clear();
   const date = new Date(), hour = date.getHours();
   const greeting = lang === "th" ? (hour < 11 ? "สวัสดีตอนเช้า" : hour < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น")
     : (hour < 11 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening");
-  const askInp = h("input", { placeholder: lang === "th" ? "ถามอะไรก็ได้..." : "Ask anything...", "aria-label": t("chat_placeholder") });
+  // Mic state comes from the browser: "Listening ready" only when speech recognition exists.
+  const voiceOk = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  const askInp = h("input", { placeholder: lang === "th" ? "ถามอะไรก็ได้..." : "Ask anything, or type a command...", "aria-label": t("chat_placeholder") });
   const submitQuick = () => {
     const q = askInp.value.trim();
     if (q) startChatWith(q);
     else go("chat");
   };
+  const sendBtn = h("button", { class: "pri", onclick: submitQuick, "aria-label": t("send"), disabled: true }, ico("arrow"));
+  askInp.addEventListener("input", () => { sendBtn.disabled = !askInp.value.trim(); });
   askInp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); submitQuick(); } });
 
   const subline = lang === "th"
@@ -282,29 +302,34 @@ async function vHome() {
             h("button", { class: "orb-chip orb-chip-lb", onclick: () => go("memory") }, ico("layers"), h("span", { text: lang === "th" ? "ความจำ" : "Remember" })),
             h("button", { class: "orb-chip orb-chip-rb", onclick: () => go("automation") }, ico("skills"), h("span", { text: lang === "th" ? "อัตโนมัติ" : "Automate" }))),
           h("div", { class: "orb-aura" },
-            waveBars(5),
-            h("button", { id: "orb", class: "jv-orb", "data-state": "idle", onclick: orbTap, "aria-label": t("orb_tap") },
-              assistantMascot(),
+            h("button", { id: "orb", class: "jv-orb" + (voiceOk ? "" : " unavailable"), "data-state": "idle", onclick: orbTap, "aria-label": t("orb_tap") },
+              mascotSlot(),
               h("strong", { text: lang === "th" ? "แตะเพื่อพูด" : "Tap to speak" }),
-              h("small", null, h("i"), h("span", { text: lang === "th" ? "พร้อมรับฟัง" : "Listening ready" }))),
-            waveBars(5))),
-        h("button", { class: "home-mic", onclick: orbTap, "aria-label": t("orb_tap") }, ico("mic")),
+              h("small", null, h("i"), h("span", { text: voiceOk ? (lang === "th" ? "พร้อมรับฟัง" : "Listening ready") : (lang === "th" ? "ไม่มีระบบเสียง" : "Voice unavailable") }))))),
+        h("div", { class: "mic-row" },
+          waveBars(5),
+          h("button", { class: "home-mic", onclick: orbTap, "aria-label": voiceOk ? t("orb_tap") : t("voice_unsupported"),
+            title: voiceOk ? "" : t("voice_unsupported"), ...(voiceOk ? {} : { disabled: true }) }, ico("mic")),
+          waveBars(5)),
         h("div", { id: "heard", class: "jv-heard" }),
         h("div", { id: "said", class: "jv-said" }),
         h("div", { class: "quick-ask" },
-          ico("sparkle"),
+          h("button", { class: "plus-btn", type: "button", disabled: true, "aria-label": lang === "th" ? "แนบไฟล์ (ยังไม่พร้อมใช้งาน)" : "Attach (not available yet)" }, ico("plus")),
           askInp,
-          h("button", { class: "pri", onclick: submitQuick, "aria-label": t("send") }, ico("arrow")))),
+          sendBtn)),
       h("div", { id: "home-system-panel", class: "jv-slot", style: "grid-area:appr" }),
       h("div", { id: "home-activity-panel", class: "jv-slot", style: "grid-area:bg" }),
       h("div", { class: "jv-bottom intelligence-flow" },
         h("div", { class: "flow-intro" }, h("small", { text: "INTELLIGENCE FLOW" }),
           h("strong", { text: "From understanding to action." }),
           h("p", { text: "A system that understands, reasons, and gets things done for you." })),
-        ...[["Input", "Text · Voice · File", "news"], ["Understand", "Perception", "memory"],
-          ["Reason", "Plan · Decide", "layers"], ["Act", "Tools · Automations", "skills"],
-          ["Learn", "Memory · Adapt", "projects"]].map(([name, detail, icon]) =>
-          h("div", { class: "flow-step" }, ico(icon), h("b", { text: name }), h("small", { text: detail }))))));
+        h("div", { class: "flow-steps" },
+          ...[["Input", "Text · Voice · File", "news"], ["Understand", "Perception", "memory"],
+            ["Reason", "Plan · Decide", "layers"], ["Act", "Tools · Automations", "skills"],
+            ["Learn", "Memory · Adapt", "projects"]].flatMap(([name, detail, icon], i) => {
+            const step = h("div", { class: "flow-step" }, ico(icon), h("b", { text: name }), h("small", { text: detail }));
+            return i ? [h("span", { class: "flow-arrow" }, ico("arrow")), step] : [step];
+          })))));
   refreshHome();
 }
 async function refreshHome() {
@@ -321,9 +346,9 @@ async function refreshHome() {
       h("div", { class: "jv-ring", style: `--done:${Math.round(pct * 100)}%` }, h("span", { text: `${completed}/${totalTasks}` })),
       h("div", { class: "jv-task-rows" }, openTasks.length
         ? openTasks.slice(0, 3).map(x => h("div", { class: "jv-row" }, h("span", { class: "jv-dot" }), h("span", { class: "jv-name", text: x.title })))
-        : jvEmpty("manage", lang === "th" ? "ไม่มีงานค้าง" : "All caught up")))));
+        : jvEmpty("manage", totalTasks ? (lang === "th" ? "ไม่มีงานค้าง" : "All caught up") : (lang === "th" ? "ยังไม่มีงาน" : "No tasks yet"))))));
   $("#home-memory-panel").replaceChildren(jvPanel("mem", "memory", t("memory_title"), "memory", null,
-    jvMemoryGraph(factCount),
+    factCount ? jvMemoryGraph(factCount) : jvEmpty("memory", lang === "th" ? "ยังไม่มีความจำ" : "No memories yet"),
     h("div", { class: "jv-pct" }, h("strong", { text: `${factCount} memories` }), h("small", { text: t("memory_counts", { f: st.memory.fact || 0, r: st.memory.rule || 0 }) }))));
   $("#home-system-panel").replaceChildren(jvPanel("appr", "activity", lang === "th" ? "สถานะระบบ" : "System Status", "computer", null,
     h("span", { class: "system-active", text: lang === "th" ? "● พร้อมใช้งาน" : "● Active" }),
@@ -332,7 +357,10 @@ async function refreshHome() {
   const recent = [...ac.running, ...ac.done.slice(0, 3)];
   $("#home-activity-panel").replaceChildren(jvPanel("bg", "activity", t("work_title"), "activity", null,
     recent.length ? recent.map(a => h("div", { class: "jv-activity-row" }, h("span", { class: "jv-dot " + (a.status === "running" ? "running" : "") }),
-      h("span", { text: a.title }), h("small", { text: a.status === "running" ? Math.round(a.secs) + "s" : a.status }))) : jvEmpty("activity", t("work_idle"))));
+      h("span", { text: a.title }), h("small", { text: a.status === "running" ? Math.round(a.secs) + "s" : a.status }))) : jvEmpty("activity", lang === "th" ? t("work_idle") : "No background work right now."), agentSlots()));
+  // Bell dot = real pending approvals (drafts waiting for the owner), nothing else.
+  const bell = $("#hdr-notif");
+  if (bell) { const old = bell.querySelector(".notif-dot"); if (old) old.remove(); if (st.drafts > 0) bell.append(h("span", { class: "notif-dot" })); }
 }
 function draftsPanel(list, after) {
   return panel(t("drafts_title", { n: list.length }), h("p", { class: "dim", text: t("drafts_note") }), ...list.map(d => h("div", { class: "row" },

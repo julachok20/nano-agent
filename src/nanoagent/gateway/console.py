@@ -7,16 +7,16 @@ from .. import __version__
 
 CSS = """
 :root{
-  --bg:#090d17;--bg-elev:#101726;--panel:rgba(19,27,46,.80);--panel-2:rgba(28,39,64,.85);--line:rgba(255,255,255,.09);
-  --txt:#eef2fb;--dim:#8fa0be;--accent:#ff6a00;--accent-2:#38bdf8;--accent-ink:#ffffff;
+  --bg:#f8f7fc;--bg-elev:#ffffff;--panel:rgba(255,255,255,.84);--panel-2:#f0edfa;--line:rgba(30,36,56,.10);
+  --txt:#172033;--dim:#65718a;--accent:#ff7200;--accent-2:#38bdf8;--accent-ink:#ffffff;
   --ok:#34d399;--warn:#fbbf24;--bad:#fb7185;--gap:18px;--radius:22px;--radius-sm:14px;
-  --shadow:0 16px 40px rgba(3,7,18,.38);--font-sans:system-ui,-apple-system,"Segoe UI","Noto Sans Thai",Tahoma,sans-serif;
+  --shadow:0 16px 40px rgba(48,38,76,.08);--font-sans:system-ui,-apple-system,"Segoe UI","Noto Sans Thai",Tahoma,sans-serif;
   --font-mono:ui-monospace,SFMono-Regular,Consolas,monospace;
 }
 html[data-accent=cyan]{--accent:#38d6ff;--accent-ink:#04131c}
 html[data-accent=violet]{--accent:#a78bfa;--accent-ink:#110a24}
 html[data-accent=green]{--accent:#34d399;--accent-ink:#041c13}
-html[data-accent=orange]{--accent:#ff6a00;--accent-ink:#ffffff}
+html[data-accent=orange]{--accent:#ff6a1a;--accent-ink:#ffffff}
 html[data-accent=rose]{--accent:#fb7185;--accent-ink:#ffffff}
 html[data-accent=blue]{--accent:#60a5fa;--accent-ink:#071426}
 html[data-density=compact]{--gap:12px}html[data-density=roomy]{--gap:24px}
@@ -40,8 +40,7 @@ def page() -> str:
 <title>nano Agent</title><link rel="icon" href="/static/favicon.png">{PREPAINT}<style>{CSS}</style><link rel="stylesheet" href="/static/dashboard.css?v={__version__}"></head><body>
 <header>
   <div class="brand-left">
-    <a class="brand-lockup" href="/console" aria-label="nano Agent home"><img class="wordmark wordmark-light" src="/static/wordmark-light.png" alt="nanoAgent"><img class="wordmark wordmark-dark" src="/static/wordmark-dark.png" alt=""></a>
-    <span class="open-pill">Open Source</span>
+    <a class="brand-lockup" href="/console" aria-label="nano Agent home"><span class="logo-panel"><img class="wordmark" src="/static/logo-nano-agent-official.webp" alt="nano Agent"></span></a>
     <span id="pill" class="pill"><i></i><span id="pilltxt"></span></span>
   </div>
   <div class="brand-right">
@@ -52,3 +51,4 @@ def page() -> str:
   </div>
 </header>
 <main id="view"></main><nav id="tabs"></nav><script src="/static/console.js?v={__version__}"></script></body></html>"""
+
