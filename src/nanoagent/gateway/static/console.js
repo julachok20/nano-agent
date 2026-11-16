@@ -257,7 +257,7 @@ async function vHome() {
 
   const subline = lang === "th"
     ? h("p", { class: "jv-subline" }, "ผู้ช่วย AI ส่วนตัวแบบโอเพ่นซอร์ส พร้อม ", h("b", { text: "พูด ฟัง และลงมือทำ" }), " เพื่อคุณ")
-    : h("p", { class: "jv-subline" }, "Your open-source personal AI assistant. I can ", h("b", { text: "speak, listen, and act" }), " for you.");
+    : h("p", { class: "jv-subline" }, "Your open-source personal AI assistant. I can ", h("b", { text: "speak, listen, think, and take action" }), " for you.");
 
   v.append(
     h("div", { class: "jv-head" },
@@ -284,22 +284,28 @@ async function vHome() {
               h("strong", { text: lang === "th" ? "แตะเพื่อพูด" : "Tap to speak" }),
               h("small", null, h("i"), h("span", { text: lang === "th" ? "พร้อมรับฟัง" : "Listening ready" }))),
             waveBars(5))),
+        h("button", { class: "home-mic", onclick: orbTap, "aria-label": t("orb_tap") }, ico("mic")),
         h("div", { id: "heard", class: "jv-heard" }),
         h("div", { id: "said", class: "jv-said" }),
         h("div", { class: "quick-ask" },
           ico("sparkle"),
           askInp,
           h("button", { class: "pri", onclick: submitQuick, "aria-label": t("send") }, ico("arrow")))),
-      h("div", { id: "home-approval-panel", class: "jv-slot", style: "grid-area:appr" }),
+      h("div", { id: "home-system-panel", class: "jv-slot", style: "grid-area:appr" }),
       h("div", { id: "home-activity-panel", class: "jv-slot", style: "grid-area:bg" }),
-      h("div", { class: "jv-bottom" },
-        h("div", { id: "home-project-panel", class: "jv-slot" }),
-        h("div", { id: "home-news-panel", class: "jv-slot" }))));
+      h("div", { class: "jv-bottom intelligence-flow" },
+        h("div", { class: "flow-intro" }, h("small", { text: "INTELLIGENCE FLOW" }),
+          h("strong", { text: "From understanding to action." }),
+          h("p", { text: "A system that understands, reasons, and gets things done for you." })),
+        ...[["Input", "Text · Voice · File", "news"], ["Understand", "Perception", "memory"],
+          ["Reason", "Plan · Decide", "layers"], ["Act", "Tools · Automations", "skills"],
+          ["Learn", "Memory · Adapt", "projects"]].map(([name, detail, icon]) =>
+          h("div", { class: "flow-step" }, ico(icon), h("b", { text: name }), h("small", { text: detail }))))));
   refreshHome();
 }
 async function refreshHome() {
   if (tab !== "home") return;
-  const [st, dr, tk, ac] = await Promise.all([api("/state"), api("/drafts"), api("/tasks"), api("/activity")]);
+  const [st, tk, ac] = await Promise.all([api("/state"), api("/tasks"), api("/activity")]);
   if (!$("#home-task-panel")) return;
   const factCount = (st.memory.fact || 0) + (st.memory.rule || 0);
   $("#home-clock").textContent = new Date().toLocaleTimeString(lang === "th" ? "th-TH" : undefined, { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -315,18 +321,14 @@ async function refreshHome() {
   $("#home-memory-panel").replaceChildren(jvPanel("mem", "memory", t("memory_title"), "memory", null,
     jvMemoryGraph(factCount),
     h("div", { class: "jv-pct" }, h("strong", { text: `${factCount} memories` }), h("small", { text: t("memory_counts", { f: st.memory.fact || 0, r: st.memory.rule || 0 }) }))));
-  $("#home-approval-panel").replaceChildren(jvPanel("appr", "approval", t("drafts_title", { n: dr.drafts.length }), "manage", "drafts",
-    dr.drafts.length
-      ? dr.drafts.slice(0, 3).map(d => h("div", { class: "jv-row" }, h("span", { class: "jv-dot" }), h("span", { class: "jv-name", text: d.channel + " → " + d.target }), h("em", { text: "Review" })))
-      : jvEmpty("approval", t("drafts_none"))));
+  $("#home-system-panel").replaceChildren(jvPanel("appr", "activity", lang === "th" ? "สถานะระบบ" : "System Status", "computer", null,
+    h("span", { class: "system-active", text: lang === "th" ? "● พร้อมใช้งาน" : "● Active" }),
+    ...[["Model", ME.model || "Configured model", "computer"], ["Memory", `${factCount} items`, "memory"], ["Skills", "View skills", "skills"]]
+      .map(([name, value, icon]) => h("div", { class: "system-status-row" }, ico(icon), h("b", { text: name }), h("span", { text: value }), ico("chev")))));
   const recent = [...ac.running, ...ac.done.slice(0, 3)];
   $("#home-activity-panel").replaceChildren(jvPanel("bg", "activity", t("work_title"), "activity", null,
     recent.length ? recent.map(a => h("div", { class: "jv-activity-row" }, h("span", { class: "jv-dot " + (a.status === "running" ? "running" : "") }),
       h("span", { text: a.title }), h("small", { text: a.status === "running" ? Math.round(a.secs) + "s" : a.status }))) : jvEmpty("activity", t("work_idle"))));
-  $("#home-project-panel").replaceChildren(jvPanel("", "projects", lang === "th" ? "โปรเจกต์" : "Projects", "computer", null,
-    jvEmpty("projects", lang === "th" ? "ยังไม่มีโปรเจกต์ที่ติดตาม" : "No projects tracked yet")));
-  $("#home-news-panel").replaceChildren(jvPanel("", "news", lang === "th" ? "ข่าวสาร" : "News", "automation", null,
-    jvEmpty("news", lang === "th" ? "ยังไม่ได้เชื่อมต่อฟีดข่าว" : "No news feed connected")));
 }
 function draftsPanel(list, after) {
   return panel(t("drafts_title", { n: list.length }), h("p", { class: "dim", text: t("drafts_note") }), ...list.map(d => h("div", { class: "row" },

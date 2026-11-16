@@ -89,6 +89,8 @@ def main() -> int:
                     page.locator(".jv-panel").first.wait_for(timeout=10000)
                     page.screenshot(path=str(args.out / "console-home.png"), full_page=True)
                     page.set_viewport_size({"width": 390, "height": 844})
+                    page.locator("#home-system-panel .jv-panel").wait_for(timeout=10000)
+                    page.wait_for_timeout(250)
                     page.screenshot(path=str(args.out / "console-mobile.png"), full_page=True)
                     page.set_viewport_size({"width": 1440, "height": 1000})
                     page.locator("nav button").nth(1).click()
