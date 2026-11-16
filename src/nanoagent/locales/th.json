@@ -94,5 +94,14 @@
 
   "line.guide": "ตั้งค่า LINE ทีละขั้น (ขั้นตอนบนเว็บทั้งหมด ประมาณ 10 นาที):\n 1. https://developers.line.biz/console/ -> ล็อกอิน -> สร้าง Provider (ตั้งชื่ออะไรก็ได้)\n 2. สร้างช่องทางชนิด 'Messaging API' (ตั้งชื่ออะไรก็ได้ นี่คือบอทของคุณ)\n 3. Channel > Basic settings: คัดลอก 'Channel secret'\n 4. Channel > Messaging API: กด issue 'Channel access token (long-lived)' แล้วคัดลอก\n 5. ปิด 'Auto-reply messages' และ 'Greeting messages' ใน LINE Official Account Manager\n 6. Messaging API > Webhook URL: ใส่ URL สาธารณะของคุณ + /webhook/line กด Verify แล้วเปิด 'Use webhook'\n 7. ไม่บังคับ LIFF (เปิดคอนโซลใน LINE): สร้าง LINE Login channel > LIFF > เพิ่มแอป endpoint = URL สาธารณะ + /console, scope openid แล้วคัดลอก LIFF ID\nคู่มือเต็มพร้อมภาพ: docs/LINE_SETUP.md",
   "line.webhook_url": "Webhook URL ที่ต้องวางใน LINE: {url}", "line.saved": "บันทึกคีย์ LINE แล้ว ต่อไปรัน `nano-agent line pair`", "line.not_enabled": "ยังไม่ได้ตั้งค่า LINE: รัน `nano-agent line setup` ก่อน",
-  "line.pair": "เปิดบอท LINE ของคุณ แล้วส่งข้อความนี้ภายใน 15 นาที:\n\n  pair {code}\n\nจับคู่ได้เฉพาะคุณ ใครส่งรหัสถูกต้องคนแรกจะเป็นเจ้าของ"
+  "line.pair": "เปิดบอท LINE ของคุณ แล้วส่งข้อความนี้ภายใน 15 นาที:\n\n  pair {code}\n\nจับคู่ได้เฉพาะคุณ ใครส่งรหัสถูกต้องคนแรกจะเป็นเจ้าของ",
+  "sandbox.notice": "พื้นที่ทำงาน (Sandbox): ผู้ช่วยจะได้พื้นที่ Linux ส่วนตัวใน Docker ภายในนั้นเขียนโค้ด สร้างเครื่องมือและสกิลของตัวเอง และตั้งงานอัตโนมัติได้ ค่าเริ่มต้นไม่มีเครือข่าย (ระดับ T0) อ่านไฟล์นอกพื้นที่ไม่ได้ และไม่เคยเห็นคีย์ของคุณ คุณเลือกระดับครั้งเดียว ผู้ช่วยเปลี่ยนเองไม่ได้ หยุดทุกอย่างได้ทุกเมื่อด้วย `nano-agent kill` ทุกคำขอออกภายนอกและทุกการปฏิเสธถูกบันทึกในล็อก นี่คือการกำกับด้วยการตั้งค่าและการทดสอบ ไม่ใช่การรับประกัน",
+  "sandbox.enable_again": "รันอีกครั้งพร้อม --yes เพื่อยอมรับประกาศนี้และเปิดพื้นที่ทำงาน",
+  "sandbox.enabled": "เปิดพื้นที่ทำงานแล้ว ระดับ {tier} เริ่มรอบด้วย `nano-agent sandbox start`",
+  "sandbox.disabled": "ปิดพื้นที่ทำงานแล้ว",
+  "sandbox.tier_set": "ตั้งระดับเป็น {tier} แล้ว",
+  "sandbox.review_note": "บันทึกการตรวจแล้ว ตอนนี้กลับมาทำงานต่อหรือย้อนกลับได้",
+  "sandbox.supervising": "ตัวกำกับทำงานอยู่ กด Ctrl+C เพื่อหยุด เมื่อสัญญาณหมดอายุ พื้นที่ทำงานจะถูกแช่แข็ง",
+  "sandbox.redteam_needs_model": "การทดสอบ red-team ต้องใช้โมเดล ตั้งโมเดลแชทหรือส่ง --provider และตรวจว่า Docker ทำงานอยู่",
+  "sandbox.report_written": "บันทึกผลคะแนนที่ {path} แล้ว"
 }

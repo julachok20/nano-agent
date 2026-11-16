@@ -32,7 +32,17 @@ DEFAULTS: dict[str, Any] = {
     "line": {"enabled": False, "liff_id": "", "owner_user_id": ""},
     "google": {"enabled": False},
     "voice": {"enabled": False, "stt_url": "", "tts_url": "", "tts_voice": "alloy"},
-    "sandbox": {"enabled": False, "image": "python:3.12-slim", "timeout_s": 20},
+    # `enabled` / `timeout_s` belong to the short run_code tool. The workspace (N8) is separate and OFF by default.
+    "sandbox": {
+        "enabled": False, "image": "python:3.12-slim", "timeout_s": 20,
+        "workspace": False,          # N8: one persistent Docker workspace the agent can build tools and skills in
+        "tier": "T0",                # T0 closed | T1 allowlist | T2 web | T3 brokered; the agent cannot change it
+        "allowed_domains": [],       # T1 only: domains the sandbox may fetch (host edge checks every request)
+        "capabilities": [],          # T3 only: "name=domain" brokered capabilities; "messaging" and "payments" are off unless listed
+        "cpu": 1.0, "memory_mb": 512, "disk_mb": 512, "run_timeout_s": 120,
+        "lease_s": 120, "session_h": 2,
+        "tripwire_blocked": 5, "tripwire_window_min": 10,
+    },
     "web": {"search": "duckduckgo", "search_url": ""},   # duckduckgo | searxng
     "companion": {"level": "buddy", "enabled": True},
     "learning": {"enabled": True},

@@ -444,6 +444,8 @@ def create_app() -> FastAPI:
         return Response(audio, media_type=mime)
 
     app.include_router(api)
+    from .sandbox_api import router as sandbox_router  # N8 to N10: owner-only like every other private route
+    app.include_router(sandbox_router, prefix="/api", dependencies=[Depends(auth.require_owner)])
     return app
 
 

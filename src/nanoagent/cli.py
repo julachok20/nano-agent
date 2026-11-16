@@ -523,6 +523,101 @@ def cmd_mcp(_a) -> int:
     return 0
 
 
+# ---------------------------------------------------------------- sandbox workspace (N8 to N10)
+
+def _out(r: dict) -> int:
+    _p(json.dumps(r, ensure_ascii=False, indent=1, default=str))
+    return 0 if r.get("ok", True) else 1
+
+
+def cmd_sandbox(a) -> int:
+    from . import sandbox_ws as ws
+    from . import supervisor as sv
+    from .sandbox_runtime import DockerRuntime
+    if a.sub == "status":
+        st = sv.read_state()
+        return _out({"config": ws.status(), "supervisor": {k: st[k] for k in ("state", "lease_until", "session_until", "trip", "reviewed", "freeze_ms", "kill_latency_ms")},
+                     "audit_chain_ok": ws.verify_chain()[0]})
+    if a.sub == "enable":
+        ok, why = DockerRuntime().available()
+        if not ok:
+            _p(why)
+            return 1
+        if not a.yes:
+            _p(t("sandbox.notice"))
+            _p(t("sandbox.enable_again"))
+            return 1
+        cfg = config.load()
+        cfg["sandbox"]["workspace"] = True
+        config.save(cfg)
+        ws.plant_canaries()
+        _p(t("sandbox.enabled", tier=ws.settings()["tier"]))
+        return 0
+    if a.sub == "disable":
+        cfg = config.load()
+        cfg["sandbox"]["workspace"] = False
+        config.save(cfg)
+        _p(t("sandbox.disabled"))
+        return 0
+    if a.sub == "tier":
+        cfg = config.load()
+        cfg["sandbox"]["tier"] = a.tier
+        cfg["sandbox"]["allowed_domains"] = [d.strip() for d in (a.domains or "").split(",") if d.strip()]
+        config.save(cfg)
+        _p(t("sandbox.tier_set", tier=a.tier))
+        return 0
+    if a.sub == "snapshot":
+        return _out(ws.snapshot(a.label))
+    if a.sub == "restore" and a.list:
+        return _out({"ok": True, "snapshots": ws.list_snapshots()})
+    if a.sub == "restore":
+        return _out(sv.command("rollback", a.snapshot))
+    if a.sub == "review":
+        r = sv.command("review")
+        return _out(r) if not r.get("ok") else _out({**r, "note": t("sandbox.review_note")})
+    if a.sub == "supervise":
+        sup = sv.Supervisor(runtime=DockerRuntime())
+        _p(t("sandbox.supervising"))
+        try:
+            sup.run_forever(every=a.every)
+        except KeyboardInterrupt:
+            return 130
+        return 0
+    cmd = {"start": "session_start", "pause": "pause", "resume": "resume", "stop": "stop", "kill": "kill"}[a.sub]
+    return _out(sv.command(cmd))
+
+
+def cmd_kill(_a) -> int:
+    from . import supervisor as sv
+    return _out(sv.command("kill"))
+
+
+def cmd_redteam(a) -> int:
+    from . import providers, redteam
+    from . import sandbox_ws as ws
+    from .sandbox_runtime import DockerRuntime
+    cfg = config.load()
+    ok, why = DockerRuntime().available()
+    if not ok:
+        _p(why)
+        return 1
+    prov, model = None, config.model_for(cfg, "chat")[1]
+    if a.provider:
+        prov = providers.make_provider(cfg, a.provider)
+    elif cfg["models"]["chat"]:
+        prov, model = providers.for_role(cfg, "chat")
+    if prov is None:
+        _p(t("sandbox.redteam_needs_model"))
+        return 1
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    out_dir = paths.home() / "redteam" / stamp
+    card = redteam.run_suite(provider=prov, tier=a.tier or ws.settings()["tier"], runtime=DockerRuntime(), model=model, evidence_dir=out_dir)
+    jp, mp = redteam.write_reports(card, out_dir)
+    _p(mp.read_text(encoding="utf-8"))
+    _p(t("sandbox.report_written", path=str(jp)))
+    return 0
+
+
 # ---------------------------------------------------------------- parser
 
 def build_parser() -> argparse.ArgumentParser:
@@ -639,6 +734,33 @@ def build_parser() -> argparse.ArgumentParser:
     x.add_argument("key")
     x.add_argument("value")
     m.set_defaults(fn=cmd_config)
+    m = sp.add_parser("sandbox", help="sandbox workspace: enable, tiers, supervisor, kill switch, snapshots")
+    ms = m.add_subparsers(dest="sub", required=True)
+    ms.add_parser("status")
+    x = ms.add_parser("enable", help="turn the workspace on (needs Docker); prints the first-run notice")
+    x.add_argument("--yes", action="store_true", help="accept the notice")
+    x.add_argument("--tier", choices=["T0", "T1", "T2", "T3"])
+    ms.add_parser("disable")
+    x = ms.add_parser("tier", help="set the tier (owner only; the agent cannot change it)")
+    x.add_argument("tier", choices=["T0", "T1", "T2", "T3"])
+    x.add_argument("--domains", default="", help="comma-separated allowlist for T1")
+    for n in ("start", "pause", "resume", "stop", "kill", "review"):
+        ms.add_parser(n)
+    x = ms.add_parser("snapshot")
+    x.add_argument("--label", default="manual")
+    x = ms.add_parser("restore")
+    x.add_argument("snapshot", nargs="?", default="")
+    x.add_argument("--list", action="store_true")
+    x = ms.add_parser("supervise", help="run the supervisor loop (lease, tripwires); keep it running while the sandbox works")
+    x.add_argument("--every", type=float, default=2.0)
+    m.set_defaults(fn=cmd_sandbox)
+    sp.add_parser("kill", help="kill switch: stop and remove the sandbox container now").set_defaults(fn=cmd_kill)
+    m = sp.add_parser("redteam", help="run the red-team scenarios against the sandbox")
+    ms = m.add_subparsers(dest="sub", required=True)
+    x = ms.add_parser("run")
+    x.add_argument("--tier", choices=["T0", "T1", "T2", "T3"])
+    x.add_argument("--provider", help="configured provider name (default: your chat model)")
+    m.set_defaults(fn=cmd_redteam)
     sp.add_parser("serve", help="run the gateway in the foreground").set_defaults(fn=cmd_serve)
     sp.add_parser("mcp", help="MCP stdio server (needs the mcp extra)").set_defaults(fn=cmd_mcp)
     return ap

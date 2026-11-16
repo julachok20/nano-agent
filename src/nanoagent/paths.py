@@ -76,6 +76,27 @@ def pid_path() -> Path:
     return home() / "nano-agent.pid"
 
 
+def sandbox_dir() -> Path:
+    """Sandbox workspace, snapshots and forensic bundles (N8). Created on first use, not by ensure_dirs."""
+    return home() / "sandbox"
+
+
+def workspace_dir() -> Path:
+    """The only host folder the sandbox sees: bind-mounted as /work."""
+    return sandbox_dir() / "workspace"
+
+
+def snapshots_dir() -> Path:
+    return sandbox_dir() / "snapshots"
+
+
+def supervisor_dir() -> Path:
+    """Supervisor state (lease, control queue, forensics). Kept apart from the workspace; in production run the
+    supervisor under its own OS user (NANO_SUPERVISOR_HOME points at a folder that user owns)."""
+    env = os.environ.get("NANO_SUPERVISOR_HOME", "").strip()
+    return Path(env).expanduser() if env else home() / "supervisor"
+
+
 def ensure_dirs() -> None:
     for d in (home(), data_dir(), skills_dir(), skills_pending_dir(), backups_dir(), logs_dir(), plugins_dir()):
         d.mkdir(parents=True, exist_ok=True)

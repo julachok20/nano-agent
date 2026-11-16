@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS automations(id INTEGER PRIMARY KEY, name TEXT UNIQUE,
 CREATE TABLE IF NOT EXISTS skill_meta(name TEXT PRIMARY KEY, source TEXT, origin TEXT, ts REAL, review TEXT DEFAULT '');
 CREATE TABLE IF NOT EXISTS patches(id INTEGER PRIMARY KEY, ts REAL, title TEXT, status TEXT, summary TEXT DEFAULT '',
   files TEXT DEFAULT '[]', diff TEXT DEFAULT '', test_result TEXT DEFAULT '', code TEXT DEFAULT '', applied_ts REAL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS sandbox_audit(id INTEGER PRIMARY KEY, ts REAL, kind TEXT, target TEXT, decision TEXT,
+  reason TEXT DEFAULT '', run_id TEXT DEFAULT '', prev TEXT DEFAULT '', hash TEXT DEFAULT '');
 CREATE INDEX IF NOT EXISTS ix_messages_session ON messages(session, id);
 CREATE INDEX IF NOT EXISTS ix_activity_ts ON activity(ts);
 """

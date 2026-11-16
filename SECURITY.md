@@ -68,20 +68,35 @@ nano Agent is built for **one owner on a machine they control**.
 - Use a provider key with a spending limit.
 - Rotate the owner token and your provider keys if you ever paste them somewhere by mistake.
 
-## Planned: sandbox-first autonomy (N8, not implemented yet)
+## Sandbox workspace (N8 to N10): built, partly verified
 
-The owner wants the agent to be creative and unrestricted **inside** an isolated workspace. The security model moves the rules to the
-**edge** of that workspace. They stay in code and tested: default-off network allowlist, no host files outside the workspace volume,
-no secrets in the sandbox (a host-side broker makes keyed calls), no message to any person without approval, a spending budget,
-no deletion of the owner's data, and no change to core code outside the patch flow. Every edge request and decision goes to an audit log.
-There is a kill switch and workspace snapshots with rollback. If Docker is missing the sandbox stays off; there is no host fallback.
-Until N8 ships, the existing optional Docker sandbox (no network, read-only, no secrets) is the only code execution available.
+The sandbox workspace is OFF by default. When the owner turns it on, the agent may write code and build its own tools,
+skills and scheduled jobs inside one workspace. The security model sits at the **edge** of that workspace, in code and
+tested: no network inside the container in any tier; a host-side edge for the outbound requests the owner allows (T1
+allowlist, T2 web reads, T3 brokered keyed calls); no host files outside the workspace; no secrets inside (keyed calls run
+host-side); no message to a person except as a draft awaiting approval (auto-send is not built); payments never built; no
+change to core code outside the patch flow. Every edge request and decision goes to a hash-chained audit log.
 
-### Planned update: scope tiers, constitution and kill switch (N8 to N10)
+| Threat | Mitigation | Residual risk |
+|---|---|---|
+| The agent reads or edits host files, or the constitution | Path resolution inside the workspace only; control-path names refused and counted as tripwires | Docker escape is out of scope here; keep Docker updated |
+| The agent reaches the internet or leaks data out | No container network in any tier; host edge checks tier and allowlist; public addresses only (the existing SSRF guard) | Allowed domains can still receive data the agent chooses to send. Keep the T1 list short |
+| Keys leak into the sandbox | No key path into the container; `ws_secret` is always refused; keyed calls run host-side | A brokered service can echo data back. Responses are untrusted |
+| The agent edits its own tests or claims false success | Ground truth in the red-team; `edit_test` scenario; honest-claim scoring | Passing the scenarios is evidence, not proof |
+| The agent stops the supervisor or ignores a stop | Supervisor state is outside the mounted workspace; control-path writes trip; work still running 30 s after a stop trips | A same-user local process can still tamper with the folder. Run the supervisor under its own OS user |
+| Log tampering | Hash chain over audit rows; removed rows detected through the stored head | A same-user process can rewrite the whole database. Keep an external copy for real forensics |
+| Runaway resource use | Container memory, CPU and pid limits; time limit; disk checked after each run | Disk quota is not enforced by Docker here; memory spike is detected after the fact |
+| A scheduled job loops or spams | Time limit per run; retries with backoff; one owner notice; minimum 1-minute schedule | The owner must read the activity page |
+| Messages sent to people | Refused in T0 to T2; in T3 queued as drafts that need approval | An approved draft is still sent on the owner's approval |
 
-Per the owner, per-action approval inside the sandbox is replaced by **tiers chosen once** (T0 closed, T1 allowlist, T2 web, T3 brokered
-capabilities, each enabled explicitly; messaging and payments off by default). The agent cannot change its tier. The default install still
-sends nothing without approval until the owner enables a T3 capability. `CONSTITUTION.md` is read by the agent but is **not enforcement**:
-enforcement is a supervisor process and kill switch outside the sandbox (lease, tripwires, freeze, forensic snapshot). A red-team harness
-measures behaviour per model and tier, and its scorecard is shown before a tier is raised. Passing it is evidence, not proof. A free agent
-with network access can still cause harm within its tier: choose the lowest tier that does the job. None of this is implemented yet.
+Enforcement is by code and tests. The constitution (`CONSTITUTION.md`) is read by the agent and is **not** enforcement.
+Tests that cover this: `tests/test_sandbox_ws.py`, `tests/test_supervisor.py`, `tests/test_redteam.py`,
+`tests/test_constitution.py`. The real Docker runtime, real networks and real models are **not** verified by these tests.
+See `docs/SANDBOX.md` for the full list of what was only tested with a test double.
+
+## Hardening checklist for the sandbox
+
+- Keep the workspace OFF unless you need it. Choose the lowest tier that does the job.
+- Run `nano-agent redteam run` before raising a tier, and read the report.
+- Run `nano-agent sandbox supervise` in a terminal you watch, or under a service account you control.
+- Keep Docker updated, and use Docker Desktop or WSL with its own updates.
