@@ -1230,6 +1230,32 @@ html:not([data-theme=light]):not([data-theme=minimal]) .logo-dark-img { display:
 .mascot-n.is-error .n-eye { transform: scaleY(.35); fill: #e11d48; }
 @keyframes m-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 
+/* Generative UI blocks (uiblocks.js): plain components, no html. */
+.ui-answer { display: flex; flex-direction: column; gap: 10px; max-width: 680px; width: 100%; text-align: left; color: var(--txt); }
+.ui-answer li { list-style: none; }
+.ui-steps li { list-style: decimal; }
+.ui-timeline li { list-style: none; }
+.ui-text { margin: 0; white-space: pre-wrap; }
+.ui-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
+.ui-detail { display: block; color: var(--dim); font-size: 13px; }
+.ui-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ui-table th, .ui-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.ui-chart { display: flex; flex-direction: column; gap: 6px; }
+.ui-bar-row { display: grid; grid-template-columns: 90px 1fr 60px; gap: 8px; align-items: center; font-size: 13px; }
+.ui-bar { display: block; height: 10px; border-radius: 6px; background: var(--accent); }
+.ui-stat { display: inline-flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--r-ctl); background: var(--surface-solid); border: 1px solid var(--border); }
+.ui-stat small { color: var(--dim); }
+.ui-stat strong { font-size: 22px; }
+.ui-delta.up { color: var(--ok); }
+.ui-delta.down { color: var(--bad); }
+.ui-checklist, .ui-timeline { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.ui-checklist li { display: flex; gap: 8px; align-items: center; }
+.ui-checklist .done { text-decoration: line-through; color: var(--dim); }
+.ui-timeline { list-style: none; }
+.ui-timeline li { display: flex; flex-direction: column; border-left: 2px solid var(--accent); padding-left: 10px; }
+.ui-timeline small { color: var(--dim); }
+.ui-note { margin: 0; color: var(--dim); font-size: 12px; }
+
 /* Step 2 gaps: "/" menu, approval edit box, mobile agent chips (shown only on phones). */
 .slash-menu { display: flex; flex-direction: column; gap: 4px; }
 .slash-menu:empty { display: none; }

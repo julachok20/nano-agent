@@ -50,5 +50,5 @@ def page() -> str:
     <span class="brand-mark" title="nano Agent"><img src="/static/mark-n.png" alt="n"></span>
   </div>
 </header>
-<main id="view"></main><nav id="tabs"></nav><script src="/static/subagents.js?v={__version__}"></script><script src="/static/console.js?v={__version__}"></script></body></html>"""
+<main id="view"></main><nav id="tabs"></nav><script src="/static/subagents.js?v={__version__}"></script><script src="/static/uiblocks.js?v={__version__}"></script><script src="/static/console.js?v={__version__}"></script></body></html>"""
 

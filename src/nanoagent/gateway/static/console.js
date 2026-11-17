@@ -469,6 +469,11 @@ function messageBlocks(role, text) {
   String(text || "").split("```").forEach((part, i) => {
     if (i % 2) {
       const nl = part.indexOf("\n"), code = (nl >= 0 ? part.slice(nl + 1) : part).replace(/\n$/, ""), label = nl >= 0 ? part.slice(0, nl).trim() : "";
+      // ```ui fence = generative UI blocks (uiblocks.js). Model answers are untrusted: chart and stat are dropped. Invalid JSON falls back to a code block.
+      if (label === "ui" && window.UIBlocks) {
+        const ans = UIBlocks.parse(code, { trusted: false });
+        if (ans) { wrap.append(UIBlocks.render(ans, { note: lang === "th" ? "บางบล็อกไม่แสดง (ไม่รองรับหรือข้อมูลไม่ถูกต้อง)" : "Some blocks were not shown (unsupported or invalid)." })); return; }
+      }
       wrap.append(h("div", { class: "code-block" },
         h("div", { class: "code-head" }, h("small", { text: label || "code" }),
           h("button", { type: "button", onclick: () => { if (navigator.clipboard) navigator.clipboard.writeText(code); }, text: lang === "th" ? "คัดลอก" : "Copy" })),
