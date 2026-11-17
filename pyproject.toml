@@ -50,7 +50,7 @@ Issues = "https://github.com/julachok20/nano-agent/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-nanoagent = ["locales/*.json", "gateway/static/*", "py.typed"]
+nanoagent = ["constitution.md", "locales/*.json", "gateway/static/*", "py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
