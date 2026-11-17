@@ -375,7 +375,7 @@ async function refreshHome() {
       h("span", { text: a.title }), h("small", { text: a.status === "running" ? Math.round(a.secs) + "s" : a.status }))) : jvEmpty("activity", lang === "th" ? t("work_idle") : "No background work right now."), agentSlots()));
   // Bell dot = real pending approvals (drafts waiting for the owner), nothing else.
   const bell = $("#hdr-notif");
-  if (bell) { const old = bell.querySelector(".notif-dot"); if (old) old.remove(); if (st.drafts > 0 && approvalNoticesOn()) bell.append(h("span", { class: "notif-dot" })); }
+  pendingApprovals = (st.drafts || 0) + (st.capabilities || 0); updateBellDot();
 }
 function draftsPanel(list, after) {
   return panel(t("drafts_title", { n: list.length }), h("p", { class: "dim", text: t("drafts_note") }), ...list.map(d => h("div", { class: "row" },
@@ -430,7 +430,7 @@ function updateBellDot() {
 async function mascotPoll() {
   try {
     const st = await api("/state");
-    bgRunning = (st.running || 0) > 0; pendingApprovals = st.drafts || 0; updateBellDot();
+    bgRunning = (st.running || 0) > 0; pendingApprovals = (st.drafts || 0) + (st.capabilities || 0); updateBellDot();
     if (["idle", "working", "waiting", "sleeping"].includes(mascotState)) {
       const next = mascotIdleState();
       setMascot(next === "idle" && mascotState === "sleeping" ? "sleeping" : next);
@@ -446,6 +446,26 @@ function startMascotClock() {
 // ---------- chats: three panes (agents + conversations | thread | context). Real data only. ----------
 // On this device only: whether the bell shows a dot for waiting approvals. Sends nothing anywhere.
 function approvalNoticesOn() { try { return localStorage.getItem("nano.notify.approvals") !== "off"; } catch (e) { return true; } }
+// Capability card (addendum section 3): what the AI wants, why, and Allow / Deny. Both need the one-time code on this card.
+// The reason is plain text from the model. Allowing records a grant only; no connector call happens in v0.2.
+function capabilityCard(c) {
+  const codeIn = h("input", { class: "cap-code", type: "text", maxlength: 12, autocomplete: "off",
+    placeholder: lang === "th" ? "รหัสครั้งเดียว" : "One-time code", "aria-label": lang === "th" ? "รหัสครั้งเดียว" : "One-time code" });
+  const decide = kind => async () => {
+    const r = await post("/capabilities/" + c.id + "/" + kind, { code: codeIn.value });
+    toast(r.ok ? (kind === "allow" ? (lang === "th" ? "อนุญาตแล้ว" : "Allowed") : (lang === "th" ? "ปฏิเสธแล้ว" : "Denied")) : r.error);
+    vChat();
+  };
+  return h("div", { class: "approval-card capability-card" },
+    h("b", { text: lang === "th" ? "คำขอสิทธิ์ (ยังไม่อนุญาต)" : "Capability request (not allowed yet)" }),
+    h("span", { class: "tag", text: c.connector + " · " + c.scope }),
+    h("p", { class: "approval-text", text: (lang === "th" ? "ต้องการ: " : "Wants: ") + String(c.actions).split(",").join(", ") }),
+    h("p", { class: "approval-text", text: (lang === "th" ? "เหตุผล: " : "Why: ") + c.reason }),
+    h("p", { class: "dim", text: (lang === "th" ? "รหัสของคำขอนี้: " : "Code for this request: ") + c.code }),
+    h("div", { class: "approval-actions" }, codeIn,
+      h("button", { class: "pri", onclick: decide("allow"), text: lang === "th" ? "อนุญาต" : "Allow" }),
+      h("button", { class: "bad", onclick: decide("deny"), text: lang === "th" ? "ปฏิเสธ" : "Deny" })));
+}
 // Approval card: approve and cancel use the existing /drafts routes. Edit changes the pending text only; approval is still needed.
 function approvalCard(d) {
   const body = h("p", { class: "approval-text", text: d.text });
@@ -484,9 +504,9 @@ function messageBlocks(role, text) {
 }
 async function vChat() {
   const v = clear(), serial = viewSerial;
-  const [hist, st, dr] = await Promise.all([api("/history?session=console"), api("/state"), api("/drafts")]);
+  const [hist, st, dr, capRes] = await Promise.all([api("/history?session=console"), api("/state"), api("/drafts"), api("/capabilities")]);
   if (serial !== viewSerial) return;
-  const msgs = hist.messages || [], drafts = dr.drafts || [];
+  const msgs = hist.messages || [], drafts = dr.drafts || [], caps = capRes.pending || [];
   const choices = modelChoices();
   if (!choices.some(([r]) => r === chatRole)) chatRole = choices[0][0];
   const activeModel = () => (choices.find(([r]) => r === chatRole) || choices[0])[1];
@@ -510,6 +530,7 @@ async function vChat() {
   }
   msgs.forEach(m => box.append(messageBlocks(m.role, m.text)));
   drafts.forEach(d => box.append(approvalCard(d)));
+  caps.forEach(c => box.append(capabilityCard(c)));
 
   const send = async () => {
     const text = inp.value.trim(); if (!text) return; inp.value = "";

@@ -22,6 +22,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from .. import (
     __version__,
     activity,
+    capabilities,
     companion,
     config,
     db,
@@ -184,6 +185,7 @@ def create_app() -> FastAPI:
     @api.get("/state")
     async def state():
         return {"running": activity.running_count(), "open_tasks": len(tasks.list_(False)), "drafts": len(drafts.pending()),
+                "capabilities": capabilities.pending_count(),
                 "reminders": len(tasks.list_reminders()), "memory": memory.overview(), "notifications": outbox.feed(5)}
 
     @api.post("/chat")
@@ -281,6 +283,25 @@ def create_app() -> FastAPI:
     async def drafts_edit(did: int, request: Request):
         r = drafts.edit(did, (await _json(request)).get("text", ""))
         return {k: v for k, v in r.items() if k != "code"}
+
+    # capability requests (addendum section 3): the model can request, never grant. Allow and Deny need the card's code.
+    @api.get("/capabilities")
+    async def capabilities_list():
+        return {"pending": capabilities.pending(), "grants": capabilities.grants()}
+
+    @api.post("/capabilities")
+    async def capabilities_request(request: Request):
+        d = await _json(request)
+        r = capabilities.request(d.get("connector", ""), d.get("actions", []), d.get("scope", ""), d.get("reason", ""))
+        return r if r.get("ok") else _bad(r.get("error", "refused"))
+
+    @api.post("/capabilities/{rid}/allow")
+    async def capabilities_allow(rid: int, request: Request):
+        return capabilities.allow(rid, (await _json(request)).get("code", ""))
+
+    @api.post("/capabilities/{rid}/deny")
+    async def capabilities_deny(rid: int, request: Request):
+        return capabilities.deny(rid, (await _json(request)).get("code", ""))
 
     @api.get("/notifications")
     async def notifications():

@@ -40,6 +40,10 @@ CREATE TABLE IF NOT EXISTS patches(id INTEGER PRIMARY KEY, ts REAL, title TEXT, 
   files TEXT DEFAULT '[]', diff TEXT DEFAULT '', test_result TEXT DEFAULT '', code TEXT DEFAULT '', applied_ts REAL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS sandbox_audit(id INTEGER PRIMARY KEY, ts REAL, kind TEXT, target TEXT, decision TEXT,
   reason TEXT DEFAULT '', run_id TEXT DEFAULT '', prev TEXT DEFAULT '', hash TEXT DEFAULT '');
+CREATE TABLE IF NOT EXISTS capability_requests(id INTEGER PRIMARY KEY, ts REAL, connector TEXT, actions TEXT, scope TEXT,
+  reason TEXT, code TEXT DEFAULT '', status TEXT DEFAULT 'pending', decided_ts REAL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS capability_grants(id INTEGER PRIMARY KEY, ts REAL, request_id INTEGER, connector TEXT, actions TEXT,
+  scope TEXT, revoked INTEGER DEFAULT 0);
 CREATE INDEX IF NOT EXISTS ix_messages_session ON messages(session, id);
 CREATE INDEX IF NOT EXISTS ix_activity_ts ON activity(ts);
 CREATE INDEX IF NOT EXISTS ix_project_items_project ON project_items(project_id, id);
