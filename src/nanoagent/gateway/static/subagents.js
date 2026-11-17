@@ -83,6 +83,12 @@
     }).join('');
   }
 
+  function escapeAttribute(value) {
+    return value.replace(/[&<>"']/g, function (char) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[char];
+    });
+  }
+
   // name, status -> standalone <svg> string (viewBox 0 0 100 100, transparent bg)
   function svg(name, status) {
     var d = describe(name, status);
@@ -96,7 +102,7 @@
       // light badge + dark ring + dark letter: reads on both light and dark pages
       '<circle cx="84" cy="16" r="11" fill="#ffffff" stroke="' + INK + '" stroke-width="2"/>' +
       '<text x="84" y="16.5" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="700" font-family="system-ui,sans-serif" fill="' + INK + '">' + d.letter + '</text>';
-    return '<svg class="' + cls + '" viewBox="0 0 100 100" role="img" aria-label="' + label + '" xmlns="http://www.w3.org/2000/svg">' +
+    return '<svg class="' + cls + '" viewBox="0 0 100 100" role="img" aria-label="' + escapeAttribute(label) + '" xmlns="http://www.w3.org/2000/svg">' +
       body + badge + '</svg>';
   }
 

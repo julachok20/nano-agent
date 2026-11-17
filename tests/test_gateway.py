@@ -6,6 +6,8 @@ import hashlib
 import hmac
 import json
 import re
+import shutil
+import subprocess
 from pathlib import Path
 
 import httpx
@@ -111,6 +113,16 @@ def test_console_js_never_uses_dangerous_dom_apis():
     js = (Path(__file__).parents[1] / "src/nanoagent/gateway/static/console.js").read_text(encoding="utf-8")
     for bad in ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "eval(", "new Function"):
         assert bad not in js, f"console.js uses {bad}"
+
+
+def test_subagent_svg_escapes_attribute():
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node is required to exercise the static JavaScript")
+    js = Path(__file__).parents[1] / "src/nanoagent/gateway/static/subagents.js"
+    code = """const s = require(process.argv[1]).svg(`&<>"'`, 'idle');
+if (!s.includes(`aria-label="Sub-agent &amp;&lt;&gt;&quot;&apos;, idle"`)) process.exit(1);"""
+    subprocess.run([node, "-e", code, str(js.resolve())], check=True)
 
 
 # ---------------------------------------------------------------- login
