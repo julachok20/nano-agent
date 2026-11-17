@@ -209,7 +209,7 @@ async function pollPill() {
 
 // ---------- home ----------
 let openerSpoken = false, orbState = "idle", rec = null;
-const setOrb = s => { orbState = s; const o = $("#orb"); if (o) o.dataset.state = s; setMascot(s); };
+const setOrb = s => { orbState = s; const o = $("#orb"); if (o) o.dataset.state = s; setMascot(s === "idle" ? mascotIdleState() : s); };
 function speak(text) {
   return new Promise(async res => {
     setOrb("speaking");
@@ -400,9 +400,13 @@ function parseSvgText(str) { return new DOMParser().parseFromString(str, "image/
 async function loadMascots() {
   if (!MASCOT_TPL) MASCOT_TPL = parseSvgText(await (await fetch("/static/mascot-n.svg")).text());
 }
+// App states that have no art of their own reuse a sample's look: done = happy, error = error (styled in dashboard.css).
+const SVG_STATE = { working: "working", waiting: "waiting", done: "happy", error: "error" };
+let bgRunning = false, pendingApprovals = 0;
+function mascotIdleState() { return pendingApprovals ? "waiting" : bgRunning ? "working" : "idle"; }
 function mascotNode(state) {
   const el = document.importNode(MASCOT_TPL, true);
-  el.setAttribute("class", "mascot-n is-" + state);
+  el.setAttribute("class", "mascot-n is-" + (SVG_STATE[state] || state));
   el.setAttribute("role", "img"); el.setAttribute("aria-label", "nano Agent, " + state);
   return el;
 }
@@ -415,7 +419,19 @@ function setMascot(s) {
   if (!MASCOT_TPL) return;
   document.querySelectorAll("[data-mascot]").forEach(el => el.replaceChildren(mascotNode(s)));
 }
+// Background work and pending approvals drive the idle-side states; the poll never touches thinking, listening, speaking, done or error.
+async function mascotPoll() {
+  try {
+    const st = await api("/state");
+    bgRunning = (st.running || 0) > 0; pendingApprovals = st.drafts || 0;
+    if (["idle", "working", "waiting", "sleeping"].includes(mascotState)) {
+      const next = mascotIdleState();
+      setMascot(next === "idle" && mascotState === "sleeping" ? "sleeping" : next);
+    }
+  } catch (e) { /* login screen or offline: keep the current state */ }
+}
 function startMascotClock() {
+  setInterval(mascotPoll, 5000);
   ["pointerdown", "keydown"].forEach(ev => addEventListener(ev, () => { lastActive = Date.now(); if (mascotState === "sleeping") setMascot("idle"); }));
   setInterval(() => { if (mascotState === "idle" && Date.now() - lastActive > 10 * 60 * 1000) setMascot("sleeping"); }, 60 * 1000);
 }
@@ -481,8 +497,8 @@ async function vChat() {
       box.append(messageBlocks("assistant", r.text || ""));
       (r.tools || []).forEach(x => box.append(h("details", { class: "tool-card" }, h("summary", { text: (lang === "th" ? "ใช้เครื่องมือ: " : "Used tool: ") + x.name }))));
       (r.new_drafts || []).forEach(d => box.append(approvalCard(d)));
-      setMascot("happy"); setTimeout(() => { if (mascotState === "happy") setMascot("idle"); }, 2500);
-    } catch (e) { wait.remove(); setMascot("idle"); }
+      setMascot("done"); setTimeout(() => { if (mascotState === "done") { setMascot("idle"); mascotPoll(); } }, 2500);
+    } catch (e) { wait.remove(); setMascot("error"); setTimeout(() => { if (mascotState === "error") { setMascot("idle"); mascotPoll(); } }, 4000); }
     box.scrollTop = box.scrollHeight;
   };
   inp.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });

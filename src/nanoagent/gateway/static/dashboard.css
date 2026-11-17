@@ -1219,6 +1219,16 @@ html:not([data-theme=light]):not([data-theme=minimal]) .logo-dark-img { display:
   .chat-context { display: none; }
   .chat-thread-pane { min-height: 70vh; }
 }
+/* Mascot states the approved samples do not draw: working (background work), waiting (approval pending), error.
+   done reuses the sample's happy look. Keyframes come from mascot-n.svg; the reduced-motion rule in the page stops all of them. */
+.mascot-n.is-working .n-body { animation: n-bob .9s ease-in-out infinite; }
+.mascot-n.is-working .n-ring { opacity: .45; animation: n-ripple 2.2s ease-out infinite; }
+.mascot-n.is-waiting .n-gaze { animation: n-look 3s ease-in-out infinite; }
+.mascot-n.is-waiting .n-thoughts { opacity: 1; }
+.mascot-n.is-waiting .n-thoughts circle { animation: n-dot 1.4s ease-in-out infinite; }
+.mascot-n.is-error .n-body { animation: m-shake .5s ease-in-out 3; }
+.mascot-n.is-error .n-eye { transform: scaleY(.35); fill: #e11d48; }
+@keyframes m-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 
 /* 3.1 Rail (>=821px): 248px, logo panel top, 9 items, Open Source pill foot. Routes unchanged. */
 @media (min-width: 821px) {
