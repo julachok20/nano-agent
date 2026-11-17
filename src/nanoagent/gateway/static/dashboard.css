@@ -1230,6 +1230,18 @@ html:not([data-theme=light]):not([data-theme=minimal]) .logo-dark-img { display:
 .mascot-n.is-error .n-eye { transform: scaleY(.35); fill: #e11d48; }
 @keyframes m-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
 
+/* Step 2 gaps: "/" menu, approval edit box, mobile agent chips (shown only on phones). */
+.slash-menu { display: flex; flex-direction: column; gap: 4px; }
+.slash-menu:empty { display: none; }
+.slash-item { min-height: 36px; text-align: left; padding: 0 12px; border-radius: var(--r-ctl); background: var(--surface-solid); border: 1px solid var(--border); font-size: 14px; }
+.slash-item:disabled { opacity: .5; cursor: not-allowed; }
+.approval-edit { width: 100%; min-height: 72px; padding: 8px 10px; border-radius: var(--r-ctl); border: 1px solid var(--border); background: var(--surface-solid); color: var(--txt); font: inherit; }
+.agent-chips { display: none; }
+@media (max-width: 820px) {
+  .agent-chips { display: flex; gap: 8px; overflow-x: auto; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .agent-chips .chip { flex: none; }
+}
+
 /* 3.1 Rail (>=821px): 248px, logo panel top, 9 items, Open Source pill foot. Routes unchanged. */
 @media (min-width: 821px) {
   body { grid-template-columns: 248px minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "nav header" "nav main"; }

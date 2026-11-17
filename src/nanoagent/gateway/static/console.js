@@ -375,7 +375,7 @@ async function refreshHome() {
       h("span", { text: a.title }), h("small", { text: a.status === "running" ? Math.round(a.secs) + "s" : a.status }))) : jvEmpty("activity", lang === "th" ? t("work_idle") : "No background work right now."), agentSlots()));
   // Bell dot = real pending approvals (drafts waiting for the owner), nothing else.
   const bell = $("#hdr-notif");
-  if (bell) { const old = bell.querySelector(".notif-dot"); if (old) old.remove(); if (st.drafts > 0) bell.append(h("span", { class: "notif-dot" })); }
+  if (bell) { const old = bell.querySelector(".notif-dot"); if (old) old.remove(); if (st.drafts > 0 && approvalNoticesOn()) bell.append(h("span", { class: "notif-dot" })); }
 }
 function draftsPanel(list, after) {
   return panel(t("drafts_title", { n: list.length }), h("p", { class: "dim", text: t("drafts_note") }), ...list.map(d => h("div", { class: "row" },
@@ -419,11 +419,18 @@ function setMascot(s) {
   if (!MASCOT_TPL) return;
   document.querySelectorAll("[data-mascot]").forEach(el => el.replaceChildren(mascotNode(s)));
 }
+// Bell dot = waiting approvals, shown on every page (updated by the poll), unless the owner switched notices off on this device.
+function updateBellDot() {
+  const bell = $("#hdr-notif");
+  if (!bell) return;
+  const old = bell.querySelector(".notif-dot"); if (old) old.remove();
+  if (pendingApprovals > 0 && approvalNoticesOn()) bell.append(h("span", { class: "notif-dot" }));
+}
 // Background work and pending approvals drive the idle-side states; the poll never touches thinking, listening, speaking, done or error.
 async function mascotPoll() {
   try {
     const st = await api("/state");
-    bgRunning = (st.running || 0) > 0; pendingApprovals = st.drafts || 0;
+    bgRunning = (st.running || 0) > 0; pendingApprovals = st.drafts || 0; updateBellDot();
     if (["idle", "working", "waiting", "sleeping"].includes(mascotState)) {
       const next = mascotIdleState();
       setMascot(next === "idle" && mascotState === "sleeping" ? "sleeping" : next);
@@ -437,13 +444,24 @@ function startMascotClock() {
 }
 
 // ---------- chats: three panes (agents + conversations | thread | context). Real data only. ----------
+// On this device only: whether the bell shows a dot for waiting approvals. Sends nothing anywhere.
+function approvalNoticesOn() { try { return localStorage.getItem("nano.notify.approvals") !== "off"; } catch (e) { return true; } }
+// Approval card: approve and cancel use the existing /drafts routes. Edit changes the pending text only; approval is still needed.
 function approvalCard(d) {
+  const body = h("p", { class: "approval-text", text: d.text });
+  const editBox = h("textarea", { class: "approval-edit", rows: 3, "aria-label": lang === "th" ? "แก้ข้อความที่รออนุมัติ" : "Edit the waiting message", hidden: true });
+  editBox.value = d.text;
+  const saveBtn = h("button", { class: "pri", hidden: true, text: lang === "th" ? "บันทึก" : "Save", onclick: async () => {
+    const r = await post("/drafts/" + d.id + "/edit", { text: editBox.value }); toast(r.ok ? t("saved") : r.error); vChat(); } });
+  const editBtn = h("button", { onclick: () => { const on = editBox.hidden; editBox.hidden = !on; saveBtn.hidden = !on; body.hidden = on; editBtn.textContent = on ? (lang === "th" ? "ยกเลิก" : "Cancel edit") : (lang === "th" ? "แก้ไข" : "Edit"); },
+    text: lang === "th" ? "แก้ไข" : "Edit" });
   return h("div", { class: "approval-card" },
     h("b", { text: lang === "th" ? "รออนุมัติ" : "Approval needed" }),
     h("span", { class: "tag", text: d.channel + " → " + d.target }),
-    h("p", { class: "approval-text", text: d.text }),
+    body, editBox,
     h("div", { class: "approval-actions" },
       h("button", { class: "pri", onclick: async () => { const r = await post("/drafts/" + d.id + "/approve"); toast(r.ok ? t("drafts_sent") : r.error); vChat(); }, text: t("approve_send") }),
+      editBtn, saveBtn,
       h("button", { class: "bad", onclick: async () => { await post("/drafts/" + d.id + "/cancel"); vChat(); }, text: t("cancel") })));
 }
 function messageBlocks(role, text) {
@@ -473,6 +491,8 @@ async function vChat() {
   const convTitle = first ? first.text.slice(0, 48) : (lang === "th" ? "การสนทนากับหลัก" : "Conversation with Main");
   const matches = !filter || convTitle.toLowerCase().includes(filter) || (last && last.text.toLowerCase().includes(filter));
   const openThread = () => { sub.chatView = "thread"; vChat(); };
+  const kind = sub.chatKind || "all";
+  const showConv = kind !== "pinned" && msgs.length > 0 && matches;
 
   const inp = h("textarea", { placeholder: t("chat_placeholder"), rows: 2, "aria-label": t("chat_placeholder") });
   if (sub.chatDraft) { inp.value = sub.chatDraft; delete sub.chatDraft; }
@@ -502,6 +522,20 @@ async function vChat() {
     box.scrollTop = box.scrollHeight;
   };
   inp.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+  // "/" menu: typed at the start of the composer. Each command does a real app action or is marked not available.
+  const SLASH = [["/new", lang === "th" ? "แชทใหม่ (ยังไม่พร้อม)" : "New chat (not available yet)", null],
+    ["/model", lang === "th" ? "เปลี่ยนโมเดล" : "Change model", () => modelSelect.focus()],
+    ["/memory", lang === "th" ? "เปิดความจำ" : "Open memory", () => go("customization")],
+    ["/tasks", lang === "th" ? "เปิดงาน" : "Open tasks", () => go("manage")]];
+  const slash = h("div", { class: "slash-menu", role: "listbox" });
+  const renderSlash = () => {
+    const q = inp.value.trim().toLowerCase();
+    if (!inp.value.startsWith("/")) { slash.replaceChildren(); return; }
+    const hits = SLASH.filter(([c]) => c.startsWith(q.split(" ")[0]));
+    slash.replaceChildren(...hits.map(([c, label, fn]) => h("button", { class: "slash-item", type: "button", disabled: !fn, role: "option",
+      onclick: () => { inp.value = ""; slash.replaceChildren(); if (fn) fn(); }, text: c + " · " + label })));
+  };
+  inp.addEventListener("input", renderSlash);
 
   const subRow = i => h("div", { class: "agent-row dim", "aria-disabled": "true" }, h("span", { class: "agent-av" }, subSlotNode()),
     h("span", { class: "grow", text: (lang === "th" ? "ช่องซับเอเจนต์ " : "Sub-agent slot ") + (i + 1) }), h("small", { text: lang === "th" ? "ยังไม่ได้ตั้งค่า" : "Not set up" }));
@@ -519,10 +553,15 @@ async function vChat() {
       h("button", { class: "agent-row on", onclick: openThread }, h("span", { class: "agent-av", "data-mascot": "main" }), h("span", { class: "grow", text: "Main" }), h("small", { text: lang === "th" ? "พร้อม" : "Ready" })),
       subRow(0), subRow(1), subRow(2),
       h("h5", { text: lang === "th" ? "การสนทนา" : "Conversations" }),
-      msgs.length && matches
+      chips([["all", lang === "th" ? "ทั้งหมด" : "All"], ["pinned", lang === "th" ? "ปักหมุด" : "Pinned"], ["main", "Main"]], kind, k => { sub.chatKind = k; vChat(); }),
+      showConv
         ? h("button", { class: "conv-row on", onclick: openThread }, h("b", { text: convTitle }), h("small", { text: last ? last.text.slice(0, 70) : "" }))
-        : h("p", { class: "dim", text: msgs.length ? (lang === "th" ? "ไม่มีแชทที่ตรงกัน" : "No chats match") : (lang === "th" ? "ยังไม่มีแชท" : "No chats yet") })),
+        : h("p", { class: "dim", text: kind === "pinned" ? (lang === "th" ? "ยังไม่มีแชทที่ปักหมุด (การปักหมุดยังไม่พร้อมใช้งาน)" : "No pinned chats. Pinning is not available yet.")
+          : msgs.length ? (lang === "th" ? "ไม่มีแชทที่ตรงกัน" : "No chats match") : (lang === "th" ? "ยังไม่มีแชท" : "No chats yet") })),
     h("section", { class: "chat-thread-pane" },
+      h("div", { class: "agent-chips", role: "tablist", "aria-label": lang === "th" ? "เอเจนต์" : "Agents" },
+        h("button", { class: "chip on", role: "tab", "aria-selected": "true", onclick: openThread, text: "Main" }),
+        [1, 2, 3].map(i => h("button", { class: "chip", role: "tab", "aria-selected": "false", disabled: true, title: lang === "th" ? "ยังไม่ได้ตั้งค่า" : "Not set up", text: (lang === "th" ? "ช่อง " : "Slot ") + i }))),
       h("header", { class: "chat-head" },
         h("button", { class: "chat-back", "aria-label": lang === "th" ? "กลับ" : "Back", onclick: () => { sub.chatView = "list"; vChat(); } }, ico("chev")),
         h("span", { class: "chat-av", "data-mascot": "main" }),
@@ -530,7 +569,7 @@ async function vChat() {
         h("div", { class: "chat-head-controls" }, modelSelect,
           h("button", { class: "ctx-toggle", "aria-pressed": showCtx ? "true" : "false", onclick: () => { sub.chatContext = !showCtx; vChat(); }, text: lang === "th" ? "รายละเอียด" : "Details" }))),
       box,
-      h("div", { class: "chat-composer" }, inp, h("div", { class: "chat-composer-bottom" },
+      h("div", { class: "chat-composer" }, slash, inp, h("div", { class: "chat-composer-bottom" },
         h("small", { text: lang === "th" ? "Enter เพื่อส่ง · Shift+Enter ขึ้นบรรทัดใหม่" : "Enter to send · Shift+Enter for a new line" }),
         h("span", { class: "composer-tools" },
           h("button", { type: "button", disabled: true, title: lang === "th" ? "ยังไม่พร้อมใช้งาน" : "Not available yet", "aria-label": lang === "th" ? "แนบไฟล์ (ยังไม่พร้อม)" : "Attach (not available yet)" }, ico("plus")),
@@ -803,11 +842,14 @@ async function vWork() {
     frequency.addEventListener("change", () => { day.hidden = frequency.value !== "weekly"; }); day.hidden = true;
     const scheduleText = x => x.schedule.daily ? (lang === "th" ? "ทุกวัน " : "Daily ") + x.schedule.daily : x.schedule.weekly ? x.schedule.weekly : JSON.stringify(x.schedule);
     v.append(h("div", { class: "page-summary" }, h("strong", { text: String(a.items.filter(x => x.enabled).length) }), h("span", { text: lang === "th" ? "ระบบที่เปิดอยู่" : "active automations" }),
-      h("strong", { text: String(a.items.length) }), h("span", { text: lang === "th" ? "ทั้งหมด" : "total" })),
+      h("strong", { text: String(a.items.length) }), h("span", { text: lang === "th" ? "ทั้งหมด" : "total" }),
+      h("button", { class: "pri", onclick: () => { nm.focus(); nm.scrollIntoView({ block: "center" }); }, text: lang === "th" ? "สร้างระบบอัตโนมัติใหม่" : "New automation" })),
       panel(t("auto_title"), a.items.length ? a.items.map(x => h("div", { class: "row" }, h("span", { class: "tag " + (x.enabled ? "ok" : ""), text: x.enabled ? t("on") : t("off") }),
       h("span", { class: "grow" }, h("b", { text: x.name }), h("div", { class: "dim", text: scheduleText(x) + (x.next_run && x.enabled ? " · Next " + when(x.next_run) : "") + (x.last_status ? " · " + x.last_status : "") })),
       h("button", { onclick: async () => { await post("/automations/" + x.id + "/toggle", { enabled: !x.enabled }); vWork(); }, text: x.enabled ? t("pause") : t("resume") }), h("button", { onclick: async () => { const r = await post("/automations/" + x.id + "/run"); toast(r.status || r.error); }, text: t("run_now") }),
-      x.builtin ? null : h("button", { class: "bad", onclick: async () => { if (confirm(lang === "th" ? "ลบระบบนี้?" : "Delete this automation?")) { await del("/automations/" + x.id); vWork(); } }, text: t("delete") }))) : h("p", { class: "dim", text: lang === "th" ? "ยังไม่มีระบบอัตโนมัติ" : "No automations yet." })),
+      x.builtin ? null : h("button", { class: "bad", onclick: async () => { if (confirm(lang === "th" ? "ลบระบบนี้?" : "Delete this automation?")) { await del("/automations/" + x.id); vWork(); } }, text: t("delete") }))) : h("div", { class: "jv-empty-box" }, ico("skills", "ico ico-lg"),
+        h("p", { class: "jv-note", text: lang === "th" ? "ยังไม่มีระบบอัตโนมัติ สร้างหนึ่งรายการเพื่อให้ทำงานตามเวลาที่ตั้งไว้" : "No automations yet. Create one to run a prompt on a schedule." }),
+        h("button", { class: "pri", onclick: () => { nm.focus(); nm.scrollIntoView({ block: "center" }); }, text: lang === "th" ? "สร้างระบบอัตโนมัติใหม่" : "New automation" }))),
       panel(t("auto_new"), template, nm, pr, h("div", { class: "auto-schedule" }, frequency, day, at),
         h("p", { class: "dim", text: lang === "th" ? "ระบบจะทำงานตามเวลาในเขตเวลาที่ตั้งไว้" : "Runs in your configured time zone." }),
         h("button", { class: "pri", onclick: async () => { const schedule = frequency.value === "weekly" ? { weekly: `${day.value} ${at.value}` } : { daily: at.value }; const r = await act("/automations", { name: nm.value, prompt: pr.value, schedule }); if (r.ok) vWork(); }, text: t("add") }))); }
@@ -927,6 +969,12 @@ async function vSettings() {
   appearancePanel(v);
   v.append(panel(t("settings_title"), field(t("set_name"), name), field(t("set_tz"), tz), field(t("set_lang"), lg),
     h("p", null, h("button", { class: "pri", onclick: async () => { const r = await act("/settings", { owner_name: name.value, timezone: tz.value, language: lg.value }); if (r.ok) { toast(t("saved")); boot(); } }, text: t("save") }))));
+  v.append(panel(lang === "th" ? "การแจ้งเตือน" : "Notifications",
+    h("label", { class: "pref-row" },
+      h("input", { type: "checkbox", role: "switch", ...(approvalNoticesOn() ? { checked: true } : {}), onchange: e => { try { localStorage.setItem("nano.notify.approvals", e.target.checked ? "on" : "off"); } catch (x) {} updateBellDot(); } }),
+      h("span", { text: lang === "th" ? "แสดงจุดแจ้งเตือนเมื่อมีรายการรออนุมัติ (บนเครื่องนี้)" : "Show the bell dot when approvals are waiting (this device only)" })),
+    h("p", { class: "dim", text: lang === "th" ? "ตอนนี้ไม่มีการส่งการแจ้งเตือนไปยังอุปกรณ์อื่น อีเมล หรือ LINE" : "No push, email or LINE notices are sent yet. This only controls the in-app dot." }),
+    h("p", null, h("a", { href: "https://github.com/julachok20/nano-agent", target: "_blank", rel: "noopener noreferrer", text: lang === "th" ? "ที่เก็บโค้ด (Open Source)" : "Open Source repository" }))));
   v.append(panel(t("about_title"), h("p", { class: "dim", text: `nano Agent ${ME.version} · ${t("model_label")}: ${ME.model || "-"}` }), h("p", null, h("button", { onclick: async () => { await post("/logout"); showLogin(); }, text: t("logout") }))));
 }
 
