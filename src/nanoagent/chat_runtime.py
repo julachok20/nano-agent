@@ -36,7 +36,7 @@ def build_prompt(conn, agent_id, *, recent_limit=20):
     if agent is None:
         raise ValueError('unknown agent')
     rules = system_rules()
-    permissions = json.loads(agent[4])
+    permissions = json.loads(agent['permissions_json'])
     prompt = [{'role': 'system', 'content': rules}]
     persona = conn.execute(
         'SELECT p.system_text FROM chat_personas p JOIN chat_agents a ON a.persona_id=p.id WHERE a.id=?',
@@ -48,10 +48,10 @@ def build_prompt(conn, agent_id, *, recent_limit=20):
         profile = conn.execute('SELECT data_json FROM chat_owner_profile WHERE id=1').fetchone()
         if profile:
             prompt.append({'role': 'system', 'content': 'Owner profile (read-only):\n' + profile[0]})
-    messages = [row for row in chatstore.list_messages(conn, agent_id) if row[11] is None and row[7] is not None]
+    messages = [row for row in chatstore.list_messages(conn, agent_id) if row['deleted_at'] is None and row['text'] is not None]
     boundary = secrets.token_hex(16)
     for row in (messages[-recent_limit:] if recent_limit else []):
-        prompt.append({'role': 'user', 'content': _wrap(row[7], boundary)})
+        prompt.append({'role': 'user', 'content': _wrap(row['text'], boundary)})
     return prompt
 
 
