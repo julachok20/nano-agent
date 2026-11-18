@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from typing import Any, Iterator
 
 from . import paths
+from .chatstore import SCHEMA as CHAT_SCHEMA
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT);
@@ -48,6 +49,8 @@ CREATE INDEX IF NOT EXISTS ix_messages_session ON messages(session, id);
 CREATE INDEX IF NOT EXISTS ix_activity_ts ON activity(ts);
 CREATE INDEX IF NOT EXISTS ix_project_items_project ON project_items(project_id, id);
 """
+
+SCHEMA += CHAT_SCHEMA
 
 _initialised: set[str] = set()
 
