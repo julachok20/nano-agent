@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS chat_chats(id INTEGER PRIMARY KEY, channel TEXT NOT N
 CREATE TABLE IF NOT EXISTS chat_personas(id INTEGER PRIMARY KEY, name TEXT NOT NULL, system_text TEXT NOT NULL, tone_defaults_json TEXT NOT NULL DEFAULT '{}', is_template INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS chat_agents(id TEXT PRIMARY KEY, chat_id INTEGER NOT NULL UNIQUE REFERENCES chat_chats(id), status TEXT NOT NULL DEFAULT 'pending', persona_id INTEGER REFERENCES chat_personas(id), permissions_json TEXT NOT NULL DEFAULT '{"read_owner_profile":true,"reply_mode":"draft","learn":false,"use_tools":[],"share_across_chats":false,"push_allowed":false}', model TEXT, context_budget_tokens INTEGER, created_at REAL NOT NULL, archived_at REAL, template_id INTEGER REFERENCES chat_personas(id));
 CREATE TABLE IF NOT EXISTS chat_contacts(id INTEGER PRIMARY KEY, chat_id INTEGER NOT NULL REFERENCES chat_chats(id), external_user_id TEXT, display_name TEXT, is_owner INTEGER NOT NULL DEFAULT 0, consent_state TEXT NOT NULL DEFAULT 'none', first_seen REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS chat_person_profiles(id INTEGER PRIMARY KEY, contact_id INTEGER NOT NULL UNIQUE REFERENCES chat_contacts(id) ON DELETE CASCADE, fields_json TEXT NOT NULL, updated_at REAL NOT NULL);
 CREATE TABLE IF NOT EXISTS chat_messages(id INTEGER PRIMARY KEY, chat_id INTEGER NOT NULL REFERENCES chat_chats(id), contact_id INTEGER REFERENCES chat_contacts(id), direction TEXT NOT NULL CHECK(direction IN ('in','out')), source TEXT NOT NULL CHECK(source IN ('webhook','import','dashboard')), ts REAL NOT NULL, content_type TEXT NOT NULL, text TEXT, raw_ref TEXT, line_message_id TEXT UNIQUE, import_batch_id INTEGER, deleted_at REAL);
 CREATE TABLE IF NOT EXISTS chat_audit_log(id INTEGER PRIMARY KEY, agent_id TEXT NOT NULL, ts REAL NOT NULL, actor TEXT NOT NULL CHECK(actor IN ('owner','system','agent')), action TEXT NOT NULL, target_type TEXT NOT NULL, target_id TEXT NOT NULL, detail_json TEXT NOT NULL DEFAULT '{}');
 CREATE TRIGGER IF NOT EXISTS chat_audit_no_update BEFORE UPDATE ON chat_audit_log BEGIN SELECT RAISE(ABORT, 'audit is append-only'); END;
@@ -28,6 +29,7 @@ def rollback_migration(conn):
     DROP TRIGGER IF EXISTS chat_audit_no_delete;
     DROP TABLE IF EXISTS chat_audit_log;
     DROP TABLE IF EXISTS chat_messages;
+    DROP TABLE IF EXISTS chat_person_profiles;
     DROP TABLE IF EXISTS chat_contacts;
     DROP TABLE IF EXISTS chat_agents;
     DROP TABLE IF EXISTS chat_personas;
@@ -144,6 +146,7 @@ def delete_chat(conn, agent_id, *, confirm):
         if 'chat_outbox' in tables:
             conn.execute('DELETE FROM chat_outbox WHERE agent_id=?', (agent_id,))
         conn.execute('DELETE FROM chat_messages WHERE chat_id=?', (chat_id,))
+        conn.execute('DELETE FROM chat_person_profiles WHERE contact_id IN (SELECT id FROM chat_contacts WHERE chat_id=?)', (chat_id,))
         conn.execute('DELETE FROM chat_contacts WHERE chat_id=?', (chat_id,))
         conn.execute('DELETE FROM chat_agents WHERE id=?', (agent_id,))
         conn.execute('DELETE FROM chat_chats WHERE id=?', (chat_id,))
@@ -157,3 +160,49 @@ def set_owner_profile(conn, data):
     with _write(conn):
         conn.execute('INSERT INTO chat_owner_profile(id,data_json,updated_at,version) VALUES(1,?,?,1) ON CONFLICT(id) DO UPDATE SET data_json=excluded.data_json,updated_at=excluded.updated_at,version=chat_owner_profile.version+1', (json.dumps(data), time.time()))
         _audit(conn, 'owner', 'update', 'owner_profile', '1', 'owner')
+
+
+PROFILE_FIELDS = {'display_name', 'relationship', 'language', 'tone', 'topics', 'preferred_reply_style', 'notes', 'never_mention'}
+
+def get_person_profile(conn, agent_id, contact_id):
+    row = conn.execute("SELECT p.contact_id,p.fields_json,p.updated_at FROM chat_person_profiles p JOIN chat_contacts c ON c.id=p.contact_id JOIN chat_agents a ON a.chat_id=c.chat_id WHERE a.id=? AND c.id=?", (agent_id, contact_id)).fetchone()
+    if row is None:
+        return None
+    return {'contact_id': row[0], 'fields': json.loads(row[1]), 'updated_at': row[2]}
+
+def set_person_profile(conn, agent_id, contact_id, fields):
+    if not fields or not fields.keys() <= PROFILE_FIELDS:
+        raise ValueError('invalid profile fields')
+    for key, value in fields.items():
+        if key in ('topics', 'never_mention'):
+            if not isinstance(value, list) or any(not isinstance(item, str) or not item.strip() for item in value):
+                raise ValueError('invalid profile list')
+        elif not isinstance(value, str):
+            raise ValueError('invalid profile field')
+    with _write(conn):
+        if get_contact(conn, agent_id, contact_id) is None:
+            raise ValueError('contact does not belong to agent')
+        existing = get_person_profile(conn, agent_id, contact_id)
+        values = existing['fields'] if existing else {}
+        values.update({key: {'value': value, 'source': 'owner'} for key, value in fields.items()})
+        conn.execute('INSERT INTO chat_person_profiles(contact_id,fields_json,updated_at) VALUES(?,?,?) ON CONFLICT(contact_id) DO UPDATE SET fields_json=excluded.fields_json,updated_at=excluded.updated_at', (contact_id, json.dumps(values, ensure_ascii=False), time.time()))
+        _audit(conn, agent_id, 'update', 'person_profile', contact_id, 'owner')
+    return get_person_profile(conn, agent_id, contact_id)
+
+def delete_person_profile(conn, agent_id, contact_id):
+    with _write(conn):
+        cursor = conn.execute('DELETE FROM chat_person_profiles WHERE contact_id=? AND contact_id IN (SELECT c.id FROM chat_contacts c JOIN chat_agents a ON a.chat_id=c.chat_id WHERE a.id=?)', (contact_id, agent_id))
+        if cursor.rowcount:
+            _audit(conn, agent_id, 'delete', 'person_profile', contact_id, 'owner')
+        return bool(cursor.rowcount)
+
+def list_person_profiles(conn, agent_id, *, relevant_only=False):
+    # Group prompts only include speakers seen in this chat, most recent first.
+    rows = conn.execute("""SELECT p.contact_id, ch.kind,
+        (SELECT MAX(m.id) FROM chat_messages m WHERE m.contact_id=c.id AND m.chat_id=c.chat_id AND m.direction='in' AND m.deleted_at IS NULL) AS last_spoke
+        FROM chat_person_profiles p JOIN chat_contacts c ON c.id=p.contact_id
+        JOIN chat_agents a ON a.chat_id=c.chat_id JOIN chat_chats ch ON ch.id=c.chat_id
+        WHERE a.id=? AND c.is_owner=0 ORDER BY last_spoke DESC, c.id DESC""", (agent_id,)).fetchall()
+    if relevant_only:
+        rows = [row for row in rows if row[1] not in ('group', 'room') or row[2] is not None][:5]
+    return [get_person_profile(conn, agent_id, row[0]) for row in rows]

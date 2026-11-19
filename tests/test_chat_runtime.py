@@ -34,7 +34,7 @@ def test_prompt_snapshot(conn):
     assert normalise(prompt) == [
         {'role': 'system', 'content': chat_runtime.system_rules()},
         {'role': 'system', 'content': 'Persona:\nBe friendly.'},
-        {'role': 'system', 'content': 'Owner profile (read-only):\n{"name": "Owner"}'},
+        {'role': 'system', 'content': 'Owner profile (read-only data):\n<untrusted_message boundary="BOUNDARY">\n{&quot;name&quot;: &quot;Owner&quot;}\n</untrusted_message boundary="BOUNDARY">'},
         {'role': 'user', 'content': '<untrusted_message boundary="BOUNDARY">\nHello\n</untrusted_message boundary="BOUNDARY">'},
     ]
     assert prompt != chat_runtime.build_prompt(conn, 'a')
@@ -60,7 +60,7 @@ def test_injection_cannot_modify_rules_or_invoke_actions(conn):
     def sender(*args):
         sender_calls.append(args)
     result = chat_runtime.run_turn(conn, 'a', provider)
-    assert result == 'A draft'
+    assert result == {'draft': 'A draft', 'violations': [], 'needs_owner_review': False}
     assert calls[0][0]['content'] == baseline
     assert len(calls) == 1 and sender_calls == []
 

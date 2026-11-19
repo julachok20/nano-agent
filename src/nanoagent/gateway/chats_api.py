@@ -150,3 +150,34 @@ def put_owner_profile(data: dict):
 def audit(target: str):
     with db.tx() as conn:
         return {'rows': [dict(r) for r in chatstore.list_audit(conn, target)]}
+
+
+@router.get('/contacts/{contact_id}/profile')
+def get_person_profile(contact_id: int, agent_id: str):
+    with db.tx() as conn:
+        if chatstore.get_contact(conn, agent_id, contact_id) is None:
+            raise HTTPException(404, 'contact not found')
+        profile = chatstore.get_person_profile(conn, agent_id, contact_id)
+        if profile is None:
+            raise HTTPException(404, 'profile not found')
+        return profile
+
+
+@router.put('/contacts/{contact_id}/profile')
+@router.patch('/contacts/{contact_id}/profile')
+def put_person_profile(contact_id: int, agent_id: str, data: dict):
+    with db.tx() as conn:
+        if chatstore.get_contact(conn, agent_id, contact_id) is None:
+            raise HTTPException(404, 'contact not found')
+        try:
+            return chatstore.set_person_profile(conn, agent_id, contact_id, data)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc))
+
+
+@router.delete('/contacts/{contact_id}/profile')
+def delete_person_profile(contact_id: int, agent_id: str):
+    with db.tx() as conn:
+        if not chatstore.delete_person_profile(conn, agent_id, contact_id):
+            raise HTTPException(404, 'profile not found')
+    return {'ok': True}
