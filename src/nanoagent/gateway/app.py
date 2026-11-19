@@ -504,6 +504,8 @@ def create_app() -> FastAPI:
     app.include_router(api)
     from .sandbox_api import router as sandbox_router  # N8 to N10: owner-only like every other private route
     app.include_router(sandbox_router, prefix="/api", dependencies=[Depends(auth.require_owner)])
+    from .chats_api import router as chats_router
+    app.include_router(chats_router, prefix="/api", dependencies=[Depends(auth.require_owner)])
     return app
 
 

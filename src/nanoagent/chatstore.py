@@ -127,3 +127,33 @@ def delete_message(conn, agent_id, message_id, *, actor='owner'):
 
 def list_audit(conn, agent_id):
     return conn.execute('SELECT * FROM chat_audit_log WHERE agent_id=? ORDER BY id', (agent_id,)).fetchall()
+
+
+def delete_chat(conn, agent_id, *, confirm):
+    """Erase a chat and its audit history atomically, retaining only a tombstone."""
+    with _write(conn):
+        row = conn.execute('SELECT c.id,c.display_name FROM chat_chats c JOIN chat_agents a ON a.chat_id=c.id WHERE a.id=?', (agent_id,)).fetchone()
+        if row is None:
+            raise ValueError('unknown agent')
+        chat_id, name = row
+        if confirm != name or not name:
+            raise ValueError('confirmation does not match chat name')
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if 'chat_consents' in tables:
+            conn.execute('DELETE FROM chat_consents WHERE contact_id IN (SELECT id FROM chat_contacts WHERE chat_id=?)', (chat_id,))
+        if 'chat_outbox' in tables:
+            conn.execute('DELETE FROM chat_outbox WHERE agent_id=?', (agent_id,))
+        conn.execute('DELETE FROM chat_messages WHERE chat_id=?', (chat_id,))
+        conn.execute('DELETE FROM chat_contacts WHERE chat_id=?', (chat_id,))
+        conn.execute('DELETE FROM chat_agents WHERE id=?', (agent_id,))
+        conn.execute('DELETE FROM chat_chats WHERE id=?', (chat_id,))
+        conn.execute('DROP TRIGGER chat_audit_no_delete')
+        conn.execute('DELETE FROM chat_audit_log WHERE agent_id=?', (agent_id,))
+        conn.execute("CREATE TRIGGER chat_audit_no_delete BEFORE DELETE ON chat_audit_log BEGIN SELECT RAISE(ABORT, 'audit is append-only'); END")
+        _audit(conn, agent_id, 'delete', 'chat', chat_id, 'owner')
+
+
+def set_owner_profile(conn, data):
+    with _write(conn):
+        conn.execute('INSERT INTO chat_owner_profile(id,data_json,updated_at,version) VALUES(1,?,?,1) ON CONFLICT(id) DO UPDATE SET data_json=excluded.data_json,updated_at=excluded.updated_at,version=chat_owner_profile.version+1', (json.dumps(data), time.time()))
+        _audit(conn, 'owner', 'update', 'owner_profile', '1', 'owner')
